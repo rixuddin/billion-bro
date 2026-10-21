@@ -264,6 +264,22 @@ button.rrow:active{transform:scale(.99)}
 
 /* Nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:26;background:var(--surface);box-shadow:0 -6px 24px rgba(29,38,80,.1);padding:0 max(8px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(8px,env(safe-area-inset-left,0px))}
+.nwdelta{display:inline-block;margin-top:3px;font-size:12px;font-weight:900;padding:3px 9px;border-radius:99px;background:var(--surface);box-shadow:var(--shadow)}
+.nwdelta.down{color:var(--loss)}
+.bzrow,.bztype,.bzup{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--surface);box-shadow:var(--shadow);text-align:left;width:100%}
+.bztype,.bzup{background:var(--surface2);box-shadow:none}
+.bzup{grid-template-columns:minmax(0,1fr) auto;font-weight:800}
+.bzup.own{opacity:.6}.bzup.lock,.bztype.lock{opacity:.55}
+.bzrow small,.bztype small,.bzup small{display:block;font-size:12px;color:var(--muted);font-weight:700;margin-top:2px}
+.bzright{text-align:right}.bzright small{display:block;font-size:12px;color:var(--muted)}
+.bzbadge{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:14px;flex:none}
+.bzpick{display:grid;gap:8px;max-height:52vh;overflow:auto;margin:10px 0}
+.bzlev .seg{margin-top:6px}.bzlev small{font-size:12px;text-align:right}
+.bzgoal{display:flex;gap:8px;font-weight:800;font-size:14px;color:var(--muted)}.bzgoal.done{color:var(--cash)}
+.bzspark{width:100%;height:46px;display:block;margin-top:6px}
+.bzidea{background:linear-gradient(135deg,#FFF4D6,#FFFFFF)}
+.ugcard{background:linear-gradient(135deg,#2A2F45,#3A3F55);color:#F2F4FA}.ugcard .muted,.ugcard small{color:#B9C0D4}.ugcard .btn{background:#4A5068;color:#fff}
+.chip:disabled{opacity:.5}
 .nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;align-items:center}
 .tab{display:grid;justify-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);padding:6px 0;position:relative}
 .tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -457,6 +473,7 @@ const UI_ICONS={
  travel:'<path d="M5 17h14V8a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3z"/><path d="M5 12h14M8 20v-3M16 20v-3"/><circle cx="8.5" cy="14.5" r=".8"/><circle cx="15.5" cy="14.5" r=".8"/>',
  bank:'<path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>',
  bet:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
+ biz:'<path d="M4 21V9l5-3v15M9 21V4l11 5v12M2 21h20"/><path d="M13 11h3M13 15h3"/>',
  pin:'<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/>',
  cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
  home:'<path d="M4 11l8-7 8 7v9H4z"/><path d="M10 20v-5h4v5"/>',
@@ -1147,7 +1164,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'stocks'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1337,7 +1354,7 @@ const shortLiab=()=>Object.entries(S.shorts).reduce((a,[k,h])=>a+h.n*ST(k).p,0);
 const commission=()=>({easy:.002,normal:.002,hard:.004,realistic:.006}[S.diff]);
 const canShort=()=>S.tier>=2;
 const shortRoom=()=>Math.max(0,netWorth()*.3-shortLiab());
-const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal();
+const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal()+bizValue();
 const netWorth=()=>S.cash+assetsNoCash()-S.debt-shortLiab();
 function shock(sector,pct){S.sshock[sector]=(S.sshock[sector]||0)+pct;}
 function shockSym(sym,pct){S.ssym[sym]=(S.ssym[sym]||0)+pct;}
@@ -1476,16 +1493,19 @@ function travel(dest){
  snap();
  if(!stay&&S.freeFare&&ride().mode==='bus')S.freeFare=false;
  if(!stay)S.nx={};
- const recap=[],news={heads:[],personal:[],moves:[]};
- S.lastNw=netWorth();S.rivals.forEach(r=>r.last=r.nw);S.cos.forEach(c=>c.last=c.val);S.startups.forEach(s=>s.last=s.val);
+ const recap=[],news={heads:[],personal:[],moves:[],bz:[]};
+ S.lastNw=netWorth();S.nwParts=nwParts();S.rivals.forEach(r=>r.last=r.nw);S.cos.forEach(c=>c.last=c.val);S.startups.forEach(s=>s.last=s.val);
  const pz=press();PRODUCTS.forEach(p=>{const b=pz.buy[p.id]||1,s=pz.sell[p.id]||1;S.f[S.loc][p.id]=clamp(S.f[S.loc][p.id]*Math.sqrt(b*s),.5,1.9);});S.press={buy:{},sell:{}};
  S.prev=allPrices(S);
  if(!stay){S.cash-=cost;recap.push([`${modeName(from,dest)==='bus'?'Bus ticket':modeName(from,dest)==='flight'?'Flight ticket':modeName(from,dest)==='cargo plane'?'Fuel and airport fees':'Fuel and tolls'}${ferry(from,dest)?' + ferry':''}`,-cost]);}
- let living=0,interest=0,loanInt=0,income=0,loanPay=0,missedNow=0,divs=0,upkeep=0;
- S.tripDest=dest;for(let w=0;w<weeks;w++){const r=tick(w===weeks-1?dest:null,news);living+=r.living;interest+=r.interest;loanInt+=r.loanInt;income+=r.income;loanPay+=r.loanPay;missedNow+=r.missed?1:0;divs+=r.divs;upkeep+=r.upkeep;}
+ let living=0,interest=0,loanInt=0,income=0,loanPay=0,missedNow=0,divs=0,upkeep=0,bizp=0,dirty=0,clean=0;
+ S.tripDest=dest;for(let w=0;w<weeks;w++){const r=tick(w===weeks-1?dest:null,news);living+=r.living;interest+=r.interest;loanInt+=r.loanInt;income+=r.income;loanPay+=r.loanPay;missedNow+=r.missed?1:0;divs+=r.divs;upkeep+=r.upkeep;bizp+=r.bizp;dirty+=r.dirty;clean+=r.clean;}
  S.loc=dest;S.trips++;delete S.tripDest;
  recap.push([`Living costs (${weeks} week${weeks>1?'s':''})`,-living]);
- if(income>=1)recap.push(['Business profits',income]);
+ if(income>=1)recap.push(['Companies you bought',income]);
+ if(S.biz.length)recap.push([bizp>=0?'Your businesses (profit)':'Your businesses (loss)',bizp]);
+ if(clean>=1)recap.push(['Dirty cash cleaned',clean]);
+ S.biz.forEach(b=>{if(b.idea==null||S.week-b.ideaWeek>=2)newIdea(b);});
  if(upkeep>=1)recap.push(['Lifestyle upkeep',-upkeep]);
  if(Math.abs(divs)>=1)recap.push([divs>0?'Stock dividends':'Dividends owed on shorts',divs]);
  if(interest>=1)recap.push(['Savings interest',interest]);
@@ -1508,6 +1528,10 @@ function travel(dest){
  news.personal.forEach(s=>scenes.push(s));
  if(news.moves.length){const m=news.moves.slice(0,3);scenes.push({who:'dex',mood:m[0].ch>0?'happy':'worried',tag:[m[0].ch>0?'t-good':'t-bad','Your stocks'],pages:[m.map(x=>`${x.name} ${x.ch>0?'jumped':'dropped'} ${Math.abs(Math.round(x.ch*100))}%`).join('. ')+'.',`Your stocks are worth ${money(sharesValue())} now. Check the Invest tab if you want to make a move.`]});}
  other.forEach(e=>scenes.push(e));
+ if(news.bz.length)scenes.push({who:'lou',mood:'happy',tag:['t-good','Your businesses'],pages:news.bz.slice(0,4)});
+ bizScenes().forEach(x=>scenes.push(x));
+ {const u=ugScene();if(u)scenes.push(u);}
+ if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
  if(S.trips%2===0)scenes.push(rivalScene());
  if(S.debt>=BANKRUPT*.6)scenes.push({who:'okonkwo',mood:'angry',tag:['t-bad','Bank'],pages:[`You owe us ${money(S.debt)}. That's a dangerous number.`,`If what you owe reaches ${money(BANKRUPT)}, you're bankrupt and out of the bet. Pay it down now.`]});
  else if(S.debt>creditLimit()*.75&&S.debt>200)scenes.push({who:'okonkwo',mood:'worried',tag:['t-bad','Bank'],pages:[`Your loan is ${money(S.debt)} and your limit is ${money(creditLimit())}. That's getting close.`,`Once you're over your limit I can't lend you more, and interest keeps piling on. Please pay some back soon.`]});
@@ -1543,6 +1567,8 @@ function tick(arrive,news){
   else if(!co.listed&&Math.random()<.008){co.owner=null;co.free=S.week-3;}
  });
  S.cash+=income;
+ let bizp=0;S.biz.forEach(b=>{bizp+=bizWeekOne(b,news);});if(bizp>=0)S.cash+=bizp;else payOut(-bizp);
+ const ugr=ugWeek(news);
  // stock market
  let divs=0;{const r0=Math.random();let mf=gauss()*.02+.0005,big=0;if(r0<.008)big=-rnd(.12,.22);else if(r0<.016)big=rnd(.06,.12);mf+=big;
   if(big<0)news.heads.push({h:'Stock market crash',say:`Panic on the stock exchange. The World 500 index dropped about ${Math.round(-big*100)}% this week.`});
@@ -1586,7 +1612,7 @@ function tick(arrive,news){
  if(upkeep>=1)payOut(upkeep);
  (S.rich||[]).forEach(r=>{r.last=r.nw;r.nw*=Math.exp(.0007+.018*gauss());});
  makeDeals(news);
- return {living,interest,loanInt,income,loanPay,missed,divs,upkeep};
+ return {living,interest,loanInt,income,loanPay,missed,divs,upkeep,bizp,dirty:ugr.dirty,clean:ugr.clean};
 }
 function exitStartup(st,mult,news){
  const pay=(S.stakes[st.id]||0)*st.val*mult;st.dead=true;
@@ -1989,6 +2015,486 @@ const PENDING2={
 };
 
 const W=()=>Math.max(0,netWorth());
+/* ===== Event context: amounts tied to what they're about, stories that fit your level ===== */
+const lv=()=>{const w=W();return w<2.5e4?0:w<1e6?1:w<5e7?2:w<1e9?3:4;};
+const L=(...a)=>a[Math.min(lv(),a.length-1)];
+const fleetN=()=>ride().mode==='plane'?Math.max(1,Math.round(cap()/3000)):1;
+const rideDesc=()=>{const r=ride();if(r.mode==='plane'){const n=fleetN();return n>1?`your fleet of ${n} cargo planes`:'your cargo plane';}return 'your '+r.name.toLowerCase();};
+const avgP=()=>PRODUCTS.reduce((a,p)=>a+midPrice(S,S.loc,p.id),0)/PRODUCTS.length;
+const tv=()=>Math.round(Math.max(300,cargoValue(),Math.min(cap()*avgP()*.6,W()*.25+300)));
+const unitsOf=p=>S.inv[p]?S.inv[p].qty:0;
+const hold=()=>used()>0?`${used().toLocaleString()} units of cargo worth about ${money(cargoValue())}`:'an empty hold';
+const R2=x=>Math.max(1,Math.round(x));
+const FIX={
+ /* ---- original events ---- */
+ found:{run:()=>{const a=R2(Math.max(20,W()*rnd(.002,.006)));S.cash+=a;addLog(S,`Unexpected money: ${money(a)}.`,'good');
+  return L({who:'mo',mood:'happy',pages:[`I found an envelope on the bus seat with your name on it. ${money(a)} inside.`,`It must have fallen out of your bag. It's yours.`]},
+   {who:'okonkwo',mood:'happy',pages:[`Good news. A deposit you made months ago never got matched to your account.`,`I've added the ${money(a)} to your balance today.`]},
+   {who:'okonkwo',mood:'happy',pages:[`One of your suppliers paid an invoice twice and told us to keep it as credit.`,`That's ${money(a)} added to your account.`]},
+   {who:'pell',mood:'neutral',pages:[`Reviewing last year's filings, we found you overpaid tax.`,`A refund of ${money(a)} has been sent to your account.`]},
+   {who:'okonkwo',mood:'happy',pages:[`Your accountants found an old account opened for a deal years ago. It was never closed.`,`It's been sitting there earning interest. ${money(a)} moved into your main account.`]});}},
+ gift:{run:()=>{const a=R2(Math.max(120,W()*.01));S.cash+=a;addLog(S,`Gift from Prof. Whitlock: ${money(a)}.`,'good');
+  return {who:'whitlock',mood:'happy',pages:[L(`I heard how the bet is going. Reckless. I admire it.`,`I heard how the bet is going. Reckless. I admire it.`,`The school wants to feature you as a success story. The alumni fund is paying you to speak.`,`The alumni board voted you into the hall of fame. It comes with a grant.`,`The school is naming a building after you. They've sent a thank-you gift.`),`Here's ${money(a)}. Don't do anything I wouldn't do.`]};}},
+ moirajob:{cond:c=>PORTS.includes(c.dest)&&lv()<=1},
+ gus:{cond:c=>!c.stay&&ride().mode==='bus'&&!S.freeFare&&lv()<=1},
+ pick:{cond:()=>S.cash>30,run:()=>{const a=lose(Math.min(S.cash*.12,Math.max(10,W()*.004)));addLog(S,`Stolen: ${money(a)}.`,'bad');
+  return lv()<=1?{who:'brady',mood:'worried',pages:[`Check your wallet. A guy in a red jacket just bumped into you.`,`Yeah, he got you for ${money(a)}. Tip: money in the bank can't be stolen.`]}
+   :{who:'brady',mood:'worried',tag:['t-bad','Fraud'],pages:[`Someone faked an email from your assistant and asked your bank to wire ${money(a)} to a "new supplier".`,`The money's gone before anyone noticed. It happens to big companies all the time.`]};}},
+ screen:{run:()=>{const a=R2(Math.max(80,W()*.0015)*tr().bad);payOut(a);addLog(S,`Repairs: ${money(a)}.`,'bad');
+  return {who:'fran',mood:'worried',pages:L([`Oof. Phone face down on the pavement, huh? That screen is toast.`,`I can fix it for ${money(a)}. Friends and family rate.`],[`Somebody keyed your car in the parking garage. Door to bumper.`,`Fixing it right costs ${money(a)}. Fancy paint isn't cheap.`],[`A burst pipe flooded your office overnight. Desks, laptops, the lot.`,`Cleanup and replacements come to ${money(a)}.`],[`A storm tore the roof off one of your warehouses.`,`Repairs and replacing the damaged stock come to ${money(a)}.`],[`A fire broke out at one of your distribution centers. Nobody was hurt.`,`Rebuilding and replacing equipment costs ${money(a)}.`])};}},
+ breakdown:{run:()=>{const r=ride(),n=r.mode==='plane'?Math.max(1,Math.round(fleetN()*.06)):1,per=Math.max(150,(r.price||7500)*rnd(.03,.06)),a=R2(per*n*tr().bad);payOut(a);addLog(S,`Breakdown repairs: ${money(a)}.`,'bad');
+  return {who:'fran',mood:'neutral',pages:r.mode==='plane'?[`${n>1?`${n} of your ${fleetN()} cargo planes`:'Your cargo plane'} failed a safety check and can't fly until the engines are serviced.`,`Parts and labour come to ${money(a)}${n>1?` (${money(per)} per plane)`:''}.`]:[`Your ${r.name.toLowerCase()} broke down on the highway. Lucky for you, I fix engines too.`,`Total damage: ${money(a)}.`]};}},
+ hot:{cond:()=>cap()-used()>=6&&lv()<=1},
+ lend:{run:()=>{const r=pick(S.rivals),amt=R2(Math.min(S.cash*.4,Math.max(150,W()*.03))),back=R2(amt*1.8);
+  const why=L(`I'm short on rent this month.`,`My landlord is about to kick me out of my shop.`,`I can't make payroll at my company this week.`,`I need a bridge loan to close an acquisition before a rival does.`,`My investment fund needs cash fast to cover a margin call.`);
+  return {who:rivalWho(r),mood:'worried',pages:[`This is awkward. ${why}`,`Can you lend me ${money(amt)}? I'll pay you back ${money(back)} in three weeks. Promise.`],choices:[
+   {label:`Lend ${money(amt)}`,run:()=>{S.cash-=amt;S.pending.push({type:'repay',week:S.week+3,amount:back,who:r.name,chance:r.arch==='crook'?.35:.72});addLog(S,`Lent ${money(amt)} to ${r.name}.`,'');return {who:rivalWho(r),mood:'happy',pages:['You\'re a lifesaver. Three weeks. I swear.']};}},
+   {label:'Sorry, can\'t',run:()=>({who:rivalWho(r),mood:'angry',pages:['Wow. Okay. I\'ll remember that.']})}]};}},
+ dice:{run:()=>{const bet=R2(Math.min(S.cash*.3,Math.max(60,W()*.01)));
+  const where=L(`Step right up. Put down ${money(bet)}, roll a seven, and you double it.`,`Private card game in the back room tonight. Buy-in is ${money(bet)}. Win the hand and you double it.`,`High-roller table at the casino. One hand of blackjack, ${money(bet)} on the line, double or nothing.`,`A billionaire at the yacht club wants a coin toss. ${money(bet)} each. Winner takes all.`,`Two oil barons want to bet on tomorrow's horse race. ${money(bet)} a head, double or nothing.`);
+  return {who:'dimitri',mood:'smug',pages:[where],choices:[
+   {label:`Bet ${money(bet)}`,run:()=>{if(Math.random()<.45){S.cash+=bet;addLog(S,`Won a ${money(bet)} bet.`,'good');return {who:'dimitri',mood:'worried',pages:[`You won ${money(bet)}. Beginner's luck. Take your money and go.`]};}S.cash-=bet;addLog(S,`Lost a ${money(bet)} bet.`,'bad');return {who:'dimitri',mood:'happy',pages:[`You lost ${money(bet)}. The house wins.`]};}},
+   {label:'Walk away',run:()=>({who:'dimitri',mood:'neutral',pages:['Your loss, chicken.']})}]};}},
+ stall:{run:()=>{const f=R2(Math.max(75,W()*.006));
+  const what=L(`One stall left at this weekend's market. It's ${money(f)}.`,`A booth at this week's trade show is free. It costs ${money(f)} to rent.`,`A shopping mall wants a big brand for its holiday pop-up space. ${money(f)} for the month.`,`A world expo has one sponsor pavilion left. ${money(f)} gets your name on it.`,`A global summit is selling naming rights to its main stage. ${money(f)}.`);
+  return {who:'rosa',mood:'happy',pages:[what,`A good run can earn back two or three times what you pay. A bad one, not so much.`],choices:[
+   {label:`Do it (${money(f)})`,run:()=>{S.cash-=f;if(Math.random()<.68){const g=R2(f*rnd(2.2,3.4));S.cash+=g;addLog(S,`Paid ${money(f)} for a sales booth, made ${money(g)}.`,'good');return {who:'rosa',mood:'happy',pages:[`Huge crowds. You paid ${money(f)} and took home ${money(g)}.`]};}const g=R2(f*.4);S.cash+=g;addLog(S,`Sales booth flopped.`,'bad');return {who:'rosa',mood:'worried',pages:[`Quiet turnout. You paid ${money(f)} and only made back ${money(g)}.`]};}},
+   {label:'Skip it',run:()=>({who:'rosa',mood:'neutral',pages:['No problem. Next time!']})}]};}},
+ /* ---- business choices ---- */
+ order:{run:()=>{const y=otherCity();if(!y)return null;const p=heldOf()||pick(PRODUCTS).id,pct=rnd(.38,.5),f=R2(tv()*pct*.15);
+  const who=L('My corner stores','My shops','My supermarket chain','My department stores','My retail group, 4,000 stores worldwide,');
+  return {who:'raj',mood:'happy',pages:[`${who} in ${y.name} can't keep ${nm(p)} in stock. If you bring ${nm(p)} to ${y.name} in the next 3 weeks, I'll pay ${Math.round(pct*100)}% over the market price there.`,`On a full load (about ${money(tv())} of goods) that's roughly ${money(tv()*pct)} extra. I just need a ${money(f)} signing fee to put you on our supplier list.`],choices:[
+   {label:`Sign for ${money(f)}`,go:true,run:()=>{payOut(f);addEff(y.id,p,1+pct,3);addLog(S,`Signed a supply deal: ${nm(p)} pays +${Math.round(pct*100)}% in ${y.name} for 3 weeks.`,'good');return ok('raj',`Signed. Bring ${nm(p)} to ${y.name} within 3 weeks and you'll get ${Math.round(pct*100)}% over market.`);}},
+   {label:'Haggle the fee away',run:()=>{if(Math.random()<.55){addEff(y.id,p,1+pct*.75,3);addLog(S,`Haggled a free supply deal for ${nm(p)} in ${y.name}.`,'good');return ok('raj',`Fine, no fee. But it's ${Math.round(pct*75)}% over market in ${y.name}, not ${Math.round(pct*100)}%.`);}return ok('raj','If you won\'t pay to play, I\'ll find someone who will.','angry');}},
+   {label:'Pass',run:()=>ok('raj','Your call. The offer won\'t come twice.','neutral')}]};}},
+ presale:{run:()=>{const p=pick(PRODUCTS).id,f=R2(tv()*.25*.2);if(S.cash<f)return null;
+  return {who:'sal',mood:'smug',pages:[`I've got a ${L('garage','warehouse','warehouse','port terminal','port terminal')} full of ${nm(p)} I need gone. Pay me ${money(f)} up front and you get 25% off ${nm(p)} in ${C(S.loc).name} for two weeks.`,`On a full load of about ${money(tv())} that saves you around ${money(tv()*.25)}. Buy cheap here, sell high somewhere else.`],choices:[
+   {label:`Pay ${money(f)}`,go:true,run:()=>{S.cash-=f;addEff(S.loc,p,.75,2);addLog(S,`Locked in 25% off ${nm(p)} in ${C(S.loc).name}.`,'good');return ok('sal',`Done. ${P(p).name} is 25% off here for two weeks. Load up.`);}},
+   {label:'Not interested',run:()=>ok('sal','Suit yourself.','neutral')}]};}},
+ insure:{run:()=>{const f=R2(Math.max(20,cargoValue()*.04));
+  return {who:'kim',mood:'happy',pages:[`You're moving ${hold()} with ${rideDesc()}, and none of it is insured.`,`For ${money(f)} I'll cover all of it for 4 weeks. Theft, storms, spoilage, breakage. If anything is lost you get 90% of what you paid back.`],choices:[
+   {label:`Insure for ${money(f)}`,go:true,run:()=>{payOut(f);S.insTo=S.week+4;addLog(S,`Bought cargo insurance until week ${S.insTo}.`,'');return ok('kim',`You're covered until week ${S.insTo}.`);}},
+   {label:'I\'ll take my chances',run:()=>ok('kim','Most people say that right before they call me crying.','neutral')}]};}},
+ spoil:{run:()=>{const p=heldOf(x=>PERISH.includes(x)),it=S.inv[p],val=it.qty*sellP(p),cool=R2(Math.max(10,val*.08));
+  return {who:'lou',mood:'worried',pages:[`Your ${it.qty.toLocaleString()} ${nm(p)} (worth about ${money(val)}) are starting to turn. Another week like this and half of it goes in the bin.`,`Cold storage for all of it costs ${money(cool)}. Or a restaurant group will take the lot right now at 60% of the going rate.`],choices:[
+   {label:`Cold storage (${money(cool)})`,go:true,run:()=>{payOut(cool);addLog(S,`Paid ${money(cool)} to keep your ${nm(p)} cold.`,'');return ok('lou','Chilled and safe. Sell it soon.');}},
+   {label:`Sell all now at 60% (${money(val*.6)})`,run:()=>{const g=sellNow(p,it.qty,sellP(p)*.6,'to a restaurant group');return ok('lou',`Gone. You got ${money(g)} for it.`,'neutral');}},
+   {label:'Risk it',run:()=>{if(Math.random()<.5)return ok('lou','Lucky. It held up.','neutral');const h=hit(p,.5);return {who:'lou',mood:'worried',tag:['t-bad','Spoiled'],pages:[`Bad news. ${h.txt} spoiled.${h.ins}`]};}}]};}},
+ venture:{run:()=>{const r=pick(S.rivals),amt=R2(Math.min(S.cash*.3,Math.max(200,W()*.05))),back=R2(amt*rnd(1.7,2.1));
+  const what=L('chartering a shipping container of electronics from overseas','buying a whole shipping container of electronics from overseas','buying a cargo ship\'s full load of coffee from Brazil','buying three oil tankers\' worth of crude while it\'s cheap','buying a whole country\'s copper output for the next quarter');
+  return {who:rivalWho(r),mood:'smug',pages:[`I'm ${what}. Put in ${money(amt)} and you get ${money(back)} back in two weeks when we sell it.`,`If the deal falls through, you lose what you put in. It hardly ever falls through.`],choices:[
+   {label:`Put in ${money(amt)}`,run:()=>{S.cash-=amt;S.pending.push({type:'venture',week:S.week+2,amount:back,stake:amt,who:r.name,chance:r.arch==='crook'?.35:r.arch==='gambler'?.5:.65});addLog(S,`Put ${money(amt)} into ${r.name}'s deal.`,'');return ok(rivalWho(r),'Partners! See you in two weeks.');}},
+   {label:'Pass',run:()=>ok(rivalWho(r),'More profit for me.','neutral')}]};}},
+ audit:{run:()=>{const f=R2(Math.max(40,W()*.002)),fine=R2(Math.max(170,W()*.01));
+  const what=L('Your trading records are, let\'s say, creative.','Your sales records don\'t match your bank deposits.','Your company\'s tax filings have some big gaps.','The tax office is looking into how your holding companies move money around.','Three countries\' tax offices want to look at how your empire pays tax.');
+  return {who:'pell',mood:'neutral',pages:[`Mr. Pell, tax office. ${what} I'm opening an audit.`,`A good ${L('accountant','accountant','accounting firm','tax law firm','team of tax lawyers')} could sort it out for ${money(f)}. Or take your chances with me. If I find problems, it'll be around ${money(fine)}.`],choices:[
+   {label:`Hire the experts (${money(f)})`,go:true,run:()=>{payOut(f);addLog(S,`Paid ${money(f)} for audit help.`,'');return ok('pell','Everything appears to be in order. How disappointing.','neutral');}},
+   {label:'Take your chances',run:()=>{if(Math.random()<.35-tr().shady*.5){payOut(fine);addLog(S,`Tax audit penalty: ${money(fine)}.`,'bad');return {who:'pell',mood:'angry',tag:['t-bad','Audit'],pages:[`I found ${money(fine)} in unpaid taxes and penalties. Pay up.`]};}return ok('pell','Hmm. Nothing I can prove. This time.','neutral');}}]};}},
+ influencer:{run:()=>{const p=heldOf()||pick(PRODUCTS).id,f=R2(tv()*.35*.18);if(S.cash<f)return null;
+  const who=L('my two million followers','my two million followers','my twenty million followers','a TV ad campaign across the country','a global ad campaign with a movie star');
+  return {who:'zara',mood:'happy',pages:[`I could put your ${nm(p)} in front of ${who}. Everyone in ${C(S.loc).name} will want some by tonight.`,`It costs ${money(f)}. ${P(p).name} would sell for about 35% more here this week. On a full load of about ${money(tv())}, that's around ${money(tv()*.35)} extra.`],choices:[
+   {label:`Pay ${money(f)}`,go:true,run:()=>{S.cash-=f;addEff(S.loc,p,1.35,1);addLog(S,`Paid for a campaign to hype ${nm(p)} in ${C(S.loc).name}.`,'');return ok('zara',`Done! ${P(p).name} sells for 35% more in ${C(S.loc).name} this week.`);}},
+   {label:'No thanks',run:()=>ok('zara','Your loss.','neutral')}]};}},
+ popup:{run:()=>{const p=heldOf(),it=S.inv[p],n=Math.max(1,Math.round(it.qty*.5)),u=sellP(p)*1.5,f=R2(n*u*.18);
+  return {who:'rosa',mood:'happy',pages:[`${L('A shop on the main street','A shop on the main street','A big store in the city\'s best mall','A flagship store on the city\'s most famous avenue','A whole department store floor')} is empty this week. Rent it for ${money(f)} and sell your ${nm(p)} straight to shoppers.`,`You'd move about ${n.toLocaleString()} of them at ${pr(u)} each, around ${money(n*u)} total. That's 50% more than wholesalers pay.`],choices:[
+   {label:`Open the store (${money(f)})`,go:true,run:()=>{payOut(f);const sold=Math.max(1,Math.round(n*rnd(.6,1)));const g=sellNow(p,sold,u,'at a pop-up store');return ok('rosa',`Busy week! You sold ${sold.toLocaleString()} for ${money(g)}.`);}},
+   {label:'Skip it',run:()=>ok('rosa','Maybe next time!','neutral')}]};}},
+ lawsuit:{run:()=>{const p=heldOf()||pick(PRODUCTS).id,v=R2(Math.max(200,tv()*.12)),settle=R2(v*.5),lose=R2(v*1.6);
+  return {who:'dana',mood:'neutral',pages:[`${L('A customer','A shop owner','A retail chain','A national retailer','A multinational retailer')} says a ${money(v)} order of ${nm(p)} you sold them arrived damaged. They're suing.`,`We can settle today for ${money(settle)}. Or go to court: I think we win, but if we lose it's around ${money(lose)}.`],choices:[
+   {label:`Settle (${money(settle)})`,go:true,run:()=>{payOut(settle);addLog(S,`Settled a lawsuit for ${money(settle)}.`,'bad');return ok('dana','Settled. Lesson learned: pack better.','neutral');}},
+   {label:'Fight it in court',run:()=>{S.pending.push({type:'court',week:S.week+2,lose,win:R2(settle*.4)});addLog(S,'Took a lawsuit to court.','');return ok('dana','Bold. We\'ll know in two weeks.','neutral');}}]};}},
+ contract:{cond:()=>S.cash>=200,run:()=>{const p=pick(['bagels','syrup','coffee','rice','tea','choc','oliveoil','spices'].filter(x=>P(x))),up=R2(Math.min(S.cash*.5,Math.max(200,W()*.04))),q=Math.max(10,Math.round(up/Math.max(1,buyP(p)))),pay=R2(up*rnd(.38,.45)),cnt=4;
+  const who=L('the cafeterias in my office buildings','the cafeterias in my office buildings','my supermarket chain','a national grocery chain','a government school-lunch program');
+  return {who:'raj',mood:'happy',pages:[`I need a reliable supplier of ${nm(p)} for ${who}. About ${q.toLocaleString()} units over ${cnt} weeks.`,`You put up ${money(up)} to buy the stock, and I pay you ${money(pay)} a week for ${cnt} weeks. That's ${money(pay*cnt)} back, a ${money(pay*cnt-up)} profit.`],choices:[
+   {label:`Sign (${money(up)} now)`,go:true,run:()=>{S.cash-=up;for(let i=1;i<=cnt;i++)S.pending.push({type:'contract',week:S.week+i,amount:pay,n:i,of:cnt});addLog(S,`Signed a ${cnt}-week ${nm(p)} supply contract.`,'');return ok('raj','Great. First payment next week.');}},
+   {label:'Too slow for me',run:()=>ok('raj','Fair enough. Steady money isn\'t for everyone.','neutral')}]};}},
+ expo:{run:()=>{const y=otherCity();if(!y)return null;const ct=pick(Object.keys(CATS)),f=R2(tv()*.25*.18),ps=PRODUCTS.filter(p=>p.cat===ct);if(!ps.length||S.cash<f)return null;
+  ps.forEach(p=>addEff(y.id,p.id,1.1,2));
+  return {who:'anchor',mood:'happy',pages:[`A huge ${CATS[ct].toLowerCase()} trade expo opens in ${y.name} this week. ${CATS[ct]} prices there are already up 10%.`,`Exhibitors with a ${L('booth','booth','big stand','main-hall stand','headline sponsorship')} do even better. It costs ${money(f)} and pushes your ${CATS[ct].toLowerCase()} prices in ${y.name} up another 25% for two weeks.`],choices:[
+   {label:`Book it (${money(f)})`,run:()=>{S.cash-=f;ps.forEach(p=>addEff(y.id,p.id,1.25,2));addLog(S,`Booked an expo stand in ${y.name}.`,'');return ok('anchor',`See you in ${y.name}! ${CATS[ct]} sells for about 37% more there for two weeks.`);}},
+   {label:'Skip it',go:true,run:()=>ok('anchor','Good to know anyway.','neutral')}]};}},
+ tipoff:{cond:()=>S.cash>=50,run:()=>{const y=otherCity();if(!y)return null;const p=pick(PRODUCTS).id,f=R2(tv()*.6*.06);if(S.cash<f)return null;
+  return {who:'hank',mood:'smug',pages:[`I know a city where ${nm(p)} is about to sell for 60% over normal for two weeks.`,`${money(f)} and I'll tell you which one. On a full load that's about ${money(tv()*.6)} extra. Trust me.`],choices:[
+   {label:`Pay ${money(f)}`,run:()=>{S.cash-=f;if(Math.random()<.7){addEff(y.id,p,1.6,2);addLog(S,`Hank's tip: ${nm(p)} sells high in ${y.name}.`,'');return ok('hank',`${y.name}. Two weeks, tops.`,'smug');}addLog(S,`Paid Hank ${money(f)} for a fake tip.`,'bad');return ok('hank',`Uh... ${y.name}? Okay, I made that up. No refunds.`,'smug');}},
+   {label:'I don\'t trust you',run:()=>ok('hank','Smart. Mostly.','neutral')}]};}},
+ express:{cond:()=>S.cash>=50,run:()=>{const y=otherCity(),base=y?fare(S.loc,y.id):100,f=R2(Math.max(35,base*.8*fleetN()));if(S.cash<f)return null;
+  return {who:'ade',mood:'neutral',pages:[`I run express cargo. For ${money(f)} I'll move ${hold()} on priority routes, so your next trip takes a week less. Never less than one week.`,`Time is money.`],choices:[
+   {label:`Book express (${money(f)})`,run:()=>{S.cash-=f;NX().fast=1;addLog(S,'Booked express shipping for your next trip.','');return ok('ade','Booked. Your next long trip gets a week shorter.');}},
+   {label:'I\'m not in a rush',go:true,run:()=>ok('ade','Suit yourself.','neutral')}]};}},
+ strike:{run:()=>{const f=R2(Math.max(40,fare(S.loc,(otherCity()||{id:S.loc}).id)*.6*fleetN()));
+  return {who:'lou',mood:'worried',pages:[`The dockworkers walked off the job. Nothing is getting loaded around here this week.`,`I can find a private crew to load ${rideDesc()} for ${money(f)}. Otherwise your next trip leaves a week late.`],choices:[
+   {label:`Hire a crew (${money(f)})`,go:true,run:()=>{payOut(f);addLog(S,'Hired a private crew during a dock strike.','');return ok('lou','Done. You\'ll leave on time.');}},
+   {label:'Wait it out',run:()=>{NX().slow=(NX().slow||0)+1;addLog(S,'Dock strike: your next trip takes an extra week.','bad');return ok('lou','Then your next trip takes an extra week.','neutral');}}]};}},
+ shark:{run:()=>{const amt=R2(Math.max(200,W()*.04)),back=R2(amt*1.6),hi=lv()>=2;
+  return {who:'hank',mood:'smug',pages:[hi?`I represent a private lender who doesn't ask questions. Need ${money(amt)} cash today for a deal?`:`Need cash fast? I can give you ${money(amt)} right now. No paperwork.`,`You pay back ${money(back)} in three weeks. That's 60% interest. And you pay it back. Understand?`],choices:[
+   {label:`Borrow ${money(amt)}`,run:()=>{S.cash+=amt;S.pending.push({type:'shark',week:S.week+3,amount:back});addLog(S,`Borrowed ${money(amt)} from Hank's lender. Owe ${money(back)} in 3 weeks.`,'');return ok('hank','Pleasure. See you in three weeks.','smug');}},
+   {label:'No way',go:true,run:()=>ok('hank','Your loss.','neutral')}]};}},
+ gala:{cond:()=>S.cash>=50,run:()=>{const f=R2(Math.max(50,W()*.003));if(S.cash<f)return null;
+  const what=L(`There's a charity gala tonight. Tickets are ${money(f)}.`,`There's a charity gala tonight. A ticket is ${money(f)}.`,`There's a charity gala tonight. A table for your team is ${money(f)}.`,`The city's biggest charity gala wants you as a headline sponsor for ${money(f)}.`,`You've been asked to host this year's world charity gala. Hosting costs ${money(f)}.`);
+  return {who:'whitlock',mood:'smug',pages:[`${what} Every buyer and supplier worth knowing will be there.`,`About 60% of the time someone useful wants to do a deal.`],choices:[
+   {label:`Go (${money(f)})`,run:()=>{S.cash-=f;addLog(S,`Charity gala: ${money(f)}.`,'');if(Math.random()<.6){const y=otherCity(),p=heldOf()||pick(PRODUCTS).id;if(y){addEff(y.id,p,1.4,2);return ok('whitlock',`You charmed a buyer from ${y.name}. They'll pay 40% over market for ${nm(p)} there for two weeks.`);}}return ok('whitlock','Lovely evening. Not much business, sadly.','neutral');}},
+   {label:'Stay in',go:true,run:()=>ok('whitlock','Networking is half the game, you know.','neutral')}]};}},
+ permit:{run:()=>{const f=R2(Math.max(25,W()*.002)*tr().bad);payOut(f);addLog(S,`Permit fine: ${money(f)}.`,'bad');
+  return {who:'brady',mood:'neutral',pages:[L(`Selling on the street without a permit, are we?`,`Your city trading permit expired last month.`,`Your import license for this country lapsed and nobody renewed it.`,`Customs found paperwork errors on shipments across ${rideDesc()}.`,`Regulators found your companies filed late in a dozen countries.`),`That's a ${money(f)} fine. Get your paperwork sorted.`]};}},
+ chargeback:{run:()=>{const p=heldOf()||pick(PRODUCTS).id,f=R2(Math.max(30,tv()*.05)*tr().bad);payOut(f);addLog(S,`A buyer reversed a ${money(f)} payment.`,'bad');
+  return {who:'okonkwo',mood:'worried',pages:[`A buyer who paid you ${money(f)} for ${nm(p)} last month just reversed the payment. They claim the goods never arrived.`,`The bank had to pull the ${money(f)} back out of your account.`]};}},
+ finder:{run:()=>{const a=R2(Math.max(40,W()*.003));S.cash+=a;addLog(S,`Finder's fee: ${money(a)}.`,'good');
+  return {who:'raj',mood:'happy',pages:[L(`You put me in touch with that supplier last month. They worked out great.`,`You put me in touch with that supplier last month. They worked out great.`,`The factory you introduced me to just signed a big contract with us.`,`The company you introduced me to just merged with mine.`,`The deal you set up between my group and that port operator just closed.`),`Here's your ${money(a)} finder's fee. Thanks.`]};}},
+ award:{run:()=>{const a=R2(Math.max(70,W()*.004));S.cash+=a;addLog(S,`Won an award: ${money(a)}.`,'good');
+  return {who:'whitlock',mood:'happy',pages:[`${L('The business school gave you its Young Trader award.','The business school gave you its Young Trader award.','A business magazine named you Entrepreneur of the Year.','You won a global business leadership prize.','You were named the world\'s most influential business person.')} It comes with a ${money(a)} prize.`,`Don't let it go to your head.`]};}},
+ refund:{run:()=>{const a=R2(Math.max(18,W()*.0008));S.cash+=a;addLog(S,`Bank fee refund: ${money(a)}.`,'good');
+  return {who:'okonkwo',mood:'happy',pages:[`We charged you ${L('account','account','business banking','wire transfer','currency exchange')} fees we shouldn't have. Here's ${money(a)} back.`]};}},
+ /* ---- road events ---- */
+ r_storm:{run:c=>{const p=heldOf(x=>FRAGILE.includes(x)),v=unitsOf(p)*sellP(p),f=R2(Math.max(15,v*.04));
+  return {pages:[`Halfway to ${C(c.dest).name}, a storm rolled in. Your ${unitsOf(p).toLocaleString()} ${nm(p)} (worth about ${money(v)}) were rattling around in the back.`,`You could pay ${money(f)} to wait it out and repack everything, or push through and risk breakage.`],choices:[
+   {label:`Wait and repack (${money(f)})`,go:true,run:()=>{payOut(f);return ok('mo','Smart. Everything arrived in one piece.','neutral');}},
+   {label:'Push through',run:()=>{if(Math.random()<.5)return ok('mo','White knuckles the whole way, but nothing broke.','neutral');const h=hit(p,.25);return {who:'mo',mood:'worried',tag:['t-bad','Storm damage'],pages:[`Bad bumps. ${h.txt} broke on the way.${h.ins}`]};}}]};}},
+ r_break:{run:c=>{const r=ride(),n=r.mode==='plane'?Math.max(1,Math.round(fleetN()*.06)):1,per=Math.max(25,(r.price||7500)*.05),f=R2(per*n);
+  return {who:'fran',mood:'worried',pages:[r.mode==='plane'?`${n>1?`${n} of your ${fleetN()} cargo planes have`:'Your cargo plane has'} a warning light on after landing near ${C(c.dest).name}.`:`Your ${r.name.toLowerCase()} started making a terrible noise just outside ${C(c.dest).name}.`,`I can fix it properly for ${money(f)}${n>1?` (${money(per)} a plane)`:''}. Or I patch it for free, but your next trip takes an extra week.`],choices:[
+   {label:`Fix it properly (${money(f)})`,go:true,run:()=>{payOut(f);addLog(S,`Repairs: ${money(f)}.`,'bad');return ok('fran','Good as new.');}},
+   {label:'Patch it (next trip +1 week)',run:()=>{NX().slow=(NX().slow||0)+1;addLog(S,'Patched your ride. Next trip takes an extra week.','bad');return ok('fran','It\'ll get you there. Slowly.','neutral');}}]};}},
+ r_fest:{run:c=>{const p=heldOf(),it=S.inv[p],n=Math.max(1,Math.round(it.qty*.25)),u=sellP(p)*1.4,f=R2(Math.max(8,n*u*.08));
+  return {who:'rosa',mood:'happy',pages:[`You passed a ${L('small-town festival','small-town festival','big music festival','stadium concert','world sports final')} on the way. Huge crowds and nobody selling ${nm(p)}.`,`A sales spot costs ${money(f)}. You'd sell about ${n.toLocaleString()} at ${pr(u)} each, around ${money(n*u)}.`],choices:[
+   {label:`Set up (${money(f)})`,go:true,run:()=>{payOut(f);const g=sellNow(p,n,u,'at a festival');return ok('rosa',`Sold out fast. ${money(g)}!`);}},
+   {label:'Keep going',run:()=>ok('rosa','Next time!','neutral')}]};}},
+ r_check:{run:c=>{const v=cargoValue(),f=R2(Math.max(12,v*.008)),fine=R2(Math.max(40,v*.04));
+  return {who:'brady',mood:'neutral',pages:[`Random customs inspection on ${rideDesc()}. You're carrying ${hold()}. This could take a while.`,`For ${money(f)} there's an express lane. Or wait while we check every box. If your paperwork has errors, the fine is ${money(fine)}.`],choices:[
+   {label:`Express lane (${money(f)})`,run:()=>{payOut(f);return ok('brady','Move along.','neutral');}},
+   {label:'Wait it out (30% chance of a fine)',go:true,run:()=>{if(Math.random()<.3*tr().bad){payOut(fine);addLog(S,`Inspection fine: ${money(fine)}.`,'bad');return {who:'brady',mood:'angry',tag:['t-bad','Fined'],pages:[`Your paperwork is missing a stamp. That's ${money(fine)}.`]};}return ok('brady','All in order. Have a nice day.','neutral');}}]};}},
+ r_hiker:{cond:()=>lv()<=1},
+ r_short:{run:c=>{const f=R2(Math.max(20,fare(c.from,c.dest)*.7));
+  return {who:'tess',mood:'happy',pages:[`Met a trucker at the diner who knows every back road on the continent.`,`For ${money(f)} she'll map you a faster route. Your next long trip takes a week less.`],choices:[
+   {label:`Buy the route (${money(f)})`,run:()=>{S.cash-=Math.min(S.cash,f);NX().fast=1;return ok('tess','Next trip you\'ll fly. Well, drive fast.');}},
+   {label:'No thanks',go:true,run:()=>ok('tess','Suit yourself.','neutral')}]};}},
+ r_fuel:{run:c=>{const y=otherCity(),nf=y?fare(S.loc,y.id):100,f=R2(Math.max(10,nf*.3));
+  return {who:'tess',mood:'worried',pages:[`Fuel prices just jumped. Your next trip with ${rideDesc()} will cost 50% more (about ${money(nf*.5)} extra).`,`Or lock in today's price with a fuel contract for ${money(f)}.`],choices:[
+   {label:`Lock in the price (${money(f)})`,go:true,run:()=>{payOut(f);return ok('tess','Locked. Next trip costs the normal fare.');}},
+   {label:'Pay 50% more next trip',run:()=>{NX().fare=(NX().fare||1)*1.5;addLog(S,'Fuel spike: next trip costs 50% more.','bad');return ok('tess','Ouch. Next fare is 50% higher.','neutral');}}]};}},
+ r_crack:{run:c=>{const p=heldOf(x=>FRAGILE.includes(x)),it=S.inv[p],n=Math.max(1,Math.round(it.qty*.2)),f=R2(Math.max(10,n*sellP(p)*.15));
+  return {who:'fran',mood:'worried',pages:[`A crate cracked open. ${n.toLocaleString()} of your ${nm(p)} are scuffed up (normally worth about ${money(n*sellP(p))}).`,`A dealer will take the scuffed ones at half price, or I can repair and repack them for ${money(f)}.`],choices:[
+   {label:`Repair them (${money(f)})`,go:true,run:()=>{payOut(f);return ok('fran','Good as new. Mostly.');}},
+   {label:`Sell them at half price (${money(n*sellP(p)*.5)})`,run:()=>{const g=sellNow(p,n,sellP(p)*.5,'scuffed, at half price');return ok('fran',`Got ${money(g)} for the scuffed ones.`,'neutral');}}]};}},
+ r_fog:{run:c=>{const f=R2(Math.max(25,fare(c.from,c.dest)*.4*fleetN()));
+  return {who:'ade',mood:'worried',pages:[`Fog grounded half the cargo flights. The backlog is going to hit ${rideDesc()}.`,`Pay ${money(f)} for priority takeoff slots, or your next flight leaves a week late.`],choices:[
+   {label:`Priority slots (${money(f)})`,go:true,run:()=>{payOut(f);return ok('ade','You\'re first in line.');}},
+   {label:'Wait in line (next trip +1 week)',run:()=>{NX().slow=(NX().slow||0)+1;return ok('ade','Next flight leaves a week late.','neutral');}}]};}},
+ r_found:{run:c=>{const p=pick(PRODUCTS),q=Math.min(cap()-used(),Math.max(2,Math.round(cap()/10))),v=q*sellP(p.id),rw=R2(Math.max(12,v*.1));
+  return {who:'mo',mood:'neutral',pages:[`There are ${q.toLocaleString()} boxes of ${nm(p.id)} sitting by the road, worth about ${money(v)}. No labels, nobody around.`,`You could take them. Or report it and probably get a ${money(rw)} reward.`],choices:[
+   {label:'Take them',run:()=>{if(Math.random()<.7){giveItems(p.id,q,0);addLog(S,`Found ${q} ${nm(p.id)} by the road.`,'good');return ok('mo','Finders keepers.','smug');}const f=R2(Math.max(30,v*.5));payOut(f);addLog(S,`Fined ${money(f)} for taking stolen goods.`,'bad');return {who:'brady',mood:'angry',tag:['t-bad','Busted'],pages:[`Those boxes were stolen last night. That's a ${money(f)} fine.`]};}},
+   {label:'Report it',go:true,run:()=>{S.cash+=rw;addLog(S,`Reward for reporting lost cargo: ${money(rw)}.`,'good');return ok('brady',`Honest folks are rare. Here's a ${money(rw)} reward.`);}}]};}},
+ r_weigh:{run:c=>{const f=R2(Math.max(20,cargoValue()*.015)),p=heldOf();
+  return {who:'brady',mood:'neutral',pages:[`Weigh station. ${rideDesc().replace(/^y/,'Y')} is over the weight limit with ${hold()}.`,`Pay the ${money(f)} overweight fine, or leave some of your ${nm(p)} here.`],choices:[
+   {label:`Pay the fine (${money(f)})`,go:true,run:()=>{payOut(f);addLog(S,`Overweight fine: ${money(f)}.`,'bad');return ok('brady','Carry on.','neutral');}},
+   {label:`Leave 12% of your ${nm(p)}`,run:()=>{const it=S.inv[p],l=Math.max(1,Math.round(it.qty*.12));it.qty-=l;if(it.qty<=0)delete S.inv[p];addLog(S,`Left ${l} ${nm(p)} at a weigh station.`,'bad');return ok('brady',`Leaving ${l} ${nm(p)} here. Drive safe.`,'neutral');}}]};}},
+ r_ferry:{run:c=>{const f=R2(Math.max(12,cargoValue()*.01)),p=heldOf();
+  return {who:'gus',mood:'worried',pages:[`Rough seas on the ferry. Waves are crashing over the car deck where your ${hold()} is.`,`A deckhand will strap it all down for ${money(f)}. Otherwise some could go overboard.`],choices:[
+   {label:`Strap it down (${money(f)})`,go:true,run:()=>{payOut(f);return ok('gus','Smooth sailing after that.','neutral');}},
+   {label:'It\'ll be fine',run:()=>{if(Math.random()<.5)return ok('gus','It was fine. This time.','neutral');const h=hit(p,.2);return {who:'gus',mood:'worried',tag:['t-bad','Overboard'],pages:[`${h.txt} went overboard.${h.ins}`]};}}]};}},
+ r_smuggle:{run:c=>{const pay=R2(Math.max(55,W()*.004)),fine=R2(Math.max(130,W()*.012));
+  const what=L('a little package','a sealed suitcase','a shipping container with no paperwork','a whole plane-load of unmarked crates','a tanker full of something that isn\'t on any manifest');
+  return {who:'hank',mood:'smug',pages:[`Since you're going to ${C(c.dest).name} anyway, carry ${what} for me. Don't open it.`,`${money(pay)} when it arrives. If customs opens it, the fine is about ${money(fine)}.`],choices:[
+   {label:`Carry it (${money(pay)})`,run:()=>{if(Math.random()<.65+tr().shady){S.cash+=pay;addLog(S,`Delivered a shipment for Hank: +${money(pay)}.`,'');return ok('hank','Smooth delivery. Here\'s your cut.','smug');}
+     payOut(fine);const p=heldOf();const h=p?hit(p,.2):{txt:''};addLog(S,`Caught carrying contraband: fined ${money(fine)}.`,'bad');return {who:'brady',mood:'angry',tag:['t-bad','Busted'],pages:[`What's in the ${L('package','suitcase','container','crates','tanker')}? Thought so. That's a ${money(fine)} fine.`,h.txt?`And we're impounding ${h.txt} as evidence.`:'Don\'t do it again.']};}},
+   {label:'Absolutely not',go:true,run:()=>ok('hank','Boring.','neutral')}]};}},
+};
+EVENTS.forEach(e=>{if(FIX[e.id])Object.assign(e,FIX[e.id]);});
+ROAD.forEach(e=>{if(FIX[e.id])Object.assign(e,FIX[e.id]);});
+
+/* ===================== YOUR OWN BUSINESSES ===================== */
+// y = weekly profit per location (as a share of its cost) at normal demand; cr = running costs as share of revenue
+const BIZ_TYPES=[
+ {id:'food',name:'Food trucks & diners',unit:'food truck',units:'food trucks',cost:12000,y:.022,cr:.72,mult:2.2,risk:.07,sat:30,w:{item:'burger',items:'meals',cust:'diners'},col:'#F0574A',desc:'Cheap to start. Steady, but small. Good first business.'},
+ {id:'coffee',name:'Coffee chain',unit:'café',units:'cafés',cost:60000,y:.02,cr:.71,mult:2.6,risk:.06,sat:40,w:{item:'latte',items:'drinks',cust:'regulars'},col:'#8E5A3A',desc:'Loyal customers and steady growth. Brand matters a lot.'},
+ {id:'fashion',name:'Clothing brand',unit:'store',units:'stores',cost:150000,y:.021,cr:.72,mult:2.8,risk:.11,sat:35,w:{item:'jacket',items:'collections',cust:'shoppers'},col:'#FF7FB0',desc:'Trends come and go. Big wins when you catch one.'},
+ {id:'app',name:'Tech app startup',unit:'dev team',units:'dev teams',cost:250000,y:.03,cr:.8,mult:5,risk:.15,sat:25,w:{item:'app',items:'features',cust:'users'},col:'#3D7BFF',desc:'Risky and expensive early. Huge value if it takes off.'},
+ {id:'gym',name:'Gym chain',unit:'gym',units:'gyms',cost:400000,y:.018,cr:.7,mult:2.6,risk:.05,sat:40,w:{item:'membership',items:'classes',cust:'members'},col:'#12B076',desc:'Monthly memberships mean steady money.'},
+ {id:'studio',name:'Video game studio',unit:'studio team',units:'studio teams',cost:1e6,y:.028,cr:.74,mult:3.6,risk:.16,sat:20,w:{item:'game',items:'games',cust:'players'},col:'#8D63F2',desc:'Hits make fortunes. Flops hurt.'},
+ {id:'realestate',name:'Real estate developer',unit:'building',units:'buildings',cost:3e6,y:.013,cr:.55,mult:2.4,risk:.04,sat:60,floor:1.05,w:{item:'apartment',items:'apartments',cust:'tenants'},col:'#C9962E',desc:'Low risk. Buildings hold their value.'},
+ {id:'logistics',name:'Shipping & logistics',unit:'depot',units:'depots',cost:8e6,y:.018,cr:.7,mult:2.8,risk:.06,sat:45,w:{item:'delivery',items:'shipments',cust:'clients'},col:'#2BB3C9',desc:'Moves the world\'s goods. Big contracts.'},
+ {id:'hotel',name:'Hotel chain',unit:'hotel',units:'hotels',cost:25e6,y:.016,cr:.7,mult:2.8,risk:.06,sat:45,w:{item:'suite',items:'rooms',cust:'guests'},col:'#FFB21F',desc:'Tourism booms and busts, but great brands last.'},
+ {id:'media',name:'Media network',unit:'channel',units:'channels',cost:6e7,y:.02,cr:.68,mult:3.2,risk:.09,sat:25,w:{item:'show',items:'shows',cust:'viewers'},col:'#25283A',desc:'Shows, news and streaming. Ratings are everything.'},
+ {id:'airline',name:'Airline',unit:'route',units:'routes',cost:1.5e8,y:.02,cr:.76,mult:2.6,risk:.12,sat:40,w:{item:'flight',items:'flights',cust:'passengers'},col:'#5A5F75',desc:'Glamorous and brutal. Fuel prices can wreck you.'},
+ {id:'bank',name:'Private bank',unit:'regional branch',units:'regional branches',cost:5e8,y:.015,cr:.6,mult:3,risk:.06,sat:30,w:{item:'account',items:'accounts',cust:'clients'},col:'#1E6A4A',desc:'The richest play. Slow, steady and enormous.'},
+];
+const BZT=id=>BIZ_TYPES.find(t=>t.id===id);
+const BZ_UP={
+ food:[['Delivery app partnership',1.5,{rev:1.12}],['Central kitchen',3,{cost:.92}],['TV cooking show',4,{brand:15,rev:1.05}]],
+ coffee:[['Loyalty app',1,{rev:1.1}],['Own roastery',3,{cost:.9}],['Drive-thrus',5,{rev:1.15}]],
+ fashion:[['Celebrity collab',2,{brand:20}],['Online store',2.5,{rev:1.15,sat:1.3}],['Own factory',4,{cost:.88}]],
+ app:[['Referral program',1,{brand:15,rev:1.1}],['AI features',3,{rev:1.2}],['Cloud deal',2,{cost:.85}]],
+ gym:[['Celebrity trainers',1.5,{brand:15}],['24/7 access',2,{rev:1.12}],['Fitness app',2.5,{rev:1.1,sat:1.2}]],
+ studio:[['Franchise sequel',3,{rev:1.2,risk:.85}],['Own game engine',3,{cost:.88}],['Esports league',2,{brand:15}]],
+ realestate:[['Luxury renovations',1.5,{rev:1.12}],['Property management arm',2,{cost:.9}],['Prime downtown land',4,{rev:1.15}]],
+ logistics:[['Automated warehouses',3,{cost:.88}],['Own cargo jets',4,{rev:1.15}],['Global contracts',2,{rev:1.08,risk:.8}]],
+ hotel:[['Celebrity-chef restaurants',2,{brand:15,rev:1.08}],['Loyalty program',1.5,{rev:1.1}],['Island resorts',4,{rev:1.15}]],
+ media:[['Streaming app',3,{rev:1.18}],['Star presenters',2,{brand:15}],['Sports rights',4,{rev:1.2,cost:1.05}]],
+ airline:[['Fuel-efficient fleet',3,{cost:.88}],['First-class lounges',2,{rev:1.1,brand:10}],['Global alliance',2.5,{sat:1.4,rev:1.08}]],
+ bank:[['Mobile banking app',2,{rev:1.15}],['Wealth management arm',3,{rev:1.12}],['AI fraud system',2,{cost:.92,risk:.8}]],
+};
+const LEV={
+ price:{label:'Prices',opts:['Budget','Normal','Premium'],tip:['More customers, thinner margins','Balanced','Fewer customers, fat margins. Needs good quality.']},
+ mkt:{label:'Marketing',opts:['None','Light','Strong','Blitz'],tip:['Saves money, brand fades','Keeps brand steady','Grows brand','Grows brand fast, expensive']},
+ staff:{label:'Staff',opts:['Lean','Normal','Top talent'],tip:['Cheaper, but serves fewer and raises trouble','Balanced','Costs more, serves more, fewer problems']},
+ qual:{label:'Quality',opts:['Basic','Good','Luxury'],tip:['Cheaper, brand slowly drops','Balanced','Costs more, brand grows, unlocks premium']},
+};
+function ensureBiz(s){s.biz=s.biz||[];s.ug=s.ug||{ops:[],dirty:0,heat:0,low:false,crook:0,cleaned:0,seized:0};s.bizSeq=s.bizSeq||1;return s;}
+const BZ=id=>S.biz.find(b=>b.id===id);
+const bzRev=b=>BZT(b.type).cost*BZT(b.type).y/(1-BZT(b.type).cr);// revenue per location per week at demand 1
+const bzVal=b=>{const t=BZT(b.type),h=b.hist.slice(-8),avg=h.length?h.reduce((a,x)=>a+x,0)/h.length:0;
+ const floor=b.units*t.cost*(t.floor||.7)+b.upPaid*.5;const earn=Math.max(0,avg)*52*t.mult*(.75+b.brand/200);let v=Math.max(floor,earn);if(b.pub)v*=b.sent;return Math.round(v);};
+const bizValue=()=>S.biz.reduce((a,b)=>a+bzVal(b)*b.own,0);
+const nextUnitCost=b=>Math.round(BZT(b.type).cost*(1+.035*(b.units+b.opening)));
+const bzName=b=>esc(b.name);
+const fxM=(b,k)=>b.fx.reduce((m,f)=>f.k===k?m*f.m:m,1);
+function startBiz(type,name){const t=BZT(type),cost=Math.round(t.cost*1.2);if(S.cash<cost)return toast(`You need ${money(cost)} in cash to start this.`);
+ S.cash-=cost;const b={id:'b'+(S.bizSeq++),type,name:name||t.name,week0:S.week,units:1,opening:0,brand:20,lev:{price:1,mkt:1,staff:1,qual:1},own:1,pub:false,sent:1,auto:false,grow:false,
+  hist:[],rev:0,cost:0,profit:0,trend:0,fx:[],mod:{rev:1,cost:1,sat:1,risk:1},ups:[],upPaid:0,goals:[],idea:null,ideaWeek:0,paid:cost};
+ S.biz.push(b);addLog(S,`Started ${b.name}, a ${t.name.toLowerCase()} (${money(cost)}).`,'good');popCash(`-${money(cost)}`,'var(--loss)');confetti();UI.bz=b.id;toast(`${b.name} is open for business.`);newIdea(b);after();}
+function bizWeekOne(b,news){const t=BZT(b.type),L=b.lev;
+ if(b.auto)autoLevers(b);
+ if(b.opening){b.units+=b.opening;b.opening=0;}
+ const sat=t.sat*b.mod.sat,crowd=1/(1+Math.max(0,b.units-1)/sat);
+ b.trend=b.trend*.85+gauss()*.04;
+ const demand=(.6+b.brand/100*.9)*crowd*(1+b.trend)*Math.exp(gauss()*t.risk*b.mod.risk);
+ const pVol=[1.3,1,.72][L.price]*(L.price===2&&L.qual<2?.8:1),pMul=[.78,1,1.42][L.price];
+ const mVol=[.92,1,1.06,1.12][L.mkt],sCap=[.86,1,1.06][L.staff];
+ const base=bzRev(b)*b.units;
+ const vol=Math.max(.05,demand*pVol*mVol*sCap*fxM(b,'vol'));
+ const rev=base*vol*pMul*b.mod.rev*fxM(b,'rev');
+ let cost=base*t.cr*(.45+.55*vol)*[.9,1,1.12][L.staff]*b.mod.cost*fxM(b,'cost')+base*[-.05,0,.08][L.qual]+base*[0,.04,.09,.16][L.mkt];
+ if(b.auto)cost+=rev*.04;
+ const profit=rev-cost;
+ b.brand=clamp(b.brand+[-.6,.3,1,1.8][L.mkt]+[-.5,0,.6][L.qual]+(L.staff===0?-.2:L.staff===2?.2:0)-(L.price===0?.2:0)-(b.brand-50)*.01,0,100);
+ if(b.pub)b.sent=clamp(b.sent*Math.exp(gauss()*.06+(profit>0?.004:-.01)),.5,2.2);
+ b.fx.forEach(f=>f.w--);b.fx=b.fx.filter(f=>f.w>0);
+ b.rev=rev;b.cost=cost;b.profit=profit;b.hist.push(profit);if(b.hist.length>40)b.hist.shift();
+ if(b.auto&&b.grow&&b.hist.length>=4&&b.hist.slice(-4).every(x=>x>0)&&S.cash>nextUnitCost(b)*3&&b.units+b.opening<300&&Math.random()<.35){const c=nextUnitCost(b);S.cash-=c;b.opening++;b.paid+=c;news&&news.bz.push(`${b.name}'s manager opened another ${BZT(b.type).unit} (${money(c)}).`);}
+ checkGoals(b,news);
+ return profit*b.own;}
+function autoLevers(b){const h=b.hist.slice(-4),avg=h.length?h.reduce((a,x)=>a+x,0)/h.length:0,margin=b.rev?avg/b.rev:0;
+ b.lev.staff=1;b.lev.qual=b.brand>55?2:1;b.lev.price=b.lev.qual===2&&b.brand>65?2:1;b.lev.mkt=b.brand<45?2:margin<.08?1:b.brand<75?2:1;}
+/* goals */
+const GOALS=[
+ {id:'profit1',t:'Make a profit in a week',ok:b=>b.profit>0,rw:b=>{b.brand=Math.min(100,b.brand+4);return 'Brand +4';}},
+ {id:'units3',t:'Run 3 locations',ok:b=>b.units>=3,rw:b=>{b.brand=Math.min(100,b.brand+5);return 'Brand +5';}},
+ {id:'bigweek',t:b=>`Weekly profit over ${money(BZT(b.type).cost*.08)}`,ok:b=>b.profit>BZT(b.type).cost*.08,rw:b=>{const a=Math.round(BZT(b.type).cost*.5);S.cash+=a;return `${money(a)} bonus from a happy bank`;}},
+ {id:'brand60',t:'Brand reaches 60',ok:b=>b.brand>=60,rw:b=>{b.mod.rev*=1.05;return 'Revenue +5% for good';}},
+ {id:'units10',t:'Run 10 locations',ok:b=>b.units>=10,rw:b=>{b.mod.cost*=.95;return 'Costs -5% for good (bulk buying)';}},
+ {id:'worth10',t:'Worth 10x what you paid to start it',ok:b=>bzVal(b)>=BZT(b.type).cost*1.2*10,rw:b=>{b.brand=Math.min(100,b.brand+6);return 'Brand +6';}},
+ {id:'units25',t:'Run 25 locations',ok:b=>b.units>=25,rw:b=>{b.mod.rev*=1.05;return 'Revenue +5% for good';}},
+ {id:'public',t:'Take it public',ok:b=>b.pub,rw:b=>{b.brand=Math.min(100,b.brand+8);return 'Brand +8';}},
+ {id:'brand90',t:'Brand reaches 90',ok:b=>b.brand>=90,rw:b=>{b.mod.sat*=1.25;return 'Room to grow +25%';}},
+];
+const goalText=(g,b)=>typeof g.t==='function'?g.t(b):g.t;
+function checkGoals(b,news){GOALS.forEach(g=>{if(!b.goals.includes(g.id)&&g.ok(b)){b.goals.push(g.id);const r=g.rw(b);news&&news.bz.push(`${b.name} hit a goal: ${goalText(g,b)}. Reward: ${r}.`);}});}
+/* ideas of the week */
+const IDEAS=[
+ {t:w=>`Seasonal ${w.item} special`,d:'Revenue +15% for 3 weeks',c:.5,run:b=>b.fx.push({k:'rev',m:1.15,w:3})},
+ {t:w=>`Weekend promo for ${w.cust}`,d:'Revenue +8% for 2 weeks, brand +2',c:.3,run:b=>{b.fx.push({k:'rev',m:1.08,w:2});b.brand=Math.min(100,b.brand+2);}},
+ {t:()=>`Influencer partnership`,d:'Brand +6',c:.6,run:b=>{b.brand=Math.min(100,b.brand+6);}},
+ {t:()=>`Staff training week`,d:'Costs -6% for 4 weeks',c:.4,run:b=>b.fx.push({k:'cost',m:.94,w:4})},
+ {t:()=>`Sponsor a local charity`,d:'Brand +8',c:.8,run:b=>{b.brand=Math.min(100,b.brand+8);}},
+ {t:()=>`Bulk supplier contract`,d:'Costs -8% for 6 weeks',c:1,run:b=>b.fx.push({k:'cost',m:.92,w:6})},
+ {t:w=>`Launch a new line of ${w.items}`,d:'60% chance: revenue +12% for 8 weeks. Otherwise +3%.',c:2,run:b=>b.fx.push({k:'rev',m:Math.random()<.6?1.12:1.03,w:8})},
+ {t:()=>`Pop-up in a busy part of town`,d:'Revenue +10% for 3 weeks, brand +3',c:1.2,run:b=>{b.fx.push({k:'rev',m:1.1,w:3});b.brand=Math.min(100,b.brand+3);}},
+ {t:w=>`Ask your ${w.cust} what they want`,d:'Brand +3, revenue +4% for 4 weeks',c:.15,run:b=>{b.brand=Math.min(100,b.brand+3);b.fx.push({k:'rev',m:1.04,w:4});}},
+ {t:()=>`Quietly raise prices 5%`,d:'Revenue +5% for 4 weeks, brand -3',c:0,run:b=>{b.fx.push({k:'rev',m:1.05,w:4});b.brand=Math.max(0,b.brand-3);}},
+];
+function newIdea(b){b.idea=Math.floor(Math.random()*IDEAS.length);b.ideaWeek=S.week;}
+const ideaCost=(b,i)=>Math.round(Math.max(BZT(b.type).cost*.02,bzRev(b)*b.units)*IDEAS[i].c);
+/* business events: shown between trips */
+function bzWho(){return pick(['raj','dana','lou','zara','kim']);}
+const BZE=[
+ {id:'supplier',run:b=>{const t=BZT(b.type),f=Math.round(b.cost*2);return {who:'sal',mood:'happy',pages:[`${b.name}: your main supplier offers a 12-week deal. Pay ${money(f)} up front and your running costs drop 10% for 12 weeks.`,`That's about ${money(b.cost*.1*12)} saved if business stays this busy.`],choices:[
+   {label:`Sign (${money(f)})`,safe:1,run:()=>{payOut(f);b.fx.push({k:'cost',m:.9,w:12});return ok('sal','Signed. Cheaper supplies for 12 weeks.');}},{label:'Stay flexible',run:()=>ok('sal','Your call.','neutral')}]};}},
+ {id:'viral',run:b=>{const w=BZT(b.type).w,f=Math.round(b.rev*.6);return {who:'zara',mood:'happy',pages:[`A video of a ${w.item} from ${b.name} just went viral. Everyone's talking about it.`,`Spend ${money(f)} on ads right now and ride the wave (brand +12, revenue +15% for 3 weeks). Or let it play out on its own (brand +5).`],choices:[
+   {label:`Ride the wave (${money(f)})`,run:()=>{payOut(f);b.brand=Math.min(100,b.brand+12);b.fx.push({k:'rev',m:1.15,w:3});return ok('zara','Huge! Lines out the door.');}},{label:'Let it play out',safe:1,run:()=>{b.brand=Math.min(100,b.brand+5);return ok('zara','Still nice free press.','neutral');}}]};}},
+ {id:'lawsuit',run:b=>{const t=BZT(b.type),x=Math.round(Math.max(t.cost*.08,b.rev*1.5));return {who:'dana',mood:'neutral',pages:[`One of your ${t.w.cust} says they got hurt at one of ${b.name}'s ${t.units}. They're suing for ${money(x)}.`,`Settle today for ${money(x*.5)}. Or fight: about 55% chance we win and pay nothing, 45% chance we lose, pay ${money(x*1.5)} and the press hurts your brand.`],choices:[
+   {label:`Settle (${money(x*.5)})`,safe:1,run:()=>{payOut(x*.5);return ok('dana','Settled quietly.','neutral');}},{label:'Fight it',run:()=>{if(Math.random()<.55)return ok('dana','We won. Case dismissed.');payOut(x*1.5);b.brand=Math.max(0,b.brand-6);return {who:'dana',mood:'worried',tag:['t-bad','Lost in court'],pages:[`We lost. ${money(x*1.5)} in damages, and the story was all over the news. Brand -6.`]};}}]};}},
+ {id:'poach',run:b=>({who:'lou',mood:'worried',pages:[`A rival is trying to hire away ${b.name}'s best manager.`,`Match their offer (costs +3% for 6 months), or let them go (revenue -8% for 4 weeks while you replace them).`],choices:[
+   {label:'Match the offer',safe:1,run:()=>{b.fx.push({k:'cost',m:1.03,w:26});return ok('lou','They\'re staying. Expensive, but worth it.');}},{label:'Let them go',run:()=>{b.fx.push({k:'rev',m:.92,w:4});return ok('lou','We\'ll find someone. It\'ll be bumpy for a bit.','neutral');}}]})},
+ {id:'rival',run:b=>{const t=BZT(b.type),f=Math.round(b.rev*1.2);return {who:'raj',mood:'worried',pages:[`A big competitor just opened right next to several of ${b.name}'s ${t.units}.`,`Start a price war (revenue -6% for 6 weeks but you keep your ${t.w.cust}), spend ${money(f)} on better quality (brand +6), or ignore them (revenue -12% for 6 weeks).`],choices:[
+   {label:'Price war',safe:1,run:()=>{b.fx.push({k:'rev',m:.94,w:6});return ok('raj','They\'ll blink first. Hopefully.','neutral');}},{label:`Beat them on quality (${money(f)})`,run:()=>{payOut(f);b.brand=Math.min(100,b.brand+6);return ok('raj','People notice the difference.');}},{label:'Ignore them',run:()=>{b.fx.push({k:'rev',m:.88,w:6});return ok('raj','Some of your customers will wander over there.','worried');}}]};}},
+ {id:'review',run:b=>{const good=Math.random()<.5+b.lev.qual*.15;if(good){b.brand=Math.min(100,b.brand+8);return {who:'anchor',mood:'happy',tag:['t-good','Great review'],pages:[`A famous critic just gave ${b.name} a glowing review. Brand +8.`]};}
+   const f=Math.round(b.rev*.5);return {who:'anchor',mood:'worried',tag:['t-bad','Bad review'],pages:[`A famous critic trashed ${b.name} in a review read by millions.`,`Spend ${money(f)} fixing the problems they found (brand -2), or ignore it (brand -8).`],choices:[
+   {label:`Fix it (${money(f)})`,safe:1,run:()=>{payOut(f);b.brand=Math.max(0,b.brand-2);return ok('anchor','Classy response. People forgive.','neutral');}},{label:'Ignore it',run:()=>{b.brand=Math.max(0,b.brand-8);return ok('anchor','The review keeps getting shared.','worried');}}]};}},
+ {id:'investor',cond:b=>b.own>.4,run:b=>{const v=bzVal(b),pct=.15,offer=Math.round(v*pct*rnd(1.05,1.3));return {who:'vince',mood:'happy',pages:[`I love what ${b.name} is doing. I'll pay ${money(offer)} for 15% of the company.`,`That values it at ${money(offer/pct)}. You'd keep ${Math.round((b.own-pct)*100)}% and get the cash today.`],choices:[
+   {label:`Sell 15% for ${money(offer)}`,run:()=>{S.cash+=offer;b.own=+(b.own-pct).toFixed(3);addLog(S,`Sold 15% of ${b.name} for ${money(offer)}.`,'good');return ok('vince','Partners! Let\'s grow this thing.');}},{label:'Not selling',safe:1,run:()=>ok('vince','The offer stands if you change your mind.','neutral')}]};}},
+ {id:'buyout',cond:b=>b.hist.length>=4,run:b=>{const offer=Math.round(bzVal(b)*b.own*rnd(1.1,1.4));return {who:'whitlock',mood:'smug',pages:[`A bigger company wants to buy your ${Math.round(b.own*100)}% of ${b.name}. They're offering ${money(offer)} in cash.`,`That's about ${Math.round((offer/(bzVal(b)*b.own)-1)*100)}% more than it's worth today. You'd lose its weekly profits for good.`],choices:[
+   {label:`Sell for ${money(offer)}`,run:()=>{sellBizNow(b,offer);return ok('whitlock','Congratulations. Most founders never get that call.');}},{label:'Keep it',safe:1,run:()=>ok('whitlock','Building something, are we?','neutral')}]};}},
+ {id:'strike',cond:b=>b.lev.staff===0,run:b=>({who:'lou',mood:'angry',pages:[`${b.name}'s staff say they're overworked and underpaid. They're threatening to strike.`,`Give them a raise (costs +5% for 12 weeks and you move staff to Normal), or refuse (half the time they walk out: revenue -40% for a week and brand -4).`],choices:[
+   {label:'Give a raise',safe:1,run:()=>{b.fx.push({k:'cost',m:1.05,w:12});b.lev.staff=1;return ok('lou','Crisis avoided.');}},{label:'Refuse',run:()=>{if(Math.random()<.5){b.fx.push({k:'rev',m:.6,w:1});b.brand=Math.max(0,b.brand-4);return {who:'lou',mood:'angry',tag:['t-bad','Strike'],pages:['They walked out. A rough week, and it made the news.']};}return ok('lou','They grumbled, but they stayed.','neutral');}}]})},
+ {id:'inspect',cond:b=>['food','coffee','gym','hotel'].includes(b.type),run:b=>{const t=BZT(b.type),f=Math.round(b.rev*.4),fine=Math.round(b.rev*.8);return {who:'brady',mood:'neutral',pages:[`A health and safety inspector found problems at two of ${b.name}'s ${t.units}.`,`Fix them now for ${money(f)}, or risk it (40% chance they close you for a week: revenue -20%, a ${money(fine)} fine and brand -5).`],choices:[
+   {label:`Fix it (${money(f)})`,safe:1,run:()=>{payOut(f);return ok('brady','Passed. Keep it that way.','neutral');}},{label:'Risk it',run:()=>{if(Math.random()<.4){payOut(fine);b.fx.push({k:'rev',m:.8,w:1});b.brand=Math.max(0,b.brand-5);return {who:'brady',mood:'angry',tag:['t-bad','Shut down'],pages:[`Closed for a week and fined ${money(fine)}.`]};}return ok('brady','You got lucky.','neutral');}}]};}},
+ {id:'hack',cond:b=>['app','bank','media','logistics','airline'].includes(b.type),run:b=>{const f=Math.round(b.rev*.7);return {who:'dana',mood:'worried',pages:[`Hackers broke into ${b.name}'s systems and stole customer data.`,`Spend ${money(f)} on security and tell customers (brand -3). Or patch it quietly: 60% nobody finds out, 40% it leaks (brand -15 and a ${money(f*2)} fine).`],choices:[
+   {label:`Come clean (${money(f)})`,safe:1,run:()=>{payOut(f);b.brand=Math.max(0,b.brand-3);return ok('dana','Honest move. People respect it.','neutral');}},{label:'Patch it quietly',run:()=>{if(Math.random()<.6)return ok('dana','Nobody noticed. This time.','neutral');payOut(f*2);b.brand=Math.max(0,b.brand-15);return {who:'dana',mood:'angry',tag:['t-bad','Cover-up exposed'],pages:[`It leaked. ${money(f*2)} fine and a brand disaster.`]};}}]};}},
+ {id:'celeb',run:b=>{const f=Math.round(b.rev*1.5);return {who:'zara',mood:'happy',pages:[`A famous actor wants to be the face of ${b.name}. Their fee is ${money(f)}.`,`It would push your brand up 15 and revenue up 10% for 4 weeks.`],choices:[
+   {label:`Sign them (${money(f)})`,run:()=>{payOut(f);b.brand=Math.min(100,b.brand+15);b.fx.push({k:'rev',m:1.1,w:4});return ok('zara','The ads look amazing.');}},{label:'Too pricey',safe:1,run:()=>ok('zara','Their loss. And yours.','neutral')}]};}},
+ {id:'takeover',run:b=>{const t=BZT(b.type),k=Math.max(1,Math.round(b.units*.2)),c=Math.round(nextUnitCost(b)*k*.6);if(S.cash<c)return null;return {who:'raj',mood:'happy',pages:[`A rival is closing ${k} ${k>1?t.units:t.unit} in great spots. You can take ${k>1?'them':'it'} over for ${money(c)}.`,`That's 40% less than opening new ones.`],choices:[
+   {label:`Take over (${money(c)})`,run:()=>{if(S.cash<c)return ok('raj','You don\'t have the cash right now.','neutral');S.cash-=c;b.opening+=k;b.paid+=c;return ok('raj',`${k} more ${k>1?t.units:t.unit} open next week.`);}},{label:'Pass',safe:1,run:()=>ok('raj','Someone else will grab them.','neutral')}]};}},
+ {id:'teamidea',run:b=>{const w=BZT(b.type).w,f=Math.round(b.rev*1.2);return {who:'lou',mood:'happy',pages:[`${b.name}'s team pitched a bold new ${w.item} idea.`,`Funding it costs ${money(f)}. About 60% chance it works: revenue +12% for good. If it flops, the money's gone.`],choices:[
+   {label:`Fund it (${money(f)})`,run:()=>{payOut(f);if(Math.random()<.6){b.mod.rev*=1.12;return ok('lou','It\'s a hit! Revenue +12% for good.');}return {who:'lou',mood:'worried',tag:['t-bad','Flop'],pages:['It flopped. Lesson learned.']};}},{label:'Not now',safe:1,run:()=>ok('lou','Maybe next quarter.','neutral')}]};}},
+ {id:'pr',run:b=>{const f=Math.round(b.rev*.5);return {who:'anchor',mood:'worried',pages:[`An old post from ${b.name}'s social media account just resurfaced and people are angry.`,`Hire a PR firm and apologize (${money(f)}, brand -3), or stay silent (brand -10).`],choices:[
+   {label:`Apologize (${money(f)})`,safe:1,run:()=>{payOut(f);b.brand=Math.max(0,b.brand-3);return ok('anchor','It blew over in a day.','neutral');}},{label:'Stay silent',run:()=>{b.brand=Math.max(0,b.brand-10);return ok('anchor','It\'s been trending for a week.','worried');}}]};}},
+ {id:'taxbreak',run:b=>{const t=BZT(b.type),c=Math.round(nextUnitCost(b)*.6);if(S.cash<c)return null;return {who:'okonkwo',mood:'happy',pages:[`A city is offering ${b.name} a tax break to open a new ${t.unit} there this month.`,`It would cost ${money(c)} instead of ${money(nextUnitCost(b))}.`],choices:[
+   {label:`Open it (${money(c)})`,run:()=>{if(S.cash<c)return ok('okonkwo','You\'re short on cash for this one.','neutral');S.cash-=c;b.opening++;b.paid+=c;return ok('okonkwo','Opening next week.');}},{label:'Pass',safe:1,run:()=>ok('okonkwo','Noted.','neutral')}]};}},
+ {id:'launch',cond:b=>b.type==='studio',run:b=>{const f=Math.round(b.rev*1.5);return {who:'lou',mood:'worried',pages:[`${b.name}'s next big game is due out next week, but it's still buggy.`,`Delay it and polish (${money(f)}; 70% chance it's a hit: revenue +30% for 6 weeks), or launch now (50% hit, 50% a buggy mess: revenue -15% for 6 weeks and brand -8).`],choices:[
+   {label:`Delay and polish (${money(f)})`,safe:1,run:()=>{payOut(f);if(Math.random()<.7){b.fx.push({k:'rev',m:1.3,w:6});return ok('lou','Reviews are glowing!');}return ok('lou','Solid, but nobody\'s excited.','neutral');}},{label:'Launch now',run:()=>{if(Math.random()<.5){b.fx.push({k:'rev',m:1.3,w:6});return ok('lou','Players love it, bugs and all!');}b.fx.push({k:'rev',m:.85,w:6});b.brand=Math.max(0,b.brand-8);return {who:'lou',mood:'angry',tag:['t-bad','Buggy launch'],pages:['The reviews are brutal.']};}}]};}},
+ {id:'fuel',cond:b=>['airline','logistics'].includes(b.type),run:b=>{const f=Math.round(b.cost*.6);return {who:'tess',mood:'worried',pages:[`Fuel prices just spiked. ${b.name}'s costs are about to jump 15% for 6 weeks.`,`Lock in fuel prices now for ${money(f)}, or take the hit.`],choices:[
+   {label:`Lock in (${money(f)})`,safe:1,run:()=>{payOut(f);return ok('tess','Locked. Your rivals will be jealous.');}},{label:'Take the hit',run:()=>{b.fx.push({k:'cost',m:1.15,w:6});return ok('tess','Ouch.','neutral');}}]};}},
+ {id:'copycat',cond:b=>b.type==='app',run:b=>{const f=Math.round(b.rev*1.2);return {who:'dana',mood:'angry',pages:[`A giant tech company just copied ${b.name}'s best feature.`,`Out-build them (${money(f)}: revenue +8% for good), or ignore it (revenue -12% for 6 weeks).`],choices:[
+   {label:`Out-build them (${money(f)})`,safe:1,run:()=>{payOut(f);b.mod.rev*=1.08;return ok('dana','Users notice. You\'re still the best.');}},{label:'Ignore it',run:()=>{b.fx.push({k:'rev',m:.88,w:6});return ok('dana','Some users switched.','worried');}}]};}},
+ {id:'trend',cond:b=>b.type==='fashion',run:b=>{const f=Math.round(b.rev*1.3);return {who:'zara',mood:'neutral',pages:[`The look ${b.name} is known for is going out of style.`,`Bet on a bold new collection (${money(f)}; 55% chance revenue +18% for 6 weeks, otherwise -10%), or clear out old stock with discounts (revenue -5% for 2 weeks).`],choices:[
+   {label:`New collection (${money(f)})`,run:()=>{payOut(f);if(Math.random()<.55){b.fx.push({k:'rev',m:1.18,w:6});return ok('zara','Everyone\'s wearing it!');}b.fx.push({k:'rev',m:.9,w:6});return ok('zara','It didn\'t land.','worried');}},{label:'Discount old stock',safe:1,run:()=>{b.fx.push({k:'rev',m:.95,w:2});return ok('zara','Safe move.','neutral');}}]};}},
+ {id:'rates',cond:b=>['realestate','bank','hotel'].includes(b.type),run:b=>{const f=Math.round(b.cost*1.2);return {who:'okonkwo',mood:'worried',pages:[`Interest rates just jumped. ${b.name}'s borrowing costs will rise 8% for 12 weeks.`,`Refinance now for ${money(f)} to avoid it, or ride it out.`],choices:[
+   {label:`Refinance (${money(f)})`,safe:1,run:()=>{payOut(f);return ok('okonkwo','Locked at the old rate.');}},{label:'Ride it out',run:()=>{b.fx.push({k:'cost',m:1.08,w:12});return ok('okonkwo','It\'ll sting for a while.','neutral');}}]};}},
+];
+function bizScenes(){const out=[],auto=[];
+ const pool=S.biz.filter(b=>b.hist.length>=1);pool.sort(()=>Math.random()-.5);
+ for(const b of pool){if(out.length>=2)break;if(Math.random()>.55)continue;
+  const evs=BZE.filter(e=>!e.cond||e.cond(b));let sc=null;for(let i=0;i<5&&!sc;i++)sc=pick(evs).run(b);if(!sc)continue;
+  sc.tag=sc.tag||['t-choice',b.name];
+  if(b.auto&&sc.choices){const c=sc.choices.find(x=>x.safe)||sc.choices[sc.choices.length-1];c.run();auto.push(`${b.name}: ${sc.pages[0].replace(/^[^:]*: /,'')} Your manager chose: ${c.label.replace(/ \(.*\)$/,'')}.`);}
+  else out.push(sc);}
+ if(auto.length)out.push({who:'lou',mood:'neutral',tag:['t-info','Your managers'],pages:auto.slice(0,3)});
+ return out;}
+function sellBizNow(b,amount){S.cash+=amount;addLog(S,`Sold ${b.name} for ${money(amount)}.`,'good');S.biz=S.biz.filter(x=>x!==b);if(UI.bz===b.id)UI.bz=null;confetti();}
+function ipoBiz(b){const v=bzVal(b);if(!canIPO(b))return;const pct=Math.min(.25,b.own-.25),cashIn=Math.round(v*pct*1.25);S.cash+=cashIn;b.own=+(b.own-pct).toFixed(3);b.pub=true;b.sent=1.2;
+ addLog(S,`Took ${b.name} public. Sold ${Math.round(pct*100)}% for ${money(cashIn)}.`,'good');confetti();toast(`${b.name} is now on the stock market!`);after();}
+const canIPO=b=>!b.pub&&bzVal(b)>=2e7&&b.hist.length>=4&&b.hist.slice(-4).reduce((a,x)=>a+x,0)>0&&b.own>.3;
+
+/* ===================== UNDERGROUND ===================== */
+const UG_TYPES=[
+ {id:'smuggle',name:'Smuggling ring',cost:40000,y:.065,heat:3,desc:'Moves untaxed goods across borders.',who:'hank'},
+ {id:'fakes',name:'Counterfeit fashion',cost:120000,y:.055,heat:2.2,desc:'Fake designer bags and watches.',who:'hank'},
+ {id:'casino',name:'Underground casino',cost:6e5,y:.045,heat:1.6,launder:.5,desc:'High-stakes card games. Also cleans some of your dirty cash.',who:'dimitri'},
+ {id:'tech',name:'Black-market tech',cost:2.5e6,y:.05,heat:2.6,desc:'Stolen phones and chips, resold overseas.',who:'hank'},
+ {id:'heist',name:'Cargo heist crew',cost:8e6,y:.07,heat:4,swing:1,desc:'Big scores, big risks. Some weeks pay huge, some pay nothing.',who:'hank'},
+ {id:'offshore',name:'Offshore syndicate',cost:4e7,y:.04,heat:1,launder:1,desc:'Shell companies on islands. Quiet, steady, and cleans money fast.',who:'pell'},
+];
+const UGT=id=>UG_TYPES.find(t=>t.id===id);
+const ugOn=()=>S.tier>=1;
+const ugIncome=o=>UGT(o.type).cost*UGT(o.type).y*Math.pow(o.lvl,.9);
+const ugUpCost=o=>Math.round(UGT(o.type).cost*o.lvl*1.2);
+const launderCap=()=>Math.round(S.biz.reduce((a,b)=>a+Math.max(0,b.rev)*.25*b.own,0)+S.ug.ops.reduce((a,o)=>a+(UGT(o.type).launder||0)*ugIncome(o),0)+myCos().reduce((a,c)=>a+c.val*.004,0));
+function ugWeek(news){const U=S.ug;if(!U.ops.length&&U.dirty<1){U.heat=Math.max(0,U.heat-4);return {dirty:0,clean:0};}
+ let made=0,heat=0;U.ops.forEach(o=>{const t=UGT(o.type);let inc=ugIncome(o)*Math.exp(gauss()*.25);if(t.swing)inc*=Math.random()<.35?rnd(2,3.5):Math.random()<.4?0:.7;if(U.low)inc*=.25;made+=inc;heat+=t.heat*o.lvl*(U.low?.3:1);});
+ U.dirty+=made;U.heat=clamp(U.heat+heat-3-(U.low?4:0)-(U.crook>S.week?3:0),0,100);
+ const cl=Math.min(U.dirty,launderCap());if(cl>0){U.dirty-=cl;S.cash+=cl*.85;U.cleaned+=cl*.85;}
+ const p=U.heat<40?0:Math.pow((U.heat-40)/60,2)*.35;
+ if(U.ops.length&&Math.random()<p){const h0=U.heat,o=pick(U.ops),t=UGT(o.type),seize=U.dirty*rnd(.3,.5);U.ops=U.ops.filter(x=>x!==o);U.dirty-=seize;U.seized+=seize;U.heat=Math.max(0,U.heat-25);
+  let traced='',fine=0;if(h0>=60&&Math.random()<.5){fine=Math.round(Math.max(0,netWorth())*.08);payOut(fine);traced=`Worse, investigators traced some of it back to you. You paid a ${money(fine)} fine to make it go away.`;}
+  news.personal.push({who:'brady',mood:'angry',tag:['t-bad','Raid'],pages:[`Police raided your ${t.name.toLowerCase()} last night. The whole operation is gone, and they seized ${money(seize)} of dirty cash.`,traced||'Your shell companies held up. Nothing points back to you.']});addLog(S,`Raid: lost ${t.name.toLowerCase()} and ${money(seize)} dirty cash.${fine?` Fined ${money(fine)}.`:''}`,'bad');}
+ return {dirty:made,clean:cl*.85};}
+function startOp(type){const t=UGT(type);if(S.cash<t.cost)return toast(`You need ${money(t.cost)} in clean cash for this.`);S.cash-=t.cost;S.ug.ops.push({id:'u'+(S.bizSeq++),type,lvl:1,week:S.week});S.ug.heat=Math.min(100,S.ug.heat+5);addLog(S,`Quietly set up a ${t.name.toLowerCase()}.`,'');popCash(`-${money(t.cost)}`,'var(--loss)');toast(`${t.name} is up and running. Nobody knows it's yours.`);after();}
+const UGE=[
+ {run:()=>{const o=pick(S.ug.ops),t=UGT(o.type),f=Math.round(ugIncome(o)*1.5);return {who:'hank',mood:'worried',tag:['t-bad','Underground'],pages:[`A rival crew wants your ${t.name.toLowerCase()}'s turf.`,`Pay them ${money(f)} in dirty cash to back off, or push back (heat +15, 50% chance they hit your operation for 3 weeks of income).`],choices:[
+   {label:`Pay them off (${money(f)} dirty)`,run:()=>{S.ug.dirty=Math.max(0,S.ug.dirty-f);return ok('hank','They took the money. For now.','neutral');}},{label:'Push back',run:()=>{S.ug.heat=Math.min(100,S.ug.heat+15);if(Math.random()<.5){S.ug.dirty=Math.max(0,S.ug.dirty-ugIncome(o)*3);return {who:'hank',mood:'angry',tag:['t-bad','Underground'],pages:['They hit a stash house. Three weeks of money, gone.']};}return ok('hank','They backed down. Respect.','smug');}}]};}},
+ {run:()=>{const f=Math.round(Math.max(5000,S.ug.dirty*.15));return {who:'hank',mood:'worried',tag:['t-bad','Underground'],pages:[`One of your people has been talking to the police.`,`Pay ${money(f)} of dirty cash to make them disappear to a beach somewhere, or do nothing (heat +30).`],choices:[
+   {label:`Send them away (${money(f)} dirty)`,run:()=>{if(S.ug.dirty<f){S.ug.heat=Math.min(100,S.ug.heat+30);return ok('hank','You don\'t have enough. They kept talking.','worried');}S.ug.dirty-=f;return ok('hank','They\'re enjoying the beach. Quietly.','smug');}},{label:'Do nothing',run:()=>{S.ug.heat=Math.min(100,S.ug.heat+30);return ok('hank','Bad idea. Things just got hot.','worried');}}]};}},
+ {run:()=>{const big=Math.round(S.ug.ops.reduce((a,o)=>a+ugIncome(o),0)*4),f=Math.round(big*.35);return {who:'hank',mood:'smug',tag:['t-choice','Underground'],pages:[`A huge shipment just came up. Fund it with ${money(f)} of clean cash and it pays about ${money(big)} in dirty cash next week.`,`Risk: heat +20, and a 25% chance it gets seized at the port.`],choices:[
+   {label:`Fund it (${money(f)})`,run:()=>{if(S.cash<f)return ok('hank','You need the clean cash up front.','neutral');S.cash-=f;S.ug.heat=Math.min(100,S.ug.heat+20);if(Math.random()<.25)return {who:'brady',mood:'angry',tag:['t-bad','Seized'],pages:['Customs seized the whole shipment. Your money\'s gone, but nothing points to you.']};S.ug.dirty+=big;return ok('hank',`Delivered. ${money(big)} in dirty cash.`,'smug');}},{label:'Too risky',run:()=>ok('hank','Your call, boss.','neutral')}]};}},
+ {run:()=>{const f=Math.round(Math.max(10000,S.ug.ops.reduce((a,o)=>a+ugIncome(o),0)*2));return {who:'hank',mood:'smug',tag:['t-choice','Underground'],pages:[`A city official will look the other way for the next 8 weeks.`,`${money(f)} of dirty cash. While they're on your side, heat cools 3 points faster every week.`],choices:[
+   {label:`Pay (${money(f)} dirty)`,run:()=>{if(S.ug.dirty<f)return ok('hank','Not enough dirty cash.','neutral');S.ug.dirty-=f;S.ug.crook=S.week+8;return ok('hank','You have a friend downtown now.','smug');}},{label:'No thanks',run:()=>ok('hank','Suit yourself.','neutral')}]};}},
+ {run:()=>{const o=pick(S.ug.ops),t=UGT(o.type),l=Math.round(ugIncome(o)*2);return {who:'hank',mood:'worried',tag:['t-bad','Underground'],pages:[`Someone running your ${t.name.toLowerCase()} has been skimming. About ${money(l)} so far.`,`Replace them (operation earns 50% less next week), or let it slide (they keep skimming 10% for 8 weeks).`],choices:[
+   {label:'Replace them',run:()=>{S.ug.dirty=Math.max(0,S.ug.dirty-ugIncome(o)*.5);return ok('hank','Handled. New person starts tomorrow.','neutral');}},{label:'Let it slide',run:()=>{S.ug.dirty=Math.max(0,S.ug.dirty-ugIncome(o)*.8);return ok('hank','Soft. They\'ll keep doing it.','neutral');}}]};}},
+];
+function ugScene(){if(!S.ug.ops.length||Math.random()>.35)return null;for(let i=0;i<5;i++){const s=pick(UGE).run();if(s)return s;}return null;}
+
+/* ===================== NET WORTH PARTS ===================== */
+function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),life:lifeVal(),debt:-S.debt};}
+const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Companies and startups',biz:'Your businesses',life:'Lifestyle',debt:'Loans'};
+function openNw(){const now=nwParts(),was=S.nwParts||now,d=netWorth()-(S.lastNw??netWorth());
+ openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This turn</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since you set off on your last trip.</p>
+  <div class="recap">${Object.keys(NW_LBL).map(k=>{const ch=now[k]-(was[k]||0);if(Math.abs(ch)<1&&Math.abs(now[k])<1)return '';return `<div><span>${NW_LBL[k]}</span><span class="${ch>0?'up':ch<0?'down':'muted'}">${ch>0?'+':''}${money(ch)}</span></div>`;}).join('')}
+  <div><span>Net worth now</span><b>${money(netWorth())}</b></div>${S.ug.dirty>=1?`<div><span>Dirty cash (hidden, not counted)</span><b class="muted">${money(S.ug.dirty)}</b></div>`:''}</div>
+  <p class="muted" style="font-size:13px">Cash spent on cargo isn't lost: it moves from cash into cargo until you sell.</p><div class="ev-btns"><button class="btn" data-close>Close</button></div>`);}
+
+/* ===================== BUSINESS TAB VIEW ===================== */
+function bzSpark(h){if(h.length<2)return '';const w=120,hh=34,mn=Math.min(0,...h),mx=Math.max(0,...h),sp=mx-mn||1;const pts=h.map((v,i)=>`${(i/(h.length-1)*w).toFixed(1)},${(hh-(v-mn)/sp*hh).toFixed(1)}`).join(' ');const z=(hh-(0-mn)/sp*hh).toFixed(1);
+ return `<svg viewBox="0 0 ${w} ${hh}" class="bzspark"><path d="M0 ${z}H${w}" stroke="var(--line,#DDE3EE)" stroke-dasharray="3 3"/><polyline points="${pts}" fill="none" stroke="${h[h.length-1]>=0?'var(--cash)':'var(--loss)'}" stroke-width="2.4" stroke-linejoin="round"/></svg>`;}
+const bzBadge=t=>`<span class="bzbadge" style="background:${t.col}">${t.name.split(/[ &]/)[0].slice(0,2).toUpperCase()}</span>`;
+function viewBiz(){const mode=UI.bzMode||'legit';
+ if(mode==='legit'&&UI.bz&&BZ(UI.bz))return viewOneBiz(BZ(UI.bz));
+ const tot=S.biz.reduce((a,b)=>a+b.profit*b.own,0),val=bizValue();
+ const top=`<div class="seg">${['legit','under'].map(m=>`<button class="chip ${mode===m?'on':''}" data-bz="mode" data-v="${m}">${m==='legit'?'My businesses':'Shady side'}</button>`).join('')}</div>`;
+ if(mode==='under')return top+viewUnder();
+ return top+`<div class="card"><div class="between"><h3 style="font-size:20px">Your businesses</h3><span class="label">${S.biz.length} running</span></div>
+  ${S.biz.length?`<div class="recap" style="margin-bottom:0"><div><span>Your share of last week's profit</span><b class="${tot>=0?'up':'down'}">${tot>=0?'+':''}${money(tot)}</b></div><div><span>Your share of their value</span><b>${money(val)}</b></div></div>`:`<p class="muted" style="margin:8px 0 0">Start a company, make choices every turn, and watch it grow. Its value counts toward your net worth.</p>`}</div>
+  ${S.biz.map(b=>{const t=BZT(b.type);return `<button class="bzrow" data-bz="open" data-id="${b.id}">${bzBadge(t)}<span><b>${bzName(b)}</b><small>${t.name} · ${b.units+b.opening} ${b.units+b.opening===1?t.unit:t.units}${b.auto?' · Auto':''}${b.pub?' · Public':''}</small></span><span class="bzright"><b class="${b.profit>=0?'up':'down'}">${b.hist.length?(b.profit>=0?'+':'')+money(b.profit*b.own)+'/wk':'New'}</b><small>${money(bzVal(b)*b.own)}</small></span></button>`;}).join('')}
+  <button class="btn go big" data-bz="new">Start a new business</button>`;}
+function viewOneBiz(b){const t=BZT(b.type),v=bzVal(b),h=b.hist,last4=h.slice(-4),avg=last4.length?last4.reduce((a,x)=>a+x,0)/last4.length:0;
+ const lever=k=>`<div class="bzlev"><div class="between"><b>${LEV[k].label}</b><small class="muted">${LEV[k].tip[b.lev[k]]}</small></div><div class="seg">${LEV[k].opts.map((o,i)=>`<button class="chip ${b.lev[k]===i?'on':''}" ${b.auto?'disabled':''} data-bz="lev" data-k="${k}" data-v="${i}" data-id="${b.id}">${o}</button>`).join('')}</div></div>`;
+ const ups=BZ_UP[b.type].map(([n,c,eff],i)=>{const own=b.ups.includes(i),cost=Math.round(t.cost*c);const e=Object.entries(eff).map(([k,x])=>k==='brand'?`brand +${x}`:k==='rev'?`revenue ${x>1?'+':''}${Math.round((x-1)*100)}%`:k==='cost'?`costs ${x<1?'':'+'}${Math.round((x-1)*100)}%`:k==='sat'?`room to grow +${Math.round((x-1)*100)}%`:'steadier results').join(', ');
+  return `<button class="bzup ${own?'own':''}" ${own?'disabled':''} data-bz="up" data-i="${i}" data-id="${b.id}"><span><b>${n}</b><small>${e}</small></span><span>${own?'Done':money(cost)}</span></button>`;}).join('');
+ const idea=b.idea!=null?IDEAS[b.idea]:null,ic=idea?ideaCost(b,b.idea):0;
+ const goals=GOALS.map(g=>`<div class="bzgoal ${b.goals.includes(g.id)?'done':''}"><span>${b.goals.includes(g.id)?'✓':'○'}</span>${goalText(g,b)}</div>`).join('');
+ return `<button class="chip" data-bz="back">← All businesses</button>
+ <div class="card bzhead"><div class="row">${bzBadge(t)}<div style="min-width:0"><h3 style="font-size:22px;margin:0">${bzName(b)}</h3><small class="muted">${t.name}${b.pub?' · Public company':''} · You own ${Math.round(b.own*100)}%</small></div></div>
+  <div class="recap"><div><span>Worth</span><b>${money(v)}${b.own<1?` <small class="muted">(your share ${money(v*b.own)})</small>`:''}</b></div><div><span>Brand</span><b>${Math.round(b.brand)} / 100</b></div><div><span>Locations</span><b>${b.units} ${b.units===1?t.unit:t.units}${b.opening?` (+${b.opening} opening)`:''}</b></div></div></div>
+ <div class="card"><div class="between"><h3>Last week</h3><span class="label">${h.length?`Avg 4 wks ${avg>=0?'+':''}${money(avg)}`:'Opens this turn'}</span></div>
+  ${h.length?`<div class="recap"><div><span>Revenue</span><span class="up">+${money(b.rev)}</span></div><div><span>Costs</span><span class="down">-${money(b.cost)}</span></div><div><span>Profit</span><b class="${b.profit>=0?'up':'down'}">${b.profit>=0?'+':''}${money(b.profit)}</b></div>${b.own<1?`<div><span>Your ${Math.round(b.own*100)}% share</span><b class="${b.profit>=0?'up':'down'}">${b.profit>=0?'+':''}${money(b.profit*b.own)}</b></div>`:''}</div>${bzSpark(h.slice(-16))}`:'<p class="muted">Results show up after your next trip. Profits (or losses) are paid into your cash every week.</p>'}</div>
+ <div class="card"><div class="between"><h3>Strategy</h3><button class="chip ${b.auto?'on':''}" data-bz="auto" data-id="${b.id}">${b.auto?'Auto: on':'Auto: off'}</button></div>
+  ${b.auto?`<p class="muted" style="margin:6px 0">A hired manager runs this for you and handles its events. They take 4% of revenue and play it safe.</p><button class="chip ${b.grow?'on':''}" data-bz="grow" data-id="${b.id}">${b.grow?'Manager may open new locations: yes':'Manager may open new locations: no'}</button>`:''}
+  <div style="display:grid;gap:12px;margin-top:10px">${lever('price')}${lever('mkt')}${lever('staff')}${lever('qual')}</div></div>
+ <div class="card"><h3>Grow</h3><div class="btnrow" style="margin-top:8px"><button class="btn go" data-bz="open1" data-id="${b.id}" ${S.cash<nextUnitCost(b)?'disabled':''}>Open a ${t.unit}<br><small>${money(nextUnitCost(b))}</small></button><button class="btn" data-bz="close1" data-id="${b.id}" ${b.units<2?'disabled':''}>Close a ${t.unit}<br><small>Get back ${money(t.cost*.4)}</small></button></div>
+  <p class="muted" style="font-size:13px;margin:8px 0 0">More locations means more profit, but each one costs more and they start competing with each other.</p></div>
+ ${idea?`<div class="card bzidea"><span class="label">Idea of the week</span><h3 style="margin:4px 0">${idea.t(t.w)}</h3><p class="muted" style="margin:0 0 10px">${idea.d}</p><button class="btn ${ic?'go':''}" data-bz="idea" data-id="${b.id}" ${S.cash<ic?'disabled':''}>${ic?`Do it (${money(ic)})`:'Do it (free)'}</button></div>`:''}
+ <div class="card"><h3>Upgrades</h3><div style="display:grid;gap:8px;margin-top:8px">${ups}</div></div>
+ <div class="card"><h3>Goals</h3><div style="display:grid;gap:6px;margin-top:8px">${goals}</div></div>
+ <div class="card"><h3>Big moves</h3><div style="display:grid;gap:8px;margin-top:8px">
+  ${b.own>.35?`<button class="btn" data-bz="raise" data-id="${b.id}">Sell 10% to investors (${money(v*.1)})</button>`:''}
+  ${b.pub?`<button class="btn" data-bz="buyback" data-id="${b.id}" ${S.cash<v*.1*1.05||b.own>.9?'disabled':''}>Buy back 10% (${money(v*.1*1.05)})</button>`:`<button class="btn sun" data-bz="ipo" data-id="${b.id}" ${canIPO(b)?'':'disabled'}>${canIPO(b)?`Go public (raise about ${money(v*Math.min(.25,b.own-.25)*1.25)})`:'Go public (needs $20M value and 4 profitable weeks)'}</button>`}
+  <button class="btn danger" data-bz="sell" data-id="${b.id}">Sell the company</button></div></div>`;}
+function openNewBiz(){openModal(`<span class="evtag t-choice">New business</span><h2>What are you starting?</h2><p>Startup cost includes your first location.</p>
+ <div class="bzpick">${BIZ_TYPES.map(t=>{const c=t.cost*1.2,can=S.cash>=c;return `<button class="bztype ${can?'':'lock'}" data-bz="pick" data-t="${t.id}">${bzBadge(t)}<span><b>${t.name}</b><small>${t.desc}</small></span><span><b>${money(c)}</b><small>${can?'':'Need cash'}</small></span></button>`;}).join('')}</div><div class="ev-btns"><button class="btn" data-close>Cancel</button></div>`);}
+function openNameBiz(type){const t=BZT(type),sug=pick(['Nova','Summit','Bright','Bold','Harbor','Golden','Urban','Atlas','Maple','Blue Fin','Iron','Velvet'])+' '+pick({food:['Eats','Grill','Kitchen'],coffee:['Coffee','Roasters','Café'],fashion:['Threads','Apparel','Label'],app:['Labs','App','AI'],gym:['Fitness','Gym','Athletics'],studio:['Games','Studios','Interactive'],realestate:['Properties','Estates','Living'],logistics:['Freight','Logistics','Shipping'],hotel:['Hotels','Resorts','Suites'],media:['Media','Network','TV'],airline:['Air','Airways','Airlines'],bank:['Bank','Capital','Trust']}[type]);
+ openModal(`<span class="evtag t-choice">${t.name}</span><h2>Name your company</h2><p>${t.desc} Startup cost: <b>${money(t.cost*1.2)}</b>.</p><input id="bzname" class="input" maxlength="28" value="${esc(sug)}" style="width:100%;font-size:18px;padding:12px;border-radius:12px;border:2px solid var(--surface2);font-weight:800"><div class="ev-btns"><button class="btn go big" data-bz="found" data-t="${type}">Start ${esc(sug.split(' ')[0])}… for ${money(t.cost*1.2)}</button><button class="btn" data-close>Back</button></div>`);
+ const i=$('#bzname');if(i){i.addEventListener('input',()=>{const b=document.querySelector('[data-bz="found"]');if(b)b.textContent=`Start ${i.value.trim()||t.name} for ${money(t.cost*1.2)}`;});}}
+function viewUnder(){const U=S.ug;if(!ugOn())return `<div class="card"><h3>Shady side</h3><p class="muted">Locked. Reach ${TIERS[1].name} rank before the wrong people start calling you.</p></div>`;
+ const inc=U.ops.reduce((a,o)=>a+ugIncome(o),0)*(U.low?.25:1),hc=U.heat<35?'up':U.heat<65?'warn':'down';
+ return `<div class="card ugcard"><div class="between"><h3 style="font-size:20px">The shady side</h3><span class="label">Off the books</span></div>
+  <p class="muted" style="margin:6px 0 10px">Run through shell companies so nothing points to you. It earns dirty cash, which doesn't count toward your net worth until it's cleaned through your legal businesses.</p>
+  <div class="recap"><div><span>Dirty cash</span><b>${money(U.dirty)}</b></div><div><span>Earning about</span><b>${money(inc)}/wk</b></div><div><span>Cleaned automatically</span><b>up to ${money(launderCap())}/wk</b></div><div><span>Cleaned so far</span><b class="up">${money(U.cleaned)}</b></div></div>
+  <div class="between"><b>Heat</b><b class="${hc}">${Math.round(U.heat)} / 100</b></div><div class="capbar"><i style="width:${U.heat}%;background:${U.heat<35?'var(--cash)':U.heat<65?'#FFB21F':'var(--loss)'}"></i></div>
+  <small class="muted">Above 40, police raids become possible. Above 60, a raid might trace back to you.</small>
+  <div class="btnrow" style="margin-top:10px"><button class="btn ${U.low?'on':''}" data-bz="low">${U.low?'Laying low: on':'Lay low'}</button><button class="btn" data-bz="fixer" ${S.cash<fixerCost()?'disabled':''}>Pay a fixer<br><small>${money(fixerCost())}, heat -30</small></button></div>
+  <button class="btn" style="margin-top:8px;width:100%" data-bz="wash" ${U.dirty<1?'disabled':''}>Clean it all now through shell companies<br><small>Keep 65%, heat +5</small></button></div>
+  ${U.ops.map(o=>{const t=UGT(o.type);return `<div class="card"><div class="between"><h3>${t.name}</h3><span class="label">Level ${o.lvl}</span></div><p class="muted" style="margin:4px 0 8px">${t.desc}</p><div class="recap"><div><span>Dirty cash per week</span><b>${money(ugIncome(o)*(U.low?.25:1))}</b></div><div><span>Heat per week</span><b>+${(t.heat*o.lvl*(U.low?.3:1)).toFixed(1)}</b></div></div><div class="btnrow"><button class="btn go" data-bz="ugup" data-id="${o.id}" ${S.cash<ugUpCost(o)||o.lvl>=5?'disabled':''}>${o.lvl>=5?'Max level':`Expand (${money(ugUpCost(o))})`}</button><button class="btn" data-bz="ugshut" data-id="${o.id}">Shut it down</button></div></div>`;}).join('')}
+  <div class="card"><h3>Start an operation</h3><div style="display:grid;gap:8px;margin-top:8px">${UG_TYPES.map(t=>`<button class="bzup ${S.cash<t.cost?'lock':''}" data-bz="ugstart" data-t="${t.id}"><span><b>${t.name}</b><small>${t.desc} About ${money(t.cost*t.y)}/wk dirty, heat +${t.heat}/wk.</small></span><span>${money(t.cost)}</span></button>`).join('')}</div></div>`;}
+const fixerCost=()=>Math.round(Math.max(5000,S.ug.ops.reduce((a,o)=>a+ugIncome(o),0)*1.5));
+function bizClick(d,t){const b=d.id?BZ(d.id):null;
+ switch(d.bz){
+  case 'nw':return openNw();
+  case 'mode':UI.bzMode=d.v;UI.bz=null;return renderGame();
+  case 'open':UI.bz=d.id;renderGame();return window.scrollTo({top:0});
+  case 'back':UI.bz=null;return renderGame();
+  case 'new':return openNewBiz();
+  case 'pick':return openNameBiz(d.t);
+  case 'found':{const n=($('#bzname')||{}).value;closeModal();return startBiz(d.t,(n||'').trim().slice(0,28));}
+  case 'lev':if(!b)return;b.lev[d.k]=+d.v;save();return renderGame();
+  case 'auto':b.auto=!b.auto;toast(b.auto?`A manager now runs ${b.name}.`:`You're back in charge of ${b.name}.`);save();return renderGame();
+  case 'grow':b.grow=!b.grow;save();return renderGame();
+  case 'open1':{const c=nextUnitCost(b);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;b.opening++;b.paid+=c;popCash(`-${money(c)}`,'var(--loss)');toast(`New ${BZT(b.type).unit} opens next week.`);return after();}
+  case 'close1':{if(b.units<2)return;b.units--;const r=BZT(b.type).cost*.4;S.cash+=r;toast(`Closed a ${BZT(b.type).unit}. Got back ${money(r)}.`);return after();}
+  case 'up':{const [n,c,eff]=BZ_UP[b.type][+d.i],cost=Math.round(BZT(b.type).cost*c);if(S.cash<cost)return toast(`You need ${money(cost)} for that.`);S.cash-=cost;b.ups.push(+d.i);b.upPaid+=cost;b.paid+=cost;
+   Object.entries(eff).forEach(([k,x])=>{if(k==='brand')b.brand=Math.min(100,b.brand+x);else b.mod[k]*=x;});addLog(S,`${b.name}: ${n} (${money(cost)}).`,'good');toast(`${n} done.`);confetti();return after();}
+  case 'idea':{const i=b.idea,c=ideaCost(b,i);if(S.cash<c)return;S.cash-=c;IDEAS[i].run(b);addLog(S,`${b.name}: ${IDEAS[i].t(BZT(b.type).w)}.`,'');toast('Done. Results show up over the next weeks.');b.idea=null;return after();}
+  case 'raise':{const v=bzVal(b),cash=Math.round(v*.1*(b.hist.slice(-4).reduce((a,x)=>a+x,0)>0?1:.8));openModal(`<span class="evtag t-choice">Raise money</span><h2>Sell 10% of ${bzName(b)}?</h2><p>Investors pay ${money(cash)} in cash. You'd own ${Math.round((b.own-.1)*100)}% and get that share of future profits.</p><div class="ev-btns"><button class="btn go big" data-bz="raisego" data-id="${b.id}" data-c="${cash}">Sell 10% for ${money(cash)}</button><button class="btn" data-close>Cancel</button></div>`);return;}
+  case 'raisego':closeModal();S.cash+=+d.c;b.own=+(b.own-.1).toFixed(3);addLog(S,`Sold 10% of ${b.name} for ${money(+d.c)}.`,'good');popCash(`+${money(+d.c)}`,'var(--cash)');return after();
+  case 'buyback':{const c=bzVal(b)*.1*1.05;if(S.cash<c)return;S.cash-=c;b.own=+Math.min(1,b.own+.1).toFixed(3);addLog(S,`Bought back 10% of ${b.name}.`,'');return after();}
+  case 'ipo':openModal(`<span class="evtag t-good">IPO</span><h2>Take ${bzName(b)} public?</h2><p>You sell part of the company on the stock market at a 25% premium and get the cash now. After that its value moves with the market every week.</p><div class="recap"><div><span>You sell</span><b>${Math.round(Math.min(.25,b.own-.25)*100)}%</b></div><div><span>You get</span><b class="up">${money(bzVal(b)*Math.min(.25,b.own-.25)*1.25)}</b></div></div><div class="ev-btns"><button class="btn go big" data-bz="ipogo" data-id="${b.id}">Ring the bell</button><button class="btn" data-close>Not yet</button></div>`);return;
+  case 'ipogo':closeModal();return ipoBiz(b);
+  case 'sell':{const ok4=b.hist.slice(-4).reduce((a,x)=>a+x,0)>0,offer=Math.round(bzVal(b)*b.own*(ok4?rnd(.92,1.12):rnd(.7,.9)));openModal(`<span class="evtag t-bad">Sell</span><h2>Sell ${bzName(b)}?</h2><p>The best buyer offers <b>${money(offer)}</b> for your ${Math.round(b.own*100)}%.${ok4?'':' It\'s been losing money lately, so offers are low.'} Wait for a buyout event to maybe get more.</p><div class="ev-btns"><button class="btn danger big" data-bz="sellgo" data-id="${b.id}" data-c="${offer}">Sell for ${money(offer)}</button><button class="btn" data-close>Keep it</button></div>`);return;}
+  case 'sellgo':closeModal();sellBizNow(b,+d.c);return after();
+  case 'ugstart':return startOp(d.t);
+  case 'ugup':{const o=S.ug.ops.find(x=>x.id===d.id),c=ugUpCost(o);if(S.cash<c||o.lvl>=5)return;S.cash-=c;o.lvl++;S.ug.heat=Math.min(100,S.ug.heat+4);toast(`${UGT(o.type).name} expanded.`);return after();}
+  case 'ugshut':S.ug.ops=S.ug.ops.filter(x=>x.id!==d.id);S.ug.heat=Math.max(0,S.ug.heat-8);toast('Shut down. Quietly.');return after();
+  case 'low':S.ug.low=!S.ug.low;save();return renderGame();
+  case 'fixer':{const c=fixerCost();if(S.cash<c)return;S.cash-=c;S.ug.heat=Math.max(0,S.ug.heat-30);toast('Your fixer made some calls. Heat -30.');return after();}
+  case 'wash':{const a=S.ug.dirty*.65;S.cash+=a;S.ug.cleaned+=a;S.ug.dirty=0;S.ug.heat=Math.min(100,S.ug.heat+5);popCash(`+${money(a)}`,'var(--cash)');toast(`${money(a)} cleaned and in your account.`);return after();}
+ }}
+
 function rollEvents(ctx){
  if(S.trips<=1)return [];
  const n=Math.random()<.15?0:(Math.random()<.4?2:1),out=[],usedIds=new Set();
@@ -2083,19 +2589,19 @@ function renderGame(){
  if(!S)return;
  const nw=netWorth(),t=S.tier,next=TIERS[t+1],pct=next?clamp((nw-TIERS[t].at)/(next.at-TIERS[t].at)*100,0,100):100;
  const loc=C(S.loc),rk=myRank(),low=S.cash+S.savings<liveCost();
- const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet};
+ const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz};
  const changed=UI.lastTab!==UI.tab;UI.lastTab=UI.tab;
  $('#scr-game').innerHTML=`<header class="hud">
    <div class="row"><div class="who">${portrait(S.look,44)}<div style="min-width:0"><b>${esc(S.name)}</b><small>${TIERS[t].name}</small></div></div>
-    <div class="cashbox"><div class="v" id="cashVal">${money(shownCash??S.cash)}</div><small>Net worth ${money(nw)}</small></div>
+    <div class="cashbox"><div class="v" id="cashVal">${money(shownCash??S.cash)}</div><small>Net worth ${money(nw)}</small>${S.lastNw!=null&&S.trips>0?(()=>{const dd=nw-S.lastNw;return `<button class="nwdelta ${dd>=0?'up':'down'}" data-bz="nw">${dd>=0?'+':''}${money(dd)} this turn</button>`;})():''}</div>
     <button class="iconbtn" data-act="menu" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
-   <div class="chips"><span class="pill">${icon('cal')}Week ${S.week}</span><span class="pill">${icon('pin')}${loc.name}</span><span class="pill">${icon('bet')}#${rk} of 9</span>
+   <div class="chips"><span class="pill">${icon('cal')}Week ${S.week}</span><span class="pill">${icon('pin')}${loc.name}</span><button class="pill" data-tab="bet">${icon('bet')}#${rk} of 9</button>
     <span class="pill ${low?'warn':''}">${icon('home')}Living ${money(liveCost())}/wk</span>${S.debt>=1?`<span class="pill ${dueIn()!==null&&dueIn()<=8||S.missed?'warn':''}">${icon('debt')}Loan ${money(S.debt)}${S.due?` · due in ${Math.max(0,dueIn())} wk`:''}</span>`:''}</div>
    <div><div class="track"><i style="width:${pct}%"></i></div><div class="tierline"><span>${TIERS[t].name}</span><span>${next?`${money(next.at-nw)} to ${next.name}`:'Top of the world'}</span></div></div></header>
   <main class="view" ${changed?'':'style="animation:none"'}>${views[UI.tab]()}</main>
   <nav class="nav"><div class="nav-in">${tabBtn('market','Market')}${tabBtn('deals','Invest')}
    <button class="travelbtn ${UI.tab==='travel'?'on':''}" data-tab="travel" aria-label="Travel">${icon('travel')}<b>Travel</b></button>
-   ${tabBtn('bank','Bank')}${tabBtn('bet','The Bet')}</div></nav>`;
+   ${tabBtn('biz','Business')}${tabBtn('bank','Bank')}</div></nav>`;
  tweenCash(S.cash);
 }
 const tabBtn=(k,label)=>`<button class="tab ${UI.tab===k?'on':''}" data-tab="${k}">${icon(k)}${label}</button>`;
@@ -2518,6 +3024,7 @@ document.addEventListener('click',e=>{
  if(e.target.closest('#stage'))return;
  if(e.target===$('#modal')){closeModal();if(UI.sel){UI.sel=null;renderGame();}return;}
  const t=e.target.closest('button,[data-city],[data-mapv]');if(!t)return;const d=t.dataset;
+ if(d.bz){bizClick(d,t);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
  else if(d.act==='continue'){const s=loadSave();if(s)startGame(s);else goCreate();}
