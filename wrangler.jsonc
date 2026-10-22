@@ -1,0 +1,9 @@
+{
+  "name": "billion-bro",
+  "main": "worker.js",
+  "compatibility_date": "2025-09-01",
+  "assets": { "directory": ".", "binding": "ASSETS" },
+  "d1_databases": [
+    { "binding": "DB", "database_name": "billion-bro-site", "database_id": "a906a32e-e5e6-4dcf-98a2-622d0ed3781d" }
+  ]
+}
