@@ -290,7 +290,12 @@ button.rrow:active{transform:scale(.99)}
 .ddbox{padding:10px 12px;border-radius:12px;background:var(--surface2);font-size:14px;margin:6px 0}
 .deskcard{display:block;text-align:left;width:100%;background:linear-gradient(135deg,#E3F6EC,#FFFFFF)}
 .btnrow .btn{flex-direction:column;gap:2px;line-height:1.2}.btnrow .btn small{font-weight:700;opacity:.85}
-.nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;align-items:center}
+.pcard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px}
+.pcard .capbar{margin-top:6px}.pcard .seg .chip{font-size:13px;padding:7px 11px}
+.kv2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.kv2 small{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.kv2 b{font-size:20px}
+.lifehead{background:linear-gradient(135deg,#FFE6EF,#FFFFFF)}
+.btn small{display:block;font-size:12px}
+.nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:1fr 1fr 1.25fr 1fr 1fr 1fr;align-items:center}
 .tab{display:grid;justify-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);padding:6px 0;position:relative}
 .tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:var(--ink)}
@@ -483,6 +488,7 @@ const UI_ICONS={
  travel:'<path d="M5 17h14V8a3 3 0 0 0-3-3H8a3 3 0 0 0-3 3z"/><path d="M5 12h14M8 20v-3M16 20v-3"/><circle cx="8.5" cy="14.5" r=".8"/><circle cx="15.5" cy="14.5" r=".8"/>',
  bank:'<path d="M3 10l9-6 9 6M5 10v8M9 10v8M15 10v8M19 10v8M3 20h18"/>',
  bet:'<path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4"/>',
+ life:'<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>',
  biz:'<path d="M4 21V9l5-3v15M9 21V4l11 5v12M2 21h20"/><path d="M13 11h3M13 15h3"/>',
  pin:'<path d="M12 21s-6-6-6-11a6 6 0 0 1 12 0c0 5-6 11-6 11z"/><circle cx="12" cy="10" r="2"/>',
  cal:'<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
@@ -1174,7 +1180,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1387,7 +1393,7 @@ const loanRate=()=>dif().loan*(tr().bank?.7:1);
 const LF=id=>LIFE.find(x=>x.id===id);
 const lifeIds=()=>Object.keys(S.life||{});
 const lifeVal=()=>lifeIds().reduce((a,id)=>a+S.life[id].val,0);
-const fame=()=>lifeIds().reduce((a,id)=>a+LF(id).fame,0);
+const fame=()=>lifeIds().reduce((a,id)=>a+LF(id).fame,0)+(S&&S.fam?partnerFame():0);
 const homeCut=()=>Math.max(0,...lifeIds().map(id=>LF(id).live||0));
 const fareCut=()=>Math.min(1,...lifeIds().map(id=>LF(id).fare||1));
 const fastJet=()=>lifeIds().some(id=>LF(id).fast);
@@ -1509,8 +1515,8 @@ function travel(dest){
  const pz=press();PRODUCTS.forEach(p=>{const b=pz.buy[p.id]||1,s=pz.sell[p.id]||1;S.f[S.loc][p.id]=clamp(S.f[S.loc][p.id]*Math.sqrt(b*s),.5,1.9);});S.press={buy:{},sell:{}};
  S.prev=allPrices(S);
  if(!stay){S.cash-=cost;recap.push([`${modeName(from,dest)==='bus'?'Bus ticket':modeName(from,dest)==='flight'?'Flight ticket':modeName(from,dest)==='cargo plane'?'Fuel and airport fees':'Fuel and tolls'}${ferry(from,dest)?' + ferry':''}`,-cost]);}
- let living=0,interest=0,loanInt=0,income=0,loanPay=0,missedNow=0,divs=0,upkeep=0,bizp=0,dirty=0,clean=0,acqp=0,deskp=0;
- S.tripDest=dest;for(let w=0;w<weeks;w++){const r=tick(w===weeks-1?dest:null,news);living+=r.living;interest+=r.interest;loanInt+=r.loanInt;income+=r.income;loanPay+=r.loanPay;missedNow+=r.missed?1:0;divs+=r.divs;upkeep+=r.upkeep;bizp+=r.bizp;dirty+=r.dirty;clean+=r.clean;acqp+=r.acq;deskp+=r.desk;}
+ let living=0,interest=0,loanInt=0,income=0,loanPay=0,missedNow=0,divs=0,upkeep=0,bizp=0,dirty=0,clean=0,acqp=0,deskp=0,famc=0;
+ S.tripDest=dest;for(let w=0;w<weeks;w++){const r=tick(w===weeks-1?dest:null,news);living+=r.living;interest+=r.interest;loanInt+=r.loanInt;income+=r.income;loanPay+=r.loanPay;missedNow+=r.missed?1:0;divs+=r.divs;upkeep+=r.upkeep;bizp+=r.bizp;dirty+=r.dirty;clean+=r.clean;acqp+=r.acq;deskp+=r.desk;famc+=r.famc;}
  S.loc=dest;S.trips++;delete S.tripDest;
  recap.push([`Living costs (${weeks} week${weeks>1?'s':''})`,-living]);
  if(income>=1)recap.push(['Companies you bought',income]);
@@ -1519,6 +1525,7 @@ function travel(dest){
  if(S.acq.length)recap.push([acqp>=0?'Companies you bought (profit)':'Companies you bought (loss)',acqp]);
  if(S.desk.fund>=1||Math.abs(deskp)>=1){recap.push(['Trade desk',deskp]);S.desk.last=deskp;S.desk.hist.push(Math.round(S.desk.total));if(S.desk.hist.length>30)S.desk.hist.shift();}
  fillListings(news);
+ if(famc>=1)recap.push(['Family and partners',-famc]);
  S.biz.forEach(b=>{if(b.idea==null||S.week-b.ideaWeek>=2)newIdea(b);});
  if(upkeep>=1)recap.push(['Lifestyle upkeep',-upkeep]);
  if(Math.abs(divs)>=1)recap.push([divs>0?'Stock dividends':'Dividends owed on shorts',divs]);
@@ -1545,6 +1552,7 @@ function travel(dest){
  if(news.bz.length)scenes.push({who:'lou',mood:'happy',tag:['t-good','Your businesses'],pages:news.bz.slice(0,4)});
  bizScenes().forEach(x=>scenes.push(x));
  maScenes().forEach(x=>scenes.push(x));
+ famTurn().forEach(x=>scenes.push(x));
  {const u=ugScene();if(u)scenes.push(u);}
  if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
  if(S.trips%2===0)scenes.push(rivalScene());
@@ -1583,7 +1591,7 @@ function tick(arrive,news){
  });
  S.cash+=income;
  let bizp=0;S.biz.forEach(b=>{bizp+=bizWeekOne(b,news);});if(bizp>=0)S.cash+=bizp;else payOut(-bizp);
- const ugr=ugWeek(news);const mar=maWeek(news);
+ const ugr=ugWeek(news);const mar=maWeek(news);const famc=famWeek();
  // stock market
  let divs=0;{const r0=Math.random();let mf=gauss()*.02+.0005,big=0;if(r0<.008)big=-rnd(.12,.22);else if(r0<.016)big=rnd(.06,.12);mf+=big;
   if(big<0)news.heads.push({h:'Stock market crash',say:`Panic on the stock exchange. The World 500 index dropped about ${Math.round(-big*100)}% this week.`});
@@ -1627,7 +1635,7 @@ function tick(arrive,news){
  if(upkeep>=1)payOut(upkeep);
  (S.rich||[]).forEach(r=>{r.last=r.nw;r.nw*=Math.exp(.0007+.018*gauss());});
  makeDeals(news);
- return {living,interest,loanInt,income,loanPay,missed,divs,upkeep,bizp,dirty:ugr.dirty,clean:ugr.clean,acq:mar.acq,desk:mar.desk};
+ return {living,interest,loanInt,income,loanPay,missed,divs,upkeep,bizp,dirty:ugr.dirty,clean:ugr.clean,acq:mar.acq,desk:mar.desk,famc};
 }
 function exitStartup(st,mult,news){
  const pay=(S.stakes[st.id]||0)*st.val*mult;st.dead=true;
@@ -1679,7 +1687,7 @@ function customsScene(from,dest){
    addLog(S,'Slipped past the border with undeclared goods.','');return {who:'leblanc',mood:'neutral',pages:['Alright. Move along.']};}}]};
 }
 function tierScene(t){const T=TIERS[t];return {who:'whitlock',mood:'happy',tag:['t-good','New rank'],onShow:confetti,pages:[`Well, well. ${money(T.at)} in net worth. You're officially a ${T.name}, ${first(S.name)}.`,`Next up: ${T.unlock.toLowerCase()}. Keep going.`]};}
-function winScene(){return {who:'whitlock',mood:'happy',tag:['t-good','You won the bet'],onShow:confetti,pages:[`One billion dollars. You actually did it, ${first(S.name)}. First in the class.`,`The bet is yours. But there are people out there worth a lot more than a billion. The game keeps going.`]};}
+function winScene(){return {who:'whitlock',mood:'happy',tag:['t-good','You won the bet'],onShow:confetti,pages:[`One billion dollars. You actually did it, ${first(S.name)}. First in the class.`,lifeEnding(),`The bet is yours. But there are people out there worth a lot more than a billion. The game keeps going.`]};}
 function overScene(){clearSave();return {who:'okonkwo',mood:'worried',tag:['t-bad','Game over'],pages:[`Your debt has reached ${money(S.debt)}. That's past the ${money(BANKRUPT)} line, and the bank has to call it. I'm sorry.`,{text:`You're bankrupt and out of the bet. Your classmates keep racing without you.`,extra:`<div class="recap"><div><span>Weeks survived</span><b>${S.week}</b></div><div><span>Peak net worth</span><b>${money(S.peak)}</b></div><div><span>Best class rank</span><b>#${S.bestRank}</b></div><div><span>Trips made</span><b>${S.trips}</b></div></div>`}],
  choices:[...[1,2,10].filter(n=>HIST.length>=n).map(n=>({label:`Go back ${n} turn${n>1?'s':''} (week ${histWeek(n)})`,go:n===1,run:()=>{rewind(n);return 'stop';}})),{label:'Take the bet again',go:!HIST.length,run:()=>{goCreate();return 'stop';}},{label:'Back to title',run:()=>{goTitle();return 'stop';}}]};}
 function introScene(){return [
@@ -2673,6 +2681,213 @@ function openDesk(){const D=S.desk,rt=deskRoutes();openModal(`<span class="evtag
  <div class="btnrow">${[['.5','Take out half'],['1','Take out all']].map(([f,l])=>`<button class="btn" data-ma="deskout" data-f="${f}" ${D.fund<1?'disabled':''}>${l}<br><small>${money(D.fund*+f)}</small></button>`).join('')}</div>
  <button class="btn" data-ma="deskre">${D.re?'Reinvest profits: on':'Reinvest profits: off'}</button><button class="btn" data-close>Close</button></div>`);}
 
+/* ===================== PERSONAL LIFE ===================== */
+const F_NAMES=['Ava','Sofia','Isabella','Mia','Chloe','Valentina','Nadia','Leila','Camille','Zara','Elena','Priya','Maya','Gabriela','Hana','Amara','Lucia','Sienna','Naomi','Yasmin','Bianca','Ines','Freya','Celine'];
+const M_NAMES=['Lucas','Mateo','Julian','Rafael','Omar','Dante','Kai','Marcus','Leo','Adrian','Theo','Elias','Nikolai','Andre','Felix','Ravi','Hugo','Samir'];
+const SURN=['Rossi','Laurent','Kim','Silva','Haddad','Novak','Okafor','Moreau','Tanaka','Costa','Reyes','Lindqvist','Patel','Morgan','Duarte','Volkov','Adeyemi','Bianchi'];
+const PTYPES=[
+ {id:'model',n:'Supermodel',fame:6,cost:.0016,diff:.32,need:5e5,traits:['diva','socialite','free spirit','ambitious','gold digger']},
+ {id:'actor',n:'Movie star',fame:8,cost:.0015,diff:.42,need:5e6,traits:['diva','ambitious','kind','jealous']},
+ {id:'singer',n:'Pop star',fame:7,cost:.0014,diff:.38,need:2e6,traits:['free spirit','diva','socialite','jealous']},
+ {id:'heir',n:'Heiress',fame:4,cost:.0005,diff:.3,need:1e6,traits:['socialite','snob','kind','jealous']},
+ {id:'social',n:'Socialite',fame:5,cost:.0012,diff:.2,need:2e5,traits:['socialite','gold digger','free spirit']},
+ {id:'athlete',n:'Pro athlete',fame:6,cost:.0008,diff:.3,need:1e6,traits:['ambitious','jealous','kind']},
+ {id:'doctor',n:'Doctor',fame:1,cost:.0002,diff:.12,need:0,traits:['kind','ambitious','frugal']},
+ {id:'chef',n:'Chef',fame:2,cost:.0003,diff:.1,need:0,traits:['kind','free spirit','jealous']},
+ {id:'artist',n:'Artist',fame:2,cost:.0004,diff:.1,need:0,traits:['free spirit','kind','diva']},
+ {id:'founder',n:'Tech founder',fame:3,cost:.0003,diff:.2,need:1e5,traits:['ambitious','frugal','jealous']},
+];
+const PT=id=>PTYPES.find(t=>t.id===id);
+const TRAIT_TIP={'gold digger':'Loves expensive gifts. Costs more.','kind':'Values your time more than money.','jealous':'Gets suspicious fast.','free spirit':'Fine with an open relationship.','socialite':'Boosts your fame even more.','diva':'High maintenance.','ambitious':'Helps your businesses a little.','snob':'Hates cheap gestures.','frugal':'Costs less to keep happy.',
+ 'proud':'Doesn\'t want handouts, wants your time.','worrier':'Calls a lot. Needs reassurance.','warm':'Easy to please.','strict':'Hard to impress.','stubborn':'Holds grudges.','gambler':'Always short on money.','needy':'Always asking for help.','loyal':'Sticks with you.','reckless':'Gets into trouble.','jealous ':'Resents your success.'};
+const GIFTS=[['Flowers',100,4],['Dinner out',400,6],['Designer bag',4000,10],['Luxury watch',40000,15],['Sports car',250000,22],['Trip around the world',1.5e6,28],['Apartment',2e6,30],['Villa by the sea',2e7,40],['Their own yacht',6e7,45]];
+function womanLook(){const l=randLook();l.hair=pick([2,2,3,4]);l.acc=l.acc.filter(a=>a!=='beard'&&a!=='mustache');if(Math.random()<.6&&!l.acc.includes('earrings'))l.acc.push('earrings');l.build=pick([0,1]);l.hc=pick([0,1,2,3,4]);return l;}
+function manLook(){const l=randLook();l.hair=pick([0,1,3,5]);l.acc=l.acc.filter(a=>a!=='earrings');l.hc=pick([0,1,2,3,4]);return l;}
+function regFam(p){NPC['f_'+p.id]={name:p.name,role:p.role||p.rel,bg:p.rel==='partner'?'office':'campus',look:p.look};}
+function newPerson(o){const g=o.g||(Math.random()<.5?'f':'m');const p={id:'p'+(S.fam.seq++),g,name:o.name||pick(g==='f'?F_NAMES:M_NAMES),look:o.look||(g==='f'?womanLook():manLook()),bond:o.bond??ri(55,70),last:S.week,allow:0,gifts:[],...o};regFam(p);return p;}
+function ensureFam(s){if(s.fam){famReg(s);return s;}const S0=S;S=s;const sur=pick(SURN);
+ S.fam={seq:1,tp:3,sus:0,pb:0,stress:20,people:[],pros:[],prosTurn:-1,pref:'women',hush:0,scandal:0};
+ const mom=newPerson({g:'f',rel:'mom',role:'Your mom',name:pick(F_NAMES)+' '+sur,trait:pick(['proud','worrier','warm','strict']),look:womanLook()});mom.look.hc=pick([5,1]);
+ const dad=newPerson({g:'m',rel:'dad',role:'Your dad',name:pick(M_NAMES)+' '+sur,trait:pick(['proud','stubborn','warm','gambler']),look:manLook()});dad.look.hc=pick([5,0]);
+ S.fam.people.push(mom,dad);
+ for(let i=0,n=ri(1,3);i<n;i++){const g=Math.random()<.5?'f':'m';S.fam.people.push(newPerson({g,rel:'sib',role:g==='f'?'Your sister':'Your brother',name:pick(g==='f'?F_NAMES:M_NAMES),trait:pick(['jealous ','needy','loyal','reckless','ambitious']),job:pick(['nurse','student','mechanic','teacher','barista','musician','between jobs','accountant'])}));}
+ S=S0;return s;}
+function famReg(s){(s.fam&&s.fam.people||[]).forEach(regFam);}
+const FP=()=>S.fam.people;const FPid=id=>FP().find(p=>p.id===id);
+const partners=()=>FP().filter(p=>p.rel==='partner');
+const mainP=()=>partners().find(p=>p.status==='married')||partners().find(p=>p.status==='engaged')||partners().find(p=>!p.secret);
+const secrets=()=>partners().filter(p=>p.secret);
+const kids=()=>FP().filter(p=>p.rel==='kid');
+const family=()=>FP().filter(p=>['mom','dad','sib'].includes(p.rel));
+const partnerFame=()=>partners().reduce((a,p)=>a+PT(p.type).fame*(p.trait==='socialite'?1.5:1),0)+S.fam.pb/10;
+const pCost=p=>Math.round(Math.max(60,W()*PT(p.type).cost*(p.trait==='gold digger'?1.5:p.trait==='frugal'?.5:p.trait==='diva'?1.25:1)));
+const kidCost=()=>Math.round(Math.max(150,W()*.0002));
+const famUpkeep=()=>FP().reduce((a,p)=>a+(p.allow||0),0)+partners().reduce((a,p)=>a+pCost(p),0)+kids().length*kidCost();
+function happiness(){const fam=family(),fb=fam.length?fam.reduce((a,p)=>a+p.bond,0)/fam.length:50,m=mainP();
+ return Math.round(clamp(35+fb*.25+(m?m.love*.25:0)+kids().reduce((a,k)=>a+k.bond*.05,0)-S.fam.stress*.3-S.fam.scandal*.4+Math.min(10,partners().length*2),0,100));}
+const bar=(v,c)=>`<div class="capbar" style="height:8px"><i style="width:${clamp(v,0,100)}%;background:${c||(v>=60?'var(--cash)':v>=35?'#FFB21F':'var(--loss)')}"></i></div>`;
+function famWeek(){const F=S.fam;FP().forEach(p=>{if(p.rel==='partner'){if(S.week-p.last>3)p.love=Math.max(0,p.love-1.5*(p.trait==='kind'||p.trait==='diva'?1.4:1));}else if(S.week-p.last>4)p.bond=Math.max(0,p.bond-.7);});
+ F.stress=clamp(F.stress+1.1+.25*(S.biz.length+S.acq.length),0,100);F.pb=clamp(F.pb-.4+Math.max(0,partners().length-1)*.8,0,100);F.scandal=Math.max(0,F.scandal-1);
+ const c=famUpkeep();if(c>0)payOut(c);return c;}
+function useTp(n){if(S.fam.tp<n){toast('No time left this turn. Travel to get more.');return false;}S.fam.tp-=n;return true;}
+/* ---- turn hook ---- */
+function normP(){const ps=partners();if(ps.length&&!ps.some(p=>!p.secret)){const best=ps.slice().sort((a,b)=>b.love-a.love)[0];best.secret=false;}}
+function famTurn(){const F=S.fam,out=[];normP();
+ const sec=secrets(),m=mainP();
+ if(sec.length&&m){F.sus=clamp(F.sus+sec.length*7*(m.trait==='jealous'?1.5:1)-(F.spent||0)*4,0,100);}else F.sus=Math.max(0,F.sus-10);
+ F.spent=0;F.tp=3;
+ if(sec.length&&m&&(F.sus>=100||Math.random()<F.sus/300))out.push(caughtScene());
+ else if(sec.length&&Math.random()<.15)out.push(hushScene());
+ partners().filter(p=>p.love<15).slice(0,1).forEach(p=>{if(p.status==='married'){out.push(leaveScene(p));}else{S.fam.people=FP().filter(x=>x!==p);out.push({who:'f_'+p.id,mood:'angry',tag:['t-bad','Breakup'],pages:[`${p.name} left you. "You never had time for me."`]});}normP();});
+ if(F.stress>=85){F.stress-=25;S.biz.forEach(b=>b.fx.push({k:'rev',m:.9,w:2}));out.push({who:'whitlock',mood:'worried',tag:['t-bad','Burnout'],pages:['You collapsed at a meeting from exhaustion. The doctor ordered rest.','Your businesses will run 10% worse for two weeks while you recover. Take a vacation in the Life tab to keep stress down.']});}
+ if(Math.random()<.55){for(let i=0;i<6;i++){const s=pick(FAM_EV)();if(s){out.push(s);break;}}}
+ return out;}
+/* ---- scandal ---- */
+function scandalHit(){S.fam.scandal=Math.min(100,S.fam.scandal+30);S.biz.forEach(b=>{if(b.pub)b.sent*=.88;});S.acq.forEach(c=>{if(c.pub)c.prem=(c.prem||1)*.88;});family().forEach(p=>{if(p.rel!=='sib')p.bond=Math.max(0,p.bond-8);});}
+function divorce(p){const prenup=p.prenup,liquid=Math.max(0,S.cash+S.savings),take=Math.round(liquid*(prenup?.05:.5));S.cash-=Math.min(S.cash,take);if(take>liquid-S.savings)S.savings=Math.max(0,S.savings-(take-(liquid-S.savings)));
+ kids().forEach(k=>k.bond=Math.max(0,k.bond-20));S.fam.people=FP().filter(x=>x!==p);addLog(S,`Divorced ${p.name}. Settlement: ${money(take)}.`,'bad');return take;}
+function caughtScene(){const m=mainP(),x=pick(secrets()),who='f_'+m.id;S.fam.sus=0;const tab=PT(x.type).fame>=5||S.fam.pb>30;if(tab)scandalHit();
+ const cost=Math.round(Math.max(2000,W()*.01));
+ return {who,mood:'angry',tag:['t-bad','Caught'],pages:[`${m.name} found out about you and ${x.name}.`,tab?`Worse, the tabloids have photos. Your reputation took a hit, and your parents saw the headlines.`:`"How long has this been going on?"`],choices:[
+  {label:`Beg forgiveness (gift worth ${money(cost)})`,run:()=>{payOut(cost);m.trust=Math.max(0,(m.trust||60)-35);m.love=Math.max(0,m.love-20);if(m.trust<15||Math.random()<.3)return leaveScene(m);x.secret=true;return ok(who,'"One more chance. That\'s it."','neutral');}},
+  {label:`End it with ${x.name.split(' ')[0]}`,run:()=>{S.fam.people=FP().filter(p=>p!==x);m.trust=Math.max(0,(m.trust||60)-25);m.love=Math.max(0,m.love-10);if(m.trust<10)return leaveScene(m);return ok(who,'"Fine. But I\'m watching you."','neutral');}},
+  {label:`Leave ${m.name.split(' ')[0]} for ${x.name.split(' ')[0]}`,run:()=>{let t='';if(m.status==='married')t=` The divorce cost you ${money(divorce(m))}${m.prenup?' (the prenup saved you)':''}.`;else S.fam.people=FP().filter(p=>p!==m);x.secret=false;x.love=Math.min(100,x.love+15);return ok('f_'+x.id,`It's official now. You and ${x.name.split(' ')[0]} are together.${t}`);}},
+  {label:'Deny everything',run:()=>{if(Math.random()<.4){m.trust=Math.max(0,(m.trust||60)-10);return ok(who,'"...Okay. I believe you. For now."','neutral');}m.trust=Math.max(0,(m.trust||60)-50);m.love=Math.max(0,m.love-30);return leaveScene(m);}}]};}
+function leaveScene(m){let t='';if(m.status==='married')t=` The divorce settlement cost you ${money(divorce(m))}${m.prenup?'. The prenup saved you from losing half':' with no prenup, that\'s half your cash'}.`;else S.fam.people=FP().filter(p=>p!==m);
+ return {who:'f_'+m.id,mood:'angry',tag:['t-bad','Breakup'],pages:[`${m.name} packed their things and left.${t}`]};}
+function hushScene(){const x=pick(secrets()),f=Math.round(Math.max(1000,W()*.008));
+ return {who:'hank',mood:'smug',tag:['t-bad','Blackmail'],pages:[`I've got photos of you and ${x.name}. Your ${mainP()&&mainP().status==='married'?'spouse':'partner'} would love to see them.`,`${money(f)} and they disappear.`],choices:[
+  {label:`Pay (${money(f)})`,run:()=>{payOut(f);S.fam.sus=Math.max(0,S.fam.sus-20);return ok('hank','Pleasure. Until next time.','smug');}},
+  {label:'Refuse',run:()=>{if(Math.random()<.5){S.fam.sus=100;return ok('hank','Your loss. Check your partner\'s inbox.','smug');}return ok('hank','Fine. I\'ll find another buyer.','angry');}}]};}
+/* ---- family and partner events ---- */
+const famPick=f=>{const l=family().filter(f||(()=>true));return l.length?pick(l):null;};
+const FAM_EV=[
+ ()=>{const p=famPick(x=>x.rel!=='sib');if(!p)return null;const f=Math.round(Math.max(15000,W()*.01));return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} needs heart surgery. Insurance covers part of it, but there's ${money(f)} left to pay.`],choices:[
+  {label:`Pay for it (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+20);family().forEach(o=>{if(o!==p)o.bond=Math.min(100,o.bond+6);});return ok('f_'+p.id,'"Thank you. I don\'t know what we\'d do without you."');}},
+  {label:'You can\'t help right now',run:()=>{p.bond=Math.max(0,p.bond-25);family().forEach(o=>{if(o!==p)o.bond=Math.max(0,o.bond-8);});return ok('f_'+p.id,'"I see. We\'ll manage."','worried');}}]};},
+ ()=>{const p=famPick();if(!p)return null;const f=Math.round(Math.max(2000,W()*.002));return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`It's ${p.name.split(' ')[0]}'s birthday this week.`],choices:[
+  {label:'Send flowers ($100)',run:()=>{payOut(100);p.bond=Math.min(100,p.bond+3);p.last=S.week;return ok('f_'+p.id,'"Aw, thank you!"');}},
+  {label:`Throw them a party (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+12);p.last=S.week;return ok('f_'+p.id,'"Best birthday ever!"');}},
+  {label:'Forget about it',run:()=>{p.bond=Math.max(0,p.bond-8);return ok('f_'+p.id,'"...Nobody called."','worried');}}]};},
+ ()=>{const p=famPick(x=>x.rel==='sib');if(!p)return null;const f=Math.round(Math.max(15000,W()*.01));return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} is getting married! The wedding costs ${money(f)} and they're stretched thin.`],choices:[
+  {label:`Pay for the wedding (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+25);family().forEach(o=>{if(o.rel!=='sib')o.bond=Math.min(100,o.bond+8);});return ok('f_'+p.id,'"You\'re the best. Seriously."');}},
+  {label:'Just show up',run:()=>{p.bond=Math.min(100,p.bond+6);p.last=S.week;return ok('f_'+p.id,'"So glad you came."');}},
+  {label:'Skip it, too busy',run:()=>{p.bond=Math.max(0,p.bond-20);family().forEach(o=>{if(o.rel!=='sib')o.bond=Math.max(0,o.bond-8);});return ok('f_'+p.id,'"Wow. Okay."','angry');}}]};},
+ ()=>{const p=famPick(x=>x.rel==='sib'&&['needy','reckless','jealous '].includes(x.trait));if(!p)return null;const f=Math.round(Math.max(2000,W()*.005));return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} wants to borrow ${money(f)}. ${pick(['Their landlord is about to evict them.','They have a "can\'t lose" business idea.','They owe some bad people money.'])}`,`Half the time money like this never comes back.`],choices:[
+  {label:`Lend it (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+8);if(Math.random()<.5)S.pending.push({type:'sibrepay',week:S.week+4,amount:f,pid:p.id});return ok('f_'+p.id,'"I\'ll pay you back. I promise."');}},
+  {label:'Say no',run:()=>{p.bond=Math.max(0,p.bond-12);return ok('f_'+p.id,'"Must be nice to be rich."','angry');}}]};},
+ ()=>{const p=famPick(x=>x.rel==='sib'&&x.bond<45);if(!p)return null;const f=Math.round(Math.max(3000,W()*.003));return {who:'anchor',mood:'neutral',tag:['t-bad','Tabloids'],pages:[`Your ${p.role.replace('Your ','')} ${p.name.split(' ')[0]} sold an embarrassing childhood story about you to a gossip site.`],choices:[
+  {label:`Pay them to stop (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+5);return ok('f_'+p.id,'"Fine. No more stories."','neutral');}},
+  {label:'Confront them',run:()=>{p.bond=Math.max(0,p.bond-15);return ok('f_'+p.id,'"Maybe call me once in a while and I wouldn\'t need to."','angry');}},
+  {label:'Ignore it',run:()=>{S.fam.scandal+=10;return ok('anchor','The story is everywhere for a few days.','neutral');}}]};},
+ ()=>{const ps=family().filter(x=>x.rel!=='sib');if(ps.length<2)return null;const f=Math.round(Math.max(5000,W()*.003));return {who:'f_'+ps[0].id,mood:'happy',tag:['t-choice','Family'],pages:[`Your parents' wedding anniversary is coming up.`],choices:[
+  {label:`Send them on a cruise (${money(f)})`,run:()=>{payOut(f);ps.forEach(p=>p.bond=Math.min(100,p.bond+12));return ok('f_'+ps[0].id,'"A cruise! You spoil us."');}},
+  {label:'Send a card',run:()=>{ps.forEach(p=>p.bond=Math.min(100,p.bond+2));return ok('f_'+ps[0].id,'"That\'s sweet, thank you."','neutral');}}]};},
+ ()=>{const ps=family().filter(x=>x.rel!=='sib');if(!ps.length||S.fam.housed)return null;const f=Math.round(Math.max(3e5,W()*.02));return {who:'f_'+ps[0].id,mood:'worried',tag:['t-choice','Family'],pages:[`Your parents are retiring, but their savings are thin. They're thinking of selling the house to get by.`],choices:[
+  {label:`Buy them a house by the sea (${money(f)})`,run:()=>{payOut(f);S.fam.housed=true;ps.forEach(p=>p.bond=Math.min(100,p.bond+30));return ok('f_'+ps[0].id,'"We raised a good kid."');}},
+  {label:'Help with their bills',run:()=>{ps.forEach(p=>{p.allow=Math.max(p.allow||0,Math.round(Math.max(200,W()*.0002)));p.bond=Math.min(100,p.bond+10);});return ok('f_'+ps[0].id,'"That takes a weight off. Thank you."');}},
+  {label:'They\'ll figure it out',run:()=>{ps.forEach(p=>p.bond=Math.max(0,p.bond-12));return ok('f_'+ps[0].id,'"We understand."','worried');}}]};},
+ ()=>{if(!family().length)return null;return {who:'f_'+family()[0].id,mood:'happy',tag:['t-choice','Family'],pages:['The whole family is getting together in Boston for a reunion.'],choices:[
+  {label:'Go (uses 1 time this turn)',run:()=>{if(S.fam.tp<1)return ok('f_'+family()[0].id,'You\'re out of time this turn. Everyone noticed you weren\'t there.','worried');S.fam.tp--;family().forEach(p=>{p.bond=Math.min(100,p.bond+8);p.last=S.week;});S.fam.stress=Math.max(0,S.fam.stress-8);return ok('f_'+family()[0].id,'"So good to have everyone together."');}},
+  {label:'Skip it',run:()=>{family().forEach(p=>p.bond=Math.max(0,p.bond-6));return ok('f_'+family()[0].id,'"Everyone asked about you."','worried');}}]};},
+ ()=>{const p=famPick(x=>x.rel==='sib');if(!p||!S.biz.length)return null;const b=pick(S.biz);return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} is ${p.job==='between jobs'?'out of work':'tired of being a '+p.job} and wants a job at ${b.name}.`],choices:[
+  {label:'Hire them',run:()=>{const r=Math.random();if(r<.5){b.brand=Math.min(100,b.brand+5);p.bond=Math.min(100,p.bond+15);p.job='works at '+b.name;return ok('f_'+p.id,'They\'re a natural. Customers love them. Brand +5.');}if(r<.8){b.fx.push({k:'cost',m:1.04,w:8});p.bond=Math.min(100,p.bond+8);return ok('f_'+p.id,'They show up late and leave early, but they\'re happy.','neutral');}const l=Math.round(Math.max(1000,b.rev*.5));payOut(l);p.bond=Math.max(0,p.bond-20);return {who:'f_'+p.id,mood:'worried',tag:['t-bad','Family'],pages:[`${p.name.split(' ')[0]} was caught taking ${money(l)} from the register. You had to let them go.`]};}},
+  {label:'Say no',run:()=>{p.bond=Math.max(0,p.bond-10);return ok('f_'+p.id,'"Family first, huh? Sure."','angry');}}]};},
+ ()=>{const p=famPick(x=>x.rel==='mom'&&x.bond<45);if(!p)return null;return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:['"You never call anymore. Are you okay?"'],choices:[
+  {label:'Call her now',run:()=>{p.bond=Math.min(100,p.bond+10);p.last=S.week;return ok('f_'+p.id,'"It\'s so good to hear your voice."');}},
+  {label:'I\'ll call later',run:()=>{p.bond=Math.max(0,p.bond-5);return ok('f_'+p.id,'"Okay. Later then."','worried');}}]};},
+ ()=>{const m=mainP();if(!m)return null;const f=Math.round(Math.max(3000,W()*.002));return {who:'f_'+m.id,mood:'worried',tag:['t-choice','Love'],pages:['"We barely see each other anymore. You\'re always working."'],choices:[
+  {label:`Plan a weekend away (${money(f)})`,run:()=>{payOut(f);m.love=Math.min(100,m.love+15);m.last=S.week;S.fam.stress=Math.max(0,S.fam.stress-10);return ok('f_'+m.id,'"This is exactly what we needed."');}},
+  {label:'Promise to do better',run:()=>{m.love=Math.max(0,m.love-6);return ok('f_'+m.id,'"You always say that."','worried');}}]};},
+ ()=>{const m=partners().find(p=>p.trait==='gold digger'||p.trait==='diva');if(!m)return null;const g=pick(GIFTS.filter(x=>x[1]>=4000&&x[1]<=Math.max(4000,W()*.05)));if(!g)return null;return {who:'f_'+m.id,mood:'smug',tag:['t-choice','Love'],pages:[`${m.name.split(' ')[0]} has been dropping hints about a ${g[0].toLowerCase()} (${money(g[1])}).`],choices:[
+  {label:`Buy it (${money(g[1])})`,run:()=>{payOut(g[1]);m.love=Math.min(100,m.love+15);return ok('f_'+m.id,'"You remembered! I love it."');}},
+  {label:'Not this time',run:()=>{m.love=Math.max(0,m.love-15);return ok('f_'+m.id,'"Wow. Okay."','angry');}}]};},
+ ()=>{const m=mainP(),pa=famPick(x=>x.rel!=='sib');if(!m||!pa||m.met)return null;m.met=true;return {who:'f_'+m.id,mood:'happy',tag:['t-choice','Love'],pages:[`${m.name.split(' ')[0]} wants to meet your parents.`],choices:[
+  {label:'Introduce them',run:()=>{m.love=Math.min(100,m.love+10);const good=m.trait==='kind'||Math.random()<.5;family().forEach(p=>{if(p.rel!=='sib')p.bond=clamp(p.bond+(good?6:-6),0,100);});return ok('f_'+pa.id,good?'"We like them. Keep this one."':'"They seem... nice. We\'ll talk later."',good?'happy':'neutral');}},
+  {label:'Not yet',run:()=>{m.love=Math.max(0,m.love-5);return ok('f_'+m.id,'"Are you embarrassed of me?"','worried');}}]};},
+ ()=>{const m=partners().find(p=>['actor','singer','model','athlete'].includes(p.type));if(!m)return null;return {who:'f_'+m.id,mood:'happy',tag:['t-choice','Love'],pages:[`${m.name.split(' ')[0]} got offered a huge ${PT(m.type).n.toLowerCase()} job overseas for a few months.`],choices:[
+  {label:'Support them',run:()=>{m.love=Math.min(100,m.love+15);S.fam.pb+=0;return ok('f_'+m.id,'"You\'re the best. I\'ll call every night."');}},
+  {label:'Ask them to stay',run:()=>{if(Math.random()<.3){S.fam.people=FP().filter(p=>p!==m);return {who:'f_'+m.id,mood:'angry',tag:['t-bad','Breakup'],pages:['"I can\'t believe you\'d ask that. We\'re done."']};}m.love=Math.max(0,m.love-10);return ok('f_'+m.id,'"Fine. I\'ll stay. But I won\'t forget this."','neutral');}}]};},
+ ()=>{const m=partners().find(p=>PT(p.type).fame>=5);if(!m)return null;return {who:'anchor',mood:'happy',tag:['t-info','Tabloids'],pages:[`Paparazzi caught you and ${m.name} together. The photos are everywhere.`,m.secret?'This is a problem. Your main partner might see them.':'Your fame just went up.'],onShow:()=>{if(m.secret)S.fam.sus=Math.min(100,S.fam.sus+40);else S.fam.pb+=3;}};},
+ ()=>{const k=kids().length?pick(kids()):null;if(!k)return null;return {who:'f_'+k.id,mood:'happy',tag:['t-choice','Family'],pages:[`${k.name} has ${pick(['a school play','a big soccer game','a piano recital','a science fair'])} this week and really wants you there.`],choices:[
+  {label:'Go (uses 1 time this turn)',run:()=>{if(S.fam.tp<1)return ok('f_'+k.id,'You\'re out of time this turn and missed it.','worried');S.fam.tp--;k.bond=Math.min(100,k.bond+12);k.last=S.week;return ok('f_'+k.id,'"You came!"');}},
+  {label:'Send someone to film it',run:()=>{k.bond=Math.max(0,k.bond-10);return ok('f_'+k.id,'"...It\'s fine."','worried');}}]};},
+];
+/* ---- actions ---- */
+function makePros(){const out=[],tier=lv(),wealth=W();for(let i=0;i<3;i++){const ok2=PTYPES.filter(t=>wealth>=t.need*.3);const t=pick(ok2);const g=S.fam.pref==='men'?'m':S.fam.pref==='anyone'?(Math.random()<.5?'f':'m'):'f';
+ const taken=FP().map(x=>x.name.split(' ')[0]).concat(out.map(x=>x.name.split(' ')[0]));const pool=(g==='f'?F_NAMES:M_NAMES).filter(n=>!taken.includes(n));
+ out.push({id:'q'+(S.fam.seq++),g,type:t.id,name:pick(pool.length?pool:(g==='f'?F_NAMES:M_NAMES))+' '+pick(SURN),trait:pick(t.traits),look:g==='f'?womanLook():manLook()});}S.fam.pros=out;S.fam.prosTurn=S.trips;}
+const askChance=q=>{const t=PT(q.type);return clamp(.35+fame()*.01+partnerFame()*.01+lv()*.1+Math.min(.15,S.fam.pb/200)-t.diff-(W()<t.need?.3:0),.05,.92);};
+function lifeClick(d){const p=d.id?FPid(d.id):null;const F=S.fam;
+ switch(d.lf){
+  case 'call':{if(p.called===S.trips)return toast('You already called this turn.');p.called=S.trips;p.bond=Math.min(100,p.bond+(p.trait==='worrier'?5:3));p.last=S.week;toast(`Called ${p.name.split(' ')[0]}.`);return after();}
+  case 'visit':{const f=S.loc==='boston'?0:Math.round(fare(S.loc,'boston')*2);if(S.cash<f)return toast('You can\'t afford the flights.');if(!useTp(1))return;payOut(f);p.bond=Math.min(100,p.bond+(p.trait==='proud'?14:10));p.last=S.week;F.spent++;F.stress=Math.max(0,F.stress-5);toast(S.loc==='boston'?`Spent the day with ${p.name.split(' ')[0]}.`:`Flew ${p.name.split(' ')[0]} out to see you (${money(f)}).`);return after();}
+  case 'gift':return openGifts(p.id);
+  case 'give':{const [n,c,pts]=GIFTS[+d.i];if(S.cash<c)return toast('Not enough cash.');S.cash-=c;let m=1;if(p.trait==='gold digger'||p.trait==='diva')m=c>=40000?1.5:.6;if(p.trait==='kind'||p.trait==='proud')m=c>=250000?.7:1.1;if(p.trait==='snob'&&c<4000)m=.3;if(p.gifts.includes(n))m*=.5;p.gifts.push(n);
+   const k=p.rel==='partner'?'love':'bond';p[k]=Math.min(100,p[k]+Math.round(pts*m));p.last=S.week;closeModal();toast(`${p.name.split(' ')[0]} got the ${n.toLowerCase()}. +${Math.round(pts*m)}`);popCash(`-${money(c)}`,'var(--loss)');return after();}
+  case 'allow':{const lv2=[0,200,2000,20000,200000];const i=(lv2.indexOf(p.allow||0)+1)%lv2.length;p.allow=lv2[i];if(p.allow)p.bond=Math.min(100,p.bond+2);toast(p.allow?`${p.name.split(' ')[0]} now gets ${money(p.allow)} a week.`:'Allowance stopped.');return after();}
+  case 'date':return openDate(p.id);
+  case 'dateGo':{const opts=dateOpts(),o=opts[+d.i];if(S.cash<o.c)return toast('Not enough cash.');if(!useTp(1))return;closeModal();payOut(o.c);p.love=Math.min(100,p.love+o.pts*(p.trait==='kind'?1.2:1));p.last=S.week;if(p===mainP())F.spent++;if(p.secret)F.sus=Math.min(100,F.sus+4);F.stress=Math.max(0,F.stress-6);toast(`${o.n} with ${p.name.split(' ')[0]}. Love +${Math.round(o.pts)}`);return after();}
+  case 'meet':{if(F.prosTurn!==S.trips){if(!useTp(1))return;makePros();}UI.lifeMeet=true;return renderGame();}
+  case 'pref':F.pref=d.v;F.prosTurn=-1;F.pros=[];return renderGame();
+  case 'ask':{const q=F.pros.find(x=>x.id===d.id);if(!q)return;F.pros=F.pros.filter(x=>x!==q);const ch=askChance(q);
+   if(Math.random()>ch){toast(`${q.name.split(' ')[0]} wasn't interested.`);return after();}
+   const hasMain=!!mainP(),open=partners().length&&partners().every(x=>x.trait==='free spirit')&&q.trait==='free spirit';
+   const np=newPerson({...q,rel:'partner',role:PT(q.type).n,status:'dating',love:55,trust:65,secret:hasMain&&!open,last:S.week});F.people.push(np);F.pb=Math.min(100,F.pb+(PT(q.type).fame>=5?6:3));
+   if(np.secret)F.sus=Math.min(100,F.sus+10);toast(np.secret?`You're seeing ${np.name.split(' ')[0]} behind ${mainP().name.split(' ')[0]}'s back.`:`You and ${np.name.split(' ')[0]} are dating!`);confetti();UI.lifeMeet=false;return after();}
+  case 'closeMeet':UI.lifeMeet=false;return renderGame();
+  case 'breakup':return openModal(`<span class="evtag t-bad">Break up</span><h2>End things with ${esc(p.name)}?</h2><p>${p.status==='married'?`This is a divorce. ${p.prenup?'Your prenup limits the settlement to 5% of your cash.':'With no prenup, they get <b>half your cash and savings</b>.'}`:'They won\'t take it well.'}</p><div class="ev-btns"><button class="btn danger big" data-lf="breakgo" data-id="${p.id}">${p.status==='married'?'File for divorce':'Break up'}</button><button class="btn" data-close>Never mind</button></div>`);
+  case 'breakgo':{closeModal();if(p.status==='married'){const t=divorce(p);toast(`Divorced. Settlement: ${money(t)}.`);}else{S.fam.people=FP().filter(x=>x!==p);toast(`You and ${p.name.split(' ')[0]} are over.`);}normP();return after();}
+  case 'propose':{const ring=S.life&&S.life.ring?0:Math.round(Math.max(5000,(LF('ring')||{price:5e4}).price*.2));if(S.cash<ring)return toast(`You need ${money(ring)} for a ring.`);payOut(ring);const ch=clamp(p.love/100+(p.trait==='gold digger'&&W()>1e6?.15:0)-(p.secret?.3:0),.05,.95);
+   if(Math.random()>ch){p.love=Math.max(0,p.love-10);toast(`${p.name.split(' ')[0]} said "not yet".`);return after();}
+   if(p.secret){partners().forEach(x=>{if(x!==p)x.secret=true;});p.secret=false;}
+   p.status='engaged';confetti();return openWedding(p.id);}
+  case 'wedding':return openWedding(p.id);
+  case 'wedgo':{const sz=WED[+d.i];if(S.cash<sz.c)return toast('Not enough cash.');closeModal();payOut(sz.c);let txt='';
+   if(d.pn==='1'){if(p.trait==='gold digger'&&Math.random()<.5){p.love=Math.max(0,p.love-25);p.status='dating';toast(`${p.name.split(' ')[0]} called off the wedding over the prenup.`);return after();}p.prenup=true;p.love=Math.max(0,p.love-8);txt=' With a prenup.';}
+   p.status='married';p.love=Math.min(100,p.love+sz.pts);F.pb=Math.max(0,F.pb-10);family().forEach(x=>x.bond=Math.min(100,x.bond+5));confetti();addLog(S,`Married ${p.name}.${txt} (${sz.n}, ${money(sz.c)})`,'good');toast(`You married ${p.name.split(' ')[0]}!${txt}`);return after();}
+  case 'baby':{if(!useTp(1))return;p.last=S.week;F.spent++;if(Math.random()<.45){S.pending.push({type:'baby',week:S.week+ri(3,6),with:p.id});toast('Good news may be on the way...');}else toast('Not this time. Keep trying.');return after();}
+  case 'kidtime':{if(!useTp(1))return;p.bond=Math.min(100,p.bond+10);p.last=S.week;F.stress=Math.max(0,F.stress-6);toast(`Spent the day with ${p.name}.`);return after();}
+  case 'trust':{const f=Math.round(Math.max(1e4,W()*.02));if(S.cash<f)return toast('Not enough cash.');S.cash-=f;p.trust=(p.trust||0)+f;p.bond=Math.min(100,p.bond+5);toast(`${money(f)} added to ${p.name}'s trust fund.`);return after();}
+  case 'vacation':{const f=Math.round(Math.max(1500,W()*.004));if(S.cash<f)return toast('Not enough cash.');if(!useTp(2))return;payOut(f);F.stress=Math.max(0,F.stress-35);const m=mainP();if(m){m.love=Math.min(100,m.love+10);m.last=S.week;F.spent+=2;}kids().forEach(k=>{k.bond=Math.min(100,k.bond+8);k.last=S.week;});toast(`Vacation! Stress -35.`);return after();}
+ }}
+const WED=[{n:'Courthouse wedding',c:500,pts:3},{n:'Classic wedding',c:40000,pts:8},{n:'Luxury wedding',c:1e6,pts:12},{n:'Royal-style wedding, 2,000 guests',c:2.5e7,pts:18}];
+function openWedding(id){const p=FPid(id);openModal(`<span class="evtag t-good">Engaged</span><h2>${esc(p.name.split(' ')[0])} said yes!</h2><p>Plan the wedding. A prenup protects you in a divorce (they'd get 5% of your cash instead of half), but asking might hurt their feelings${p.trait==='gold digger'?', and this one might call it off':''}.</p>
+ <div class="ev-btns">${WED.map((w,i)=>`<div class="btnrow"><button class="btn go" data-lf="wedgo" data-id="${p.id}" data-i="${i}" data-pn="0" ${S.cash<w.c?'disabled':''}>${w.n}<small>${money(w.c)}</small></button><button class="btn" data-lf="wedgo" data-id="${p.id}" data-i="${i}" data-pn="1" ${S.cash<w.c?'disabled':''}>Same, with prenup<small>${money(w.c)}</small></button></div>`).join('')}<button class="btn" data-close>Decide later</button></div>`);}
+const dateOpts=()=>[{n:'Dinner',c:Math.round(Math.max(100,W()*.0003)),pts:6},{n:'Weekend in Paris',c:Math.round(Math.max(3000,W()*.002)),pts:12},{n:S.life&&Object.keys(S.life).some(k=>LF(k).cat==='yacht')?'Trip on your yacht':'Private yacht charter',c:S.life&&Object.keys(S.life).some(k=>LF(k).cat==='yacht')?Math.round(Math.max(500,W()*.0005)):Math.round(Math.max(20000,W()*.005)),pts:18}];
+function openDate(id){const p=FPid(id);openModal(`<span class="evtag t-choice">Date night</span><h2>Take ${esc(p.name.split(' ')[0])} out</h2><p>Uses 1 time point. ${p.trait==='kind'?'They care more about the time than the price.':''}</p><div class="ev-btns">${dateOpts().map((o,i)=>`<button class="btn go" data-lf="dateGo" data-id="${p.id}" data-i="${i}" ${S.cash<o.c?'disabled':''}>${o.n} · ${money(o.c)} · love +${o.pts}</button>`).join('')}<button class="btn" data-close>Cancel</button></div>`);}
+function openGifts(id){const p=FPid(id);openModal(`<span class="evtag t-choice">Gift</span><h2>A gift for ${esc(p.name.split(' ')[0])}</h2><p>${TRAIT_TIP[p.trait]||''} Giving the same thing twice means less.</p><div class="ev-btns">${GIFTS.map(([n,c,pts],i)=>`<button class="btn ${S.cash>=c?'':'lock'}" data-lf="give" data-id="${p.id}" data-i="${i}" ${S.cash<c?'disabled':''}>${n} · ${money(c)}${p.gifts.includes(n)?' (again)':''}</button>`).join('')}<button class="btn" data-close>Close</button></div>`);}
+/* ---- view ---- */
+function personCard(p){const isP=p.rel==='partner',k=isP?p.love:p.bond,face=portrait(p.look,46,{mood:k>=60?'happy':k>=35?'neutral':'worried'});
+ const tag=isP?`${PT(p.type).n}${p.status==='married'?' · Married':p.status==='engaged'?' · Engaged':''}${p.secret?' · Secret':''}`:p.role+(p.job?` · ${p.job}`:'');
+ let btns='';
+ if(isP){btns=`<button class="chip" data-lf="date" data-id="${p.id}">Date</button><button class="chip" data-lf="gift" data-id="${p.id}">Gift</button>${p.status==='dating'&&!S.fam.people.some(x=>x.status==='married'||x.status==='engaged')?`<button class="chip" data-lf="propose" data-id="${p.id}">Propose</button>`:''}${p.status==='engaged'?`<button class="chip" data-lf="wedding" data-id="${p.id}">Plan wedding</button>`:''}${(p.status==='married'||p.love>=70)&&!p.secret?`<button class="chip" data-lf="baby" data-id="${p.id}">Try for a baby</button>`:''}<button class="chip" data-lf="breakup" data-id="${p.id}">${p.status==='married'?'Divorce':'Break up'}</button>`;}
+ else if(p.rel==='kid')btns=`<button class="chip" data-lf="kidtime" data-id="${p.id}">Spend the day</button><button class="chip" data-lf="gift" data-id="${p.id}">Gift</button><button class="chip" data-lf="trust" data-id="${p.id}">Add to trust fund</button>`;
+ else btns=`<button class="chip" data-lf="call" data-id="${p.id}" ${p.called===S.trips?'disabled':''}>Call</button><button class="chip" data-lf="visit" data-id="${p.id}">Visit</button><button class="chip" data-lf="gift" data-id="${p.id}">Gift</button><button class="chip" data-lf="allow" data-id="${p.id}">${p.allow?`Allowance ${money(p.allow)}/wk`:'Give allowance'}</button>`;
+ return `<div class="pcard"><div class="row">${face}<div style="min-width:0;flex:1"><div class="between"><b>${esc(p.name)}</b><small class="muted">${isP?'Love':'Bond'} ${Math.round(k)}</small></div><small class="muted">${tag} · ${p.trait.trim()}</small>${bar(k)}</div></div><div class="seg" style="margin-top:8px">${btns}</div></div>`;}
+function viewPersonal(){const F=S.fam,h=happiness(),m=mainP();
+ const meet=UI.lifeMeet&&F.prosTurn===S.trips?`<div class="card"><div class="between"><h3>People you met</h3><button class="chip" data-lf="closeMeet">Close</button></div>
+  <div class="seg" style="margin:6px 0 10px">${['women','men','anyone'].map(v=>`<button class="chip ${F.pref===v?'on':''}" data-lf="pref" data-v="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div>
+  ${F.pros.length?F.pros.map(q=>`<div class="pcard"><div class="row">${portrait(q.look,46)}<div style="min-width:0;flex:1"><b>${esc(q.name)}</b><small class="muted" style="display:block">${PT(q.type).n} · ${q.trait} · fame ${PT(q.type).fame}</small><small class="muted">${TRAIT_TIP[q.trait]||''} Costs about ${money(pCost(q))}/wk to date.</small></div></div><div class="between" style="margin-top:8px"><small class="muted">Chance: ${Math.round(askChance(q)*100)}%${mainP()?' · This would be an affair':''}</small><button class="btn go" data-lf="ask" data-id="${q.id}">Ask out</button></div></div>`).join(''):'<p class="muted">Nobody else here caught your eye. Try again next turn.</p>'}</div>`:'';
+ return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Your life</h3><span class="label">Time this turn: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
+  <div class="kv2"><div><small>Happiness</small><b>${h}</b>${bar(h)}</div><div><small>Stress</small><b>${Math.round(F.stress)}</b>${bar(100-F.stress)}</div>${secrets().length&&m?`<div><small>Suspicion</small><b>${Math.round(F.sus)}</b>${bar(100-F.sus)}</div>`:''}${F.pb>=5?`<div><small>Playboy reputation</small><b>${Math.round(F.pb)}</b>${bar(Math.min(100,F.pb),'#8D63F2')}</div>`:''}</div>
+  <small class="muted">You get 3 time points every turn. Family and partners drift away if you ignore them. Upkeep for family and partners: ${money(famUpkeep())}/wk.</small>
+  <div class="btnrow" style="margin-top:10px"><button class="btn go" data-lf="meet">Meet someone<small>${F.prosTurn===S.trips?'See who you met':'1 time point'}</small></button><button class="btn" data-lf="vacation">Vacation<small>2 time · ${money(Math.max(1500,W()*.004))} · stress -35</small></button></div></div>
+ ${meet}
+ ${partners().length?`<div class="sec-title"><h3>Love life</h3><span class="label">${partners().length} ${partners().length===1?'partner':'partners'}</span></div>${partners().map(personCard).join('')}`:''}
+ ${kids().length?`<div class="sec-title"><h3>Kids</h3></div>${kids().map(personCard).join('')}`:''}
+ <div class="sec-title"><h3>Family</h3><span class="label">Hometown: Boston</span></div>${family().map(personCard).join('')}`;}
+/* baby pending */
+function babyArrives(pd){const p=FPid(pd.with);const g=Math.random()<.5?'f':'m';const k=newPerson({g,rel:'kid',role:g==='f'?'Your daughter':'Your son',name:pick(g==='f'?F_NAMES:M_NAMES),bond:80,trait:pick(['curious','loud','sweet','stubborn']),look:g==='f'?womanLook():manLook()});k.look.build=0;S.fam.people.push(k);family().forEach(x=>{if(x.rel!=='sib')x.bond=Math.min(100,x.bond+10);});
+ return {who:p?'f_'+p.id:'whitlock',mood:'happy',tag:['t-good','Baby'],onShow:confetti,pages:[`It's a ${g==='f'?'girl':'boy'}! Welcome, ${k.name}.`,`Kids cost about ${money(kidCost())} a week and need your time. Your parents are over the moon.`]};}
+function lifeEnding(){const h=happiness(),m=mainP(),kc=kids().length,fb=family().length?family().reduce((a,p)=>a+p.bond,0)/family().length:0;
+ if(h>=70)return `And you did it with ${m?`${m.name.split(' ')[0]} by your side`:'people who love you'}${kc?` and ${kc} ${kc===1?'kid':'kids'}`:''}. Rich and loved. That's the real win.`;
+ if(h>=45)return `Your life is busy and complicated${m?`, but ${m.name.split(' ')[0]} is still around`:''}. Your family ${fb>=50?'is proud of you':'wishes they saw you more'}.`;
+ return `But your mansion is quiet. ${fb<35?'Your family stopped calling. ':''}${S.fam.scandal>20?'The tabloids know your name for the wrong reasons. ':''}The loneliest billionaire alive.`;}
+
+PENDING2.baby=pd=>babyArrives(pd);
+PENDING2.sibrepay=pd=>{const p=FPid(pd.pid);S.cash+=pd.amount;addLog(S,`${p?p.name:'Your sibling'} paid you back ${money(pd.amount)}.`,'good');if(p)p.bond=Math.min(100,p.bond+8);return {who:p?'f_'+p.id:'mo',mood:'happy',tag:['t-good','Family'],pages:[`"Told you I'd pay you back." ${money(pd.amount)} returned.`]};};
+
 function rollEvents(ctx){
  if(S.trips<=1)return [];
  const n=Math.random()<.15?0:(Math.random()<.4?2:1),out=[],usedIds=new Set();
@@ -2767,7 +2982,7 @@ function renderGame(){
  if(!S)return;
  const nw=netWorth(),t=S.tier,next=TIERS[t+1],pct=next?clamp((nw-TIERS[t].at)/(next.at-TIERS[t].at)*100,0,100):100;
  const loc=C(S.loc),rk=myRank(),low=S.cash+S.savings<liveCost();
- const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz};
+ const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz,life:viewPersonal};
  const changed=UI.lastTab!==UI.tab;UI.lastTab=UI.tab;
  $('#scr-game').innerHTML=`<header class="hud">
    <div class="row"><div class="who">${portrait(S.look,44)}<div style="min-width:0"><b>${esc(S.name)}</b><small>${TIERS[t].name}</small></div></div>
@@ -2779,7 +2994,7 @@ function renderGame(){
   <main class="view" ${changed?'':'style="animation:none"'}>${views[UI.tab]()}</main>
   <nav class="nav"><div class="nav-in">${tabBtn('market','Market')}${tabBtn('deals','Invest')}
    <button class="travelbtn ${UI.tab==='travel'?'on':''}" data-tab="travel" aria-label="Travel">${icon('travel')}<b>Travel</b></button>
-   ${tabBtn('biz','Business')}${tabBtn('bank','Bank')}</div></nav>`;
+   ${tabBtn('biz','Business')}${tabBtn('life','Life')}${tabBtn('bank','Bank')}</div></nav>`;
  tweenCash(S.cash);
 }
 const tabBtn=(k,label)=>`<button class="tab ${UI.tab===k?'on':''}" data-tab="${k}">${icon(k)}${label}</button>`;
@@ -3204,6 +3419,7 @@ document.addEventListener('click',e=>{
  const t=e.target.closest('button,[data-city],[data-mapv]');if(!t)return;const d=t.dataset;
  if(d.bz){bizClick(d,t);return;}
  if(d.ma){maClick(d);return;}
+ if(d.lf){lifeClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
  else if(d.act==='continue'){const s=loadSave();if(s)startGame(s);else goCreate();}
