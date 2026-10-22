@@ -280,6 +280,16 @@ button.rrow:active{transform:scale(.99)}
 .bzidea{background:linear-gradient(135deg,#FFF4D6,#FFFFFF)}
 .ugcard{background:linear-gradient(135deg,#2A2F45,#3A3F55);color:#F2F4FA}.ugcard .muted,.ugcard small{color:#B9C0D4}.ugcard .btn{background:#4A5068;color:#fff}
 .chip:disabled{opacity:.5}
+.mrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px;border-radius:16px;background:var(--surface2);text-align:left;width:100%}
+.mrow small,.mcard small{display:block;font-size:12px;color:var(--muted);font-weight:700}
+.mcard{display:grid;gap:10px;padding:14px;border-radius:18px;background:var(--surface);box-shadow:var(--shadow);text-align:left;width:100%}
+.mcard b{display:block}.mcard .rt{text-align:right}
+.mstats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}.mstats span{background:var(--surface2);border-radius:10px;padding:6px 8px;font-size:11px;font-weight:800;color:var(--muted)}.mstats b{font-size:13px}
+.indgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px 12px;margin:8px 0}.indgrid div{display:flex;justify-content:space-between;font-size:13px;font-weight:800}.indgrid small{color:var(--muted);font-weight:700}
+.machart{width:100%;height:auto;display:block;margin:6px 0 2px}
+.ddbox{padding:10px 12px;border-radius:12px;background:var(--surface2);font-size:14px;margin:6px 0}
+.deskcard{display:block;text-align:left;width:100%;background:linear-gradient(135deg,#E3F6EC,#FFFFFF)}
+.btnrow .btn{flex-direction:column;gap:2px;line-height:1.2}.btnrow .btn small{font-weight:700;opacity:.85}
 .nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:1fr 1fr 1.3fr 1fr 1fr;align-items:center}
 .tab{display:grid;justify-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);padding:6px 0;position:relative}
 .tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -1160,11 +1170,11 @@ const BG={
 };
 
 /* ===================== STATE ===================== */
-let S=null,UI={tab:'market',filter:'all',deals:'stocks'},cfg=null;
+let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1354,7 +1364,8 @@ const shortLiab=()=>Object.entries(S.shorts).reduce((a,[k,h])=>a+h.n*ST(k).p,0);
 const commission=()=>({easy:.002,normal:.002,hard:.004,realistic:.006}[S.diff]);
 const canShort=()=>S.tier>=2;
 const shortRoom=()=>Math.max(0,netWorth()*.3-shortLiab());
-const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal()+bizValue();
+const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal()+bizValue()+acqValue()+S.desk.fund;
+const acqValue=()=>S.acq.reduce((a,c)=>a+maVal(c)*(c.own||1),0);
 const netWorth=()=>S.cash+assetsNoCash()-S.debt-shortLiab();
 function shock(sector,pct){S.sshock[sector]=(S.sshock[sector]||0)+pct;}
 function shockSym(sym,pct){S.ssym[sym]=(S.ssym[sym]||0)+pct;}
@@ -1498,13 +1509,16 @@ function travel(dest){
  const pz=press();PRODUCTS.forEach(p=>{const b=pz.buy[p.id]||1,s=pz.sell[p.id]||1;S.f[S.loc][p.id]=clamp(S.f[S.loc][p.id]*Math.sqrt(b*s),.5,1.9);});S.press={buy:{},sell:{}};
  S.prev=allPrices(S);
  if(!stay){S.cash-=cost;recap.push([`${modeName(from,dest)==='bus'?'Bus ticket':modeName(from,dest)==='flight'?'Flight ticket':modeName(from,dest)==='cargo plane'?'Fuel and airport fees':'Fuel and tolls'}${ferry(from,dest)?' + ferry':''}`,-cost]);}
- let living=0,interest=0,loanInt=0,income=0,loanPay=0,missedNow=0,divs=0,upkeep=0,bizp=0,dirty=0,clean=0;
- S.tripDest=dest;for(let w=0;w<weeks;w++){const r=tick(w===weeks-1?dest:null,news);living+=r.living;interest+=r.interest;loanInt+=r.loanInt;income+=r.income;loanPay+=r.loanPay;missedNow+=r.missed?1:0;divs+=r.divs;upkeep+=r.upkeep;bizp+=r.bizp;dirty+=r.dirty;clean+=r.clean;}
+ let living=0,interest=0,loanInt=0,income=0,loanPay=0,missedNow=0,divs=0,upkeep=0,bizp=0,dirty=0,clean=0,acqp=0,deskp=0;
+ S.tripDest=dest;for(let w=0;w<weeks;w++){const r=tick(w===weeks-1?dest:null,news);living+=r.living;interest+=r.interest;loanInt+=r.loanInt;income+=r.income;loanPay+=r.loanPay;missedNow+=r.missed?1:0;divs+=r.divs;upkeep+=r.upkeep;bizp+=r.bizp;dirty+=r.dirty;clean+=r.clean;acqp+=r.acq;deskp+=r.desk;}
  S.loc=dest;S.trips++;delete S.tripDest;
  recap.push([`Living costs (${weeks} week${weeks>1?'s':''})`,-living]);
  if(income>=1)recap.push(['Companies you bought',income]);
  if(S.biz.length)recap.push([bizp>=0?'Your businesses (profit)':'Your businesses (loss)',bizp]);
  if(clean>=1)recap.push(['Dirty cash cleaned',clean]);
+ if(S.acq.length)recap.push([acqp>=0?'Companies you bought (profit)':'Companies you bought (loss)',acqp]);
+ if(S.desk.fund>=1||Math.abs(deskp)>=1){recap.push(['Trade desk',deskp]);S.desk.last=deskp;S.desk.hist.push(Math.round(S.desk.total));if(S.desk.hist.length>30)S.desk.hist.shift();}
+ fillListings(news);
  S.biz.forEach(b=>{if(b.idea==null||S.week-b.ideaWeek>=2)newIdea(b);});
  if(upkeep>=1)recap.push(['Lifestyle upkeep',-upkeep]);
  if(Math.abs(divs)>=1)recap.push([divs>0?'Stock dividends':'Dividends owed on shorts',divs]);
@@ -1530,6 +1544,7 @@ function travel(dest){
  other.forEach(e=>scenes.push(e));
  if(news.bz.length)scenes.push({who:'lou',mood:'happy',tag:['t-good','Your businesses'],pages:news.bz.slice(0,4)});
  bizScenes().forEach(x=>scenes.push(x));
+ maScenes().forEach(x=>scenes.push(x));
  {const u=ugScene();if(u)scenes.push(u);}
  if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
  if(S.trips%2===0)scenes.push(rivalScene());
@@ -1568,7 +1583,7 @@ function tick(arrive,news){
  });
  S.cash+=income;
  let bizp=0;S.biz.forEach(b=>{bizp+=bizWeekOne(b,news);});if(bizp>=0)S.cash+=bizp;else payOut(-bizp);
- const ugr=ugWeek(news);
+ const ugr=ugWeek(news);const mar=maWeek(news);
  // stock market
  let divs=0;{const r0=Math.random();let mf=gauss()*.02+.0005,big=0;if(r0<.008)big=-rnd(.12,.22);else if(r0<.016)big=rnd(.06,.12);mf+=big;
   if(big<0)news.heads.push({h:'Stock market crash',say:`Panic on the stock exchange. The World 500 index dropped about ${Math.round(-big*100)}% this week.`});
@@ -1612,7 +1627,7 @@ function tick(arrive,news){
  if(upkeep>=1)payOut(upkeep);
  (S.rich||[]).forEach(r=>{r.last=r.nw;r.nw*=Math.exp(.0007+.018*gauss());});
  makeDeals(news);
- return {living,interest,loanInt,income,loanPay,missed,divs,upkeep,bizp,dirty:ugr.dirty,clean:ugr.clean};
+ return {living,interest,loanInt,income,loanPay,missed,divs,upkeep,bizp,dirty:ugr.dirty,clean:ugr.clean,acq:mar.acq,desk:mar.desk};
 }
 function exitStartup(st,mult,news){
  const pay=(S.stakes[st.id]||0)*st.val*mult;st.dead=true;
@@ -2402,8 +2417,8 @@ const UGE=[
 function ugScene(){if(!S.ug.ops.length||Math.random()>.35)return null;for(let i=0;i<5;i++){const s=pick(UGE).run();if(s)return s;}return null;}
 
 /* ===================== NET WORTH PARTS ===================== */
-function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),life:lifeVal(),debt:-S.debt};}
-const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Companies and startups',biz:'Your businesses',life:'Lifestyle',debt:'Loans'};
+function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),acq:acqValue(),desk:S.desk.fund,life:lifeVal(),debt:-S.debt};}
+const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Old companies and startups',biz:'Your businesses',acq:'Companies you bought',desk:'Trade desk',life:'Lifestyle',debt:'Loans'};
 function openNw(){const now=nwParts(),was=S.nwParts||now,d=netWorth()-(S.lastNw??netWorth());
  openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This turn</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since you set off on your last trip.</p>
   <div class="recap">${Object.keys(NW_LBL).map(k=>{const ch=now[k]-(was[k]||0);if(Math.abs(ch)<1&&Math.abs(now[k])<1)return '';return `<div><span>${NW_LBL[k]}</span><span class="${ch>0?'up':ch<0?'down':'muted'}">${ch>0?'+':''}${money(ch)}</span></div>`;}).join('')}
@@ -2494,6 +2509,169 @@ function bizClick(d,t){const b=d.id?BZ(d.id):null;
   case 'fixer':{const c=fixerCost();if(S.cash<c)return;S.cash-=c;S.ug.heat=Math.max(0,S.ug.heat-30);toast('Your fixer made some calls. Heat -30.');return after();}
   case 'wash':{const a=S.ug.dirty*.65;S.cash+=a;S.ug.cleaned+=a;S.ug.dirty=0;S.ug.heat=Math.min(100,S.ug.heat+5);popCash(`+${money(a)}`,'var(--cash)');toast(`${money(a)} cleaned and in your account.`);return after();}
  }}
+
+/* ===================== DEAL MARKET (buy, run and sell companies) + TRADE DESK ===================== */
+const INDS={
+ food:{n:'Food & drink',pe:6,m:[.06,.14],g:[.02,.10],vol:.035,rf:.35,col:'#F0574A',pre:['Golden','Harvest','Maple','Coastal','Prairie','Sunny','Royal','Northern','Blue Ribbon','Hearth'],suf:['Foods','Bakeries','Beverages','Snacks','Dairy','Brewing','Kitchens']},
+ retail:{n:'Retail',pe:5.5,m:[.04,.10],g:[0,.08],vol:.045,rf:.3,col:'#FF7FB0',pre:['Metro','Corner','Bright','Value','Urban','Parkside','Grand','Main Street','Bay','Citrus'],suf:['Stores','Outfitters','Mart','Brands','Retail','Goods']},
+ tech:{n:'Tech',pe:15,m:[-.08,.22],g:[.12,.45],vol:.1,rf:1.6,col:'#3D7BFF',pre:['Quantum','Pixel','Nimbus','Vector','Helix','Orbit','Cobalt','Neural','Byte','Lumen'],suf:['Labs','Systems','Networks','Software','AI','Robotics','Cloud']},
+ energy:{n:'Energy',pe:5,m:[.08,.2],g:[-.02,.06],vol:.08,rf:.6,col:'#FFB21F',pre:['Petro','Solar','North Sea','Gulf','Prairie','Volt','Sunridge','Atlas','Iron Basin','Summit'],suf:['Energy','Oil','Power','Resources','Gas','Renewables']},
+ shipping:{n:'Shipping',pe:5,m:[.06,.14],g:[0,.08],vol:.07,rf:.5,col:'#2BB3C9',pre:['Ocean','Harbor','Trans','Polar','Anchor','Tide','Meridian','Cape','Swift','Global'],suf:['Shipping','Freight','Lines','Logistics','Maritime','Cargo']},
+ media:{n:'Media',pe:8,m:[.05,.18],g:[.02,.12],vol:.06,rf:.8,col:'#25283A',pre:['Signal','Echo','Spotlight','Prime','Studio','Headline','Vivid','Channel','Nova','Crown'],suf:['Media','Pictures','Broadcasting','Network','Press','Entertainment']},
+ pharma:{n:'Pharma',pe:10,m:[.05,.25],g:[.04,.18],vol:.09,rf:1.2,col:'#12B076',pre:['Vita','Cura','Gen','Thera','Medi','Bio','Remedy','Pulse','Cellar','Arbor'],suf:['Pharma','Therapeutics','Biotech','Labs','Health','Medical']},
+ realestate:{n:'Real estate',pe:8,m:[.2,.4],g:[.01,.06],vol:.03,rf:2.2,col:'#C9962E',pre:['Skyline','Granite','Riverside','Keystone','Landmark','Oakwood','Tower','Harbourfront','Stone','Avenue'],suf:['Properties','Realty','Estates','Holdings','Developments','REIT']},
+ mining:{n:'Mining',pe:5,m:[.06,.22],g:[-.03,.08],vol:.09,rf:.7,col:'#7A5A3E',pre:['Copper','Silver','Red Rock','Deep','Granite','Northern','Ridge','Ironstone','Canyon','Bedrock'],suf:['Mining','Metals','Minerals','Resources','Gold','Quarries']},
+ finance:{n:'Finance',pe:7,m:[.15,.35],g:[.02,.1],vol:.06,rf:.9,col:'#1E6A4A',pre:['Sterling','Liberty','Pinnacle','First','Heritage','Capital','Beacon','Trust','Vanguard','Crest'],suf:['Bank','Financial','Capital','Insurance','Partners','Credit']},
+};
+const IND_KEYS=Object.keys(INDS);
+const TRAITS_MA={
+ lawsuit:{good:0,t:'A big lawsuit is coming that the seller didn\'t mention.',hit:'A lawsuit the seller hid just landed. Value dropped about 20%.',fx:c=>{c.debt+=maVal(c)*.2;}},
+ cooked:{good:0,t:'The books are cooked. Real profit margins are about 40% lower.',hit:'Your accountants found the books were cooked. Real margins are 40% lower.',fx:c=>{c.margin*=.6;}},
+ client:{good:0,t:'Its biggest client is about to leave.',hit:'Its biggest client just walked. Revenue fell 25%.',fx:c=>{c.rev*=.75;}},
+ hiddendebt:{good:0,t:'There\'s debt hidden off the books.',hit:'You found debt hidden off the books.',fx:c=>{c.debt+=c.rev*52*.25;}},
+ patent:{good:1,t:'It owns a valuable patent nobody\'s priced in.',hit:'That patent it owns just got licensed. Growth jumped.',fx:c=>{c.growth+=.08;}},
+ land:{good:1,t:'It sits on prime land worth far more than the books say.',hit:'An appraisal found its land is worth a fortune.',fx:c=>{c.rev*=1.04;c.bonus=(c.bonus||0)+maVal(c)*.15;}},
+ contract:{good:1,t:'It\'s about to sign a huge contract.',hit:'It just signed a huge new contract. Revenue up 20%.',fx:c=>{c.rev*=1.2;}},
+};
+function ensureMA(s){s.ind=s.ind||{};IND_KEYS.forEach(k=>{if(!s.ind[k])s.ind[k]={s:1,d:0};});s.listings=s.listings||[];s.acq=s.acq||[];s.desk=s.desk||{fund:0,hist:[],last:0,total:0,re:false};s.maSeq=s.maSeq||1;return s;}
+const indS=k=>(S.ind[k]||{s:1}).s;
+function maVal(c){const I=INDS[c.ind],s=indS(c.ind),earn=c.rev*52*c.margin*I.pe*s*(1+2*Math.max(-.1,c.growth)),fl=c.rev*52*I.rf*.4*(1+Math.max(0,c.growth))*s;
+ let ev=Math.max(earn,fl)*(c.ceo||1)+(c.bonus||0);if(c.pub)ev*=c.prem||1;return Math.max(ev*.08,ev-c.debt);}
+const maProfit=c=>c.rev*c.margin-c.debt*.1/52;
+const maName=k=>pick(INDS[k].pre)+' '+pick(INDS[k].suf);
+function maStep(c,shock){const I=INDS[c.ind];c.rev=Math.max(10,c.rev*Math.exp(c.growth/52+gauss()*I.vol*.35+(shock||0)));
+ const mt=(I.m[0]+I.m[1])/2+((c.ceo||1)-1)*.15;c.margin=clamp(c.margin+(mt-c.margin)*.03+gauss()*.004,-.3,.6);
+ c.growth=clamp(c.growth+((I.g[0]+I.g[1])/2-c.growth)*.02+gauss()*.006,-.3,.8);
+ if(c.pub)c.prem=clamp((c.prem||1)*Math.exp(gauss()*.05),.6,1.8);
+ c.hist.push(Math.round(maVal(c)));if(c.hist.length>16)c.hist.shift();}
+function makeListing(size){const k=pick(IND_KEYS),I=INDS[k],s=indS(k);const margin=rnd(I.m[0],I.m[1]),growth=rnd(I.g[0],I.g[1]),debtShare=Math.random()<.5?rnd(0,.35):0;
+ const c={id:'m'+(S.maSeq++),name:maName(k),ind:k,region:pick(Object.keys(REGIONS)),margin,growth,debt:0,ceo:+rnd(.9,1.1).toFixed(2),hist:[],m:Math.random(),exp:S.week+ri(3,7),dd:false,neg:0};
+ c.rev=1;const v1=maVal(c);c.rev=size/v1;c.debt=size*debtShare;c.rev*=(1+debtShare);
+ // build 12 weeks of history by running backwards-ish
+ const back=JSON.parse(JSON.stringify(c));back.rev=c.rev*Math.exp(-c.growth*12/52+gauss()*I.vol);back.hist=[];for(let i=0;i<12;i++)maStep(back,0);c.hist=back.hist.slice();c.rev=back.rev;c.margin=back.margin;c.growth=back.growth;
+ const v=maVal(c);
+ if(Math.random()<.5){const pool=Object.keys(TRAITS_MA),bad=pool.filter(x=>!TRAITS_MA[x].good),good=pool.filter(x=>TRAITS_MA[x].good);c.trait=Math.random()<.62?pick(bad):pick(good);}
+ c.ask=Math.round(v*(c.trait&&!TRAITS_MA[c.trait].good?rnd(.78,1.02):rnd(.88,1.15))/100)*100;
+ c.risk=I.vol>.08||c.margin<0||c.debt>v*.4?'High':I.vol>.05||c.debt>0?'Medium':'Low';
+ return c;}
+function fillListings(news){const nw=Math.max(5e4,netWorth()),want=7;
+ S.listings=S.listings.filter(c=>{if(c.exp<=S.week){return false;}if(Math.random()<.1){const r=pick(S.rivals);if(news)news.heads.push({h:`${r.name} buys ${c.name}`,say:`Your classmate ${r.name} just bought ${c.name} (${INDS[c.ind].n.toLowerCase()}) for about ${money(c.ask)}. That deal is off the table.`});return false;}return true;});
+ while(S.listings.length<want){const r=Math.random();const size=r<.3?Math.max(2e4,nw*rnd(.01,.06)):r<.88?Math.max(4e4,nw*rnd(.08,.7)):nw*rnd(1,2.5);S.listings.push(makeListing(size));}
+ S.listings.sort((a,b)=>a.ask-b.ask);}
+function maWeek(news){
+ // industry cycles
+ IND_KEYS.forEach(k=>{const I=S.ind[k];I.d=I.d*.85+gauss()*.01;I.s=clamp(I.s*Math.exp(I.d)+(1-I.s)*.05,.55,1.6);});
+ if(Math.random()<.025){const k=pick(IND_KEYS),up=Math.random()<.45,m=up?rnd(1.12,1.3):rnd(.72,.88);S.ind[k].s=clamp(S.ind[k].s*m,.55,1.6);S.ind[k].d+=up?.02:-.02;
+  const story={food:['Food prices soar','Food scare hits sales'],retail:['Shopping spree season','Shoppers stop spending'],tech:['AI boom lifts tech','Tech bubble pops'],energy:['Oil spike lifts energy','Oil crash hits energy'],shipping:['Shipping rates explode','Shipping glut sinks rates'],media:['Streaming wars heat up','Ad market collapses'],pharma:['Wave of drug approvals','Drug pricing crackdown'],realestate:['Housing boom','Property prices slide'],mining:['Metal prices surge','Metal prices crash'],finance:['Banks post record profits','Banking scare']}[k][up?0:1];
+  news.heads.push({h:story,say:`${INDS[k].n} companies are ${up?'suddenly worth more':'losing value fast'}. Expect ${INDS[k].n.toLowerCase()} deals and companies to be about ${Math.round(Math.abs(m-1)*100)}% ${up?'pricier':'cheaper'}.`});}
+ if(Math.random()<.006){IND_KEYS.forEach(k=>S.ind[k].s*=rnd(.8,.92));news.heads.push({h:'Recession fears grip markets',say:'Investors are scared. Almost every kind of company is worth less this week. Great time to shop, bad time to sell.'});}
+ S.listings.forEach(c=>maStep(c,0));
+ let prof=0;S.acq.forEach(c=>{maStep(c,0);const p=maProfit(c)*(c.own||1);prof+=p;
+  if(c.trait&&!c.dd&&!c.hit&&S.week>=c.hitWeek){c.hit=true;TRAITS_MA[c.trait].fx(c);news.personal.push({who:TRAITS_MA[c.trait].good?'raj':'dana',mood:TRAITS_MA[c.trait].good?'happy':'worried',tag:[TRAITS_MA[c.trait].good?'t-good':'t-bad',c.name],pages:[`${c.name}: ${TRAITS_MA[c.trait].hit}`,TRAITS_MA[c.trait].good?'Lucky break.':'A proper investigation before buying would have caught it.']});}});
+ // trade desk
+ let dp=0;const D=S.desk;if(D.fund>=1){const eff=1/(1+D.fund/3e8);let r=(.0035+gauss()*.004)*eff;if(Math.random()<.015){r=-rnd(.02,.06);news.personal.push({who:'tess',mood:'worried',tag:['t-bad','Trade desk'],pages:[pick(['A storm sank one of the shipments your trade desk was running.','Thieves hit a warehouse your trade desk was using.','Prices crashed on a big load your trade desk was carrying.']),`The desk lost ${money(-r*D.fund)} this week.`]});}
+  dp=D.fund*r;if(D.re&&dp>0)D.fund+=dp;else if(dp>=0)S.cash+=dp;else D.fund=Math.max(0,D.fund+dp);D.total+=dp;}
+ if(prof>=0)S.cash+=prof;else payOut(-prof);
+ return {acq:prof,desk:dp};}
+/* trip scenes for companies you own */
+const MAE=[
+ c=>{const f=Math.round(maVal(c)*.015);return {who:'dana',mood:'worried',pages:[`${c.name}'s CEO got caught in a scandal. It's all over the news.`,`Fire them and hire a replacement (${money(f)}; new CEO could be better or worse), or stand by them (50% chance value drops 12%).`],choices:[
+  {label:`Replace the CEO (${money(f)})`,run:()=>{payOut(f);c.ceo=+rnd(.88,1.15).toFixed(2);return ok('dana',`New CEO hired. Early reviews: ${c.ceo>=1.05?'excellent':c.ceo>=.97?'solid':'shaky'}.`);}},
+  {label:'Stand by them',run:()=>{if(Math.random()<.5){c.rev*=.88;return {who:'dana',mood:'angry',tag:['t-bad',c.name],pages:['Customers walked away. Revenue dropped 12%.']};}return ok('dana','It blew over.','neutral');}}]};},
+ c=>{const f=Math.round(c.rev*2);return {who:'lou',mood:'angry',pages:[`Workers at ${c.name} are threatening to strike.`,`Give them a deal (${money(f)} and margins down 1 point), or hold firm (40% chance of a strike: revenue down 20% for a while).`],choices:[
+  {label:`Make a deal (${money(f)})`,run:()=>{payOut(f);c.margin-=.01;return ok('lou','Everyone\'s back to work.');}},{label:'Hold firm',run:()=>{if(Math.random()<.4){c.rev*=.85;return {who:'lou',mood:'angry',tag:['t-bad','Strike'],pages:['They walked out. Revenue took a hit.']};}return ok('lou','They backed down.','neutral');}}]};},
+ c=>{const f=Math.round(maVal(c)*.06);return {who:'raj',mood:'happy',pages:[`${c.name} has a shot at a huge contract. Winning it would push revenue up about 25%.`,`Bidding costs ${money(f)} for proposals and lawyers. About 55% chance you win.`],choices:[
+  {label:`Bid (${money(f)})`,run:()=>{payOut(f);if(Math.random()<.55){c.rev*=1.25;return ok('raj','You won the contract! Revenue +25%.');}return {who:'raj',mood:'worried',pages:['Lost it to a rival. That money\'s gone.']};}},{label:'Skip it',run:()=>ok('raj','Next time.','neutral')}]};},
+ c=>{const offer=Math.round(maVal(c)*(c.own||1)*rnd(1.12,1.45));return {who:'whitlock',mood:'smug',pages:[`A private equity firm wants ${c.name}. They're offering ${money(offer)} for your stake.`,`That's ${Math.round((offer/(maVal(c)*(c.own||1))-1)*100)}% over what it's worth today. You paid ${money(c.paid)}.`],choices:[
+  {label:`Sell for ${money(offer)}`,run:()=>{maSellNow(c,offer);return ok('whitlock','Done. Nice flip.');}},{label:'Not selling',run:()=>ok('whitlock','They may come back.','neutral')}]};},
+ c=>{const f=Math.round(maVal(c)*.04);return {who:'brady',mood:'neutral',pages:[`Regulators are investigating ${c.name}.`,`Settle now for ${money(f)}, or fight it (60% you win, 40% you pay ${money(f*2.5)}).`],choices:[
+  {label:`Settle (${money(f)})`,run:()=>{payOut(f);return ok('brady','Case closed.','neutral');}},{label:'Fight it',run:()=>{if(Math.random()<.6)return ok('dana','We won!');payOut(f*2.5);return {who:'brady',mood:'angry',tag:['t-bad','Fined'],pages:[`Lost. ${money(f*2.5)} fine.`]};}}]};},
+ c=>{const f=Math.round(maVal(c)*.08);return {who:'raj',mood:'smug',pages:[`${c.name}'s biggest competitor just went bankrupt.`,`Buy their customer list and equipment for ${money(f)} and revenue jumps about 18%.`],choices:[
+  {label:`Buy it (${money(f)})`,run:()=>{if(S.cash<f)return ok('raj','You need the cash up front.','neutral');S.cash-=f;c.rev*=1.18;return ok('raj','Their customers are yours now.');}},{label:'Pass',run:()=>ok('raj','Someone else will snap it up.','neutral')}]};},
+ c=>({who:'dex',mood:'neutral',pages:[`An activist investor is pressuring ${c.name} to slash costs.`,`Go along with it (margin +3 points, growth -4 points), or refuse (nothing changes, but they complain loudly).`],choices:[
+  {label:'Slash costs',run:()=>{c.margin+=.03;c.growth-=.04;return ok('dex','Profits up, growth down.','neutral');}},{label:'Refuse',run:()=>ok('dex','They\'ll be back.','neutral')}]}),
+];
+function maScenes(){if(!S.acq.length||Math.random()>.45)return [];const c=pick(S.acq),sc=pick(MAE)(c);sc.tag=sc.tag||['t-choice',c.name];return [sc];}
+/* buying, running, selling */
+const ddCost=c=>Math.round(Math.max(1500,c.ask*.015));
+const maxLoan=c=>Math.round(c.ask*.5);
+function maBuy(id,price,loan){const c=S.listings.find(x=>x.id===id);if(!c)return;const cashNeed=price-loan;if(S.cash<cashNeed)return toast(`You need ${money(cashNeed)} in cash.`);
+ S.cash-=cashNeed;c.debt+=loan;c.paid=price;c.own=1;c.bought=S.week;c.cool=0;if(c.trait&&!c.dd)c.hitWeek=S.week+ri(2,6);
+ S.listings=S.listings.filter(x=>x!==c);S.acq.push(c);addLog(S,`Bought ${c.name} for ${money(price)}${loan?` (${money(loan)} borrowed against it)`:''}.`,'good');popCash(`-${money(cashNeed)}`,'var(--loss)');confetti();toast(`${c.name} is yours.`);after();}
+function maSellNow(c,amount){S.cash+=amount;S.acq=S.acq.filter(x=>x!==c);const pl=amount-c.paid;addLog(S,`Sold ${c.name} for ${money(amount)} (${pl>=0?'+':''}${money(pl)}).`,pl>=0?'good':'bad');popCash(`+${money(amount)}`,'var(--cash)');if(pl>0)confetti();}
+function maChart(h,w=320,hh=110){if(h.length<2)return '';const mn=Math.min(...h),mx=Math.max(...h),sp=mx-mn||1;const P=h.map((v,i)=>[i/(h.length-1)*w,hh-8-(v-mn)/sp*(hh-16)]);const up=h[h.length-1]>=h[0];const col=up?'var(--cash)':'var(--loss)';const id='mc'+Math.floor(Math.random()*1e9);
+ return `<svg viewBox="0 0 ${w} ${hh}" class="machart"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${up?'#12B076':'#F0574A'}" stop-opacity=".25"/><stop offset="1" stop-color="${up?'#12B076':'#F0574A'}" stop-opacity="0"/></linearGradient></defs><path d="M0 ${hh}L${P.map(p=>p.map(n=>n.toFixed(1)).join(' ')).join('L')}L${w} ${hh}Z" fill="url(#${id})"/><polyline points="${P.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linejoin="round"/><text x="4" y="12" font-size="10" fill="#8A93A8" font-weight="800">${money(mx)}</text><text x="4" y="${hh-2}" font-size="10" fill="#8A93A8" font-weight="800">${money(mn)}</text></svg>`;}
+const indArrow=k=>{const d=S.ind[k].d,s=S.ind[k].s,v=Math.round((s-1)*100);return `<span><span class="${d>.006?'up':d<-.006?'down':'muted'}">${d>.006?'▲':d<-.006?'▼':'▸'}</span> <span class="${v>=0?'up':'down'}">${v>=0?'+':''}${v}%</span></span>`;};
+const pct=x=>`${x>=0?'':'-'}${Math.abs(x*100).toFixed(1)}%`;
+function viewMA(){if(!S.listings.length)fillListings(null);
+ const mine=S.acq.map(c=>{const v=maVal(c)*(c.own||1),pl=v-c.paid,p=maProfit(c)*(c.own||1);return `<button class="mrow" data-ma="own" data-id="${c.id}"><span class="logo2" style="background:${INDS[c.ind].col}">${c.name[0]}</span><span><b>${esc(c.name)}</b><small>${INDS[c.ind].n}${c.pub?' · Public':''} · ${p>=0?'+':''}${money(p)}/wk</small></span><span class="rt">${money(v)}<small class="${pl>=0?'up':'down'}">${pl>=0?'+':''}${money(pl)}</small></span></button>`;}).join('');
+ const old=myCos().map(co=>{const [,name,type,,,,col]=coDef(co.id);return `<button class="mrow" data-co="${co.id}"><span class="logo2" style="background:${col}">${name[0]}</span><span><b>${esc(name)}</b><small>${type}</small></span><span class="rt">${money(co.val*keepOf(co))}</span></button>`;}).join('');
+ const list=S.listings.map(c=>{const p=maProfit(c),h=c.hist;const ch=h.length>1?h[h.length-1]/h[0]-1:0;return `<button class="mcard" data-ma="deal" data-id="${c.id}"><div class="between"><span class="row" style="gap:8px;min-width:0"><span class="logo2" style="background:${INDS[c.ind].col}">${c.name[0]}</span><span style="min-width:0"><b>${esc(c.name)}</b><small>${INDS[c.ind].n} · ${REGIONS[c.region]}</small></span></span><span class="rt"><b>${money(c.ask)}</b><small>asking</small></span></div>
+  <div class="mstats"><span>Profit<b class="${p>=0?'up':'down'}">${p>=0?'+':''}${money(p)}/wk</b></span><span>Growth<b class="${c.growth>=0?'up':'down'}">${pct(c.growth)}/yr</b></span><span>12 wk<b class="${ch>=0?'up':'down'}">${ch>=0?'+':''}${Math.round(ch*100)}%</b></span></div>
+  <div class="between"><span class="badge2 ${c.risk==='High'?'b-rival':c.risk==='Medium'?'b-info':'b-free'}">${c.risk} risk</span>${c.dd?'<span class="badge2 b-mine">Investigated</span>':''}<small class="muted">Gone in ${Math.max(1,c.exp-S.week)} wk</small></div></button>`;}).join('');
+ return `<div class="card"><span class="label">Industry cycles</span><div class="indgrid">${IND_KEYS.map(k=>`<div><small>${INDS[k].n}</small>${indArrow(k)}</div>`).join('')}</div><small class="muted">The % is how pricey companies in that industry are versus normal. The arrow is where it's heading. Buy low, sell high.</small></div>
+ ${mine||old?`<div class="card"><div class="between"><h3>Your companies</h3><span class="label">${money(S.acq.reduce((a,c)=>a+maVal(c)*(c.own||1),0)+cosTotal())}</span></div><div class="dgrid" style="margin-top:8px">${mine}${old}</div></div>`:''}
+ <div class="sec-title"><h3>For sale now</h3><span class="label">New deals every turn</span></div><div class="dgrid">${list}</div>`;}
+function openDealMA(id){const c=S.listings.find(x=>x.id===id);if(!c)return;const I=INDS[c.ind],v=maVal(c),p=maProfit(c),dc=ddCost(c);
+ openModal(`<span class="evtag t-choice">${I.n} · ${c.risk} risk</span><h2>${esc(c.name)}</h2>${maChart(c.hist)}<small class="muted">Company value, last ${c.hist.length} weeks</small>
+ <div class="recap"><div><span>Asking price</span><b>${money(c.ask)}</b></div><div><span>Our estimate of its value</span><b>${money(v)}</b></div><div><span>Revenue</span><b>${money(c.rev)}/wk</b></div><div><span>Profit</span><b class="${p>=0?'up':'down'}">${p>=0?'+':''}${money(p)}/wk</b></div><div><span>Margin</span><b>${pct(c.margin)}</b></div><div><span>Growth</span><b>${pct(c.growth)} a year</b></div><div><span>Debt</span><b>${money(c.debt)}</b></div><div><span>Industry</span><b>${indArrow(c.ind)}</b></div></div>
+ <div class="ddbox">${c.dd?`<b>Investigation:</b> ${c.trait?TRAITS_MA[c.trait].t:'Clean. No hidden surprises.'}`:`<b>Not investigated.</b> About half of deals hide something, good or bad.`}</div>
+ <div class="ev-btns">${c.dd?'':`<button class="btn" data-ma="dd" data-id="${c.id}" ${S.cash<dc?'disabled':''}>Investigate (${money(dc)})</button>`}
+  ${c.neg<S.week?`<div class="btnrow"><button class="btn" data-ma="offer" data-id="${c.id}" data-p=".75">Offer 75% (${money(c.ask*.75)})</button><button class="btn" data-ma="offer" data-id="${c.id}" data-p=".88">Offer 88% (${money(c.ask*.88)})</button></div>`:'<p class="muted" style="margin:0">The seller won\'t negotiate again this turn.</p>'}
+  <button class="btn go big" data-ma="buy" data-id="${c.id}" data-p="${c.ask}" ${S.cash<c.ask?'disabled':''}>Buy for ${money(c.ask)}</button>
+  <button class="btn sun" data-ma="buyloan" data-id="${c.id}" data-p="${c.ask}" ${S.cash<c.ask-maxLoan(c)?'disabled':''}>Buy with a loan: ${money(c.ask-maxLoan(c))} cash + ${money(maxLoan(c))} borrowed</button>
+  <button class="btn" data-close>Close</button></div><p class="muted" style="font-size:12px">Borrowed money becomes the company's debt at 10% a year, paid from its profits.</p>`);}
+function openOwnMA(id){const c=S.acq.find(x=>x.id===id);if(!c)return;const I=INDS[c.ind],v=maVal(c)*(c.own||1),p=maProfit(c)*(c.own||1),pl=v-c.paid,cool=c.cool>S.week;
+ const same=S.acq.filter(x=>x!==c&&x.ind===c.ind);
+ openModal(`<span class="evtag t-good">Yours${c.own<1?` · ${Math.round(c.own*100)}%`:''}</span><h2>${esc(c.name)}</h2>${maChart(c.hist)}<small class="muted">Company value, last ${c.hist.length} weeks</small>
+ <div class="recap"><div><span>Worth (your share)</span><b>${money(v)}</b></div><div><span>You paid</span><b>${money(c.paid)}</b></div><div><span>Gain or loss</span><b class="${pl>=0?'up':'down'}">${pl>=0?'+':''}${money(pl)}</b></div><div><span>Profit to you</span><b class="${p>=0?'up':'down'}">${p>=0?'+':''}${money(p)}/wk</b></div><div><span>Margin · Growth</span><b>${pct(c.margin)} · ${pct(c.growth)}/yr</b></div><div><span>Debt</span><b>${money(c.debt)}</b></div><div><span>CEO</span><b>${c.ceo>=1.05?'Excellent':c.ceo>=.97?'Solid':'Weak'}</b></div><div><span>Industry</span><b>${indArrow(c.ind)}</b></div></div>
+ <span class="label">Moves ${cool?`(next move in ${c.cool-S.week} wk)`:'(one every 3 weeks)'}</span>
+ <div class="ev-btns">
+  <div class="btnrow"><button class="btn" data-ma="cut" data-id="${c.id}" ${cool?'disabled':''}>Cut costs<br><small>margin +3, growth -2</small></button><button class="btn" data-ma="grow" data-id="${c.id}" ${cool||S.cash<maVal(c)*.08?'disabled':''}>Invest in growth<br><small>${money(maVal(c)*.08)}, growth +6</small></button></div>
+  <div class="btnrow"><button class="btn" data-ma="ceo" data-id="${c.id}" ${cool||S.cash<maVal(c)*.015?'disabled':''}>New CEO<br><small>${money(maVal(c)*.015)}</small></button><button class="btn" data-ma="split" data-id="${c.id}" ${cool?'disabled':''}>Sell a division<br><small>+${money(maVal(c)*(c.own||1)*.3*1.08)}, 30% smaller</small></button></div>
+  ${c.debt>=1?`<button class="btn" data-ma="paydebt" data-id="${c.id}" ${S.cash<1?'disabled':''}>Pay down debt (${money(Math.min(c.debt,S.cash))})</button>`:''}
+  ${same.length&&!cool?same.map(o=>`<button class="btn" data-ma="merge" data-id="${c.id}" data-o="${o.id}">Merge with ${esc(o.name)} (costs drop 3 points)</button>`).join(''):''}
+  ${!c.pub&&maVal(c)>=5e7?`<button class="btn sun" data-ma="ipo" data-id="${c.id}">Take it public: sell 30% for ${money(maVal(c)*.3*1.15)}</button>`:''}
+  <button class="btn go big" data-ma="sell" data-id="${c.id}">Get buyer offers</button><button class="btn" data-close>Close</button></div>`);}
+function maOffers(c){const v=maVal(c)*(c.own||1),hot=indS(c.ind);return [0,1,2].map(()=>Math.round(v*rnd(.86,1.12)*(hot>1.15?1.05:hot<.85?.94:1)));}
+function maClick(d){const c=d.id?(S.listings.find(x=>x.id===d.id)||S.acq.find(x=>x.id===d.id)):null;
+ switch(d.ma){
+  case 'deal':return openDealMA(d.id);
+  case 'own':return openOwnMA(d.id);
+  case 'dd':{const f=ddCost(c);if(S.cash<f)return;S.cash-=f;c.dd=true;save();renderGame();return openDealMA(c.id);}
+  case 'offer':{const o=Math.round(c.ask*+d.p),floor=c.ask*(1-.08-c.m*.25);c.neg=S.week;
+   if(o>=floor){closeModal();return maBuyAsk(c,o,'The seller accepted your offer!');}
+   if(o>=floor*.9){const ctr=Math.round((o+floor)/2/100)*100;save();return openModal(`<span class="evtag t-choice">Counteroffer</span><h2>They came back at ${money(ctr)}</h2><p>You offered ${money(o)}. Asking was ${money(c.ask)}.</p><div class="ev-btns"><button class="btn go big" data-ma="buy" data-id="${c.id}" data-p="${ctr}" ${S.cash<ctr?'disabled':''}>Accept ${money(ctr)}</button><button class="btn sun" data-ma="buyloan" data-id="${c.id}" data-p="${ctr}" ${S.cash<ctr-Math.round(ctr*.5)?'disabled':''}>Accept with a loan</button><button class="btn" data-close>Walk away</button></div>`);}
+   if(Math.random()<.35){S.listings=S.listings.filter(x=>x!==c);closeModal();save();renderGame();return toast(`Insulted, the owner of ${c.name} pulled the sale.`);}
+   save();closeModal();renderGame();return toast(`"No. ${money(c.ask)} is the price." Try again next turn.`);}
+  case 'buy':closeModal();return maBuy(d.id,+d.p,0);
+  case 'buyloan':closeModal();return maBuy(d.id,+d.p,Math.round(+d.p*.5));
+  case 'cut':c.margin+=.03;c.growth-=.02;c.cool=S.week+3;if(Math.random()<.25){c.rev*=.95;toast('Costs cut, but some staff quit. Revenue -5%.');}else toast('Costs cut.');save();renderGame();return openOwnMA(c.id);
+  case 'grow':{const f=maVal(c)*.08;if(S.cash<f)return;S.cash-=f;c.growth+=.06;c.cool=S.week+3;c.paid+=f;toast('Growth plan funded.');save();renderGame();return openOwnMA(c.id);}
+  case 'ceo':{const f=maVal(c)*.015;if(S.cash<f)return;S.cash-=f;c.ceo=+rnd(.88,1.16).toFixed(2);c.cool=S.week+3;toast(`New CEO: ${c.ceo>=1.05?'excellent':c.ceo>=.97?'solid':'shaky'}.`);save();renderGame();return openOwnMA(c.id);}
+  case 'split':{const g=maVal(c)*(c.own||1)*.3*1.08;S.cash+=g;c.rev*=.7;c.debt*=.7;c.paid*=.7;c.cool=S.week+3;addLog(S,`Sold a division of ${c.name} for ${money(g)}.`,'good');popCash(`+${money(g)}`,'var(--cash)');save();renderGame();return openOwnMA(c.id);}
+  case 'paydebt':{const a=Math.min(c.debt,S.cash);S.cash-=a;c.debt-=a;c.paid+=0;toast(`Paid ${money(a)} of ${c.name}'s debt.`);save();renderGame();return openOwnMA(c.id);}
+  case 'merge':{const o=S.acq.find(x=>x.id===d.o);if(!o)return;c.margin=(c.margin*c.rev+o.margin*o.rev)/(c.rev+o.rev)+.03;c.growth=(c.growth*c.rev+o.growth*o.rev)/(c.rev+o.rev);c.rev+=o.rev;c.debt+=o.debt;c.paid+=o.paid;c.cool=S.week+3;S.acq=S.acq.filter(x=>x!==o);addLog(S,`Merged ${o.name} into ${c.name}.`,'good');toast('Merged. Combined costs drop.');confetti();save();renderGame();return openOwnMA(c.id);}
+  case 'ipo':{const g=maVal(c)*.3*1.15;S.cash+=g;c.own=(c.own||1)*.7;c.paid*=.7;c.pub=true;c.prem=1.1;addLog(S,`Took ${c.name} public, raised ${money(g)}.`,'good');confetti();save();renderGame();return openOwnMA(c.id);}
+  case 'sell':{const of=maOffers(c);return openModal(`<span class="evtag t-choice">Buyer offers</span><h2>Sell ${esc(c.name)}?</h2><p>You paid ${money(c.paid)}. ${indS(c.ind)>1.15?'Its industry is hot right now, so buyers are paying up.':indS(c.ind)<.85?'Its industry is down right now, so offers are low.':''}</p><div class="ev-btns">${of.map((o,i)=>`<button class="btn ${o>=c.paid?'go':'danger'}" data-ma="sellgo" data-id="${c.id}" data-p="${o}">${['A rival company','A private equity firm','A foreign buyer'][i]}: ${money(o)} (${o>=c.paid?'+':''}${money(o-c.paid)})</button>`).join('')}<button class="btn" data-close>Keep it</button></div>`);}
+  case 'sellgo':closeModal();maSellNow(c,+d.p);return after();
+  case 'desk':return openDesk();
+  case 'deskin':{const a=Math.min(S.cash,S.cash*+d.f);S.cash-=a;S.desk.fund+=a;toast(`${money(a)} handed to your trade desk.`);save();renderGame();return openDesk();}
+  case 'deskout':{const a=S.desk.fund*+d.f;S.desk.fund-=a;S.cash+=a;toast(`${money(a)} back in your cash.`);save();renderGame();return openDesk();}
+  case 'deskre':S.desk.re=!S.desk.re;save();renderGame();return openDesk();
+ }}
+function maBuyAsk(c,price,msg){openModal(`<span class="evtag t-good">Deal</span><h2>${msg}</h2><p>${esc(c.name)} for ${money(price)}.</p><div class="ev-btns"><button class="btn go big" data-ma="buy" data-id="${c.id}" data-p="${price}" ${S.cash<price?'disabled':''}>Pay ${money(price)} cash</button><button class="btn sun" data-ma="buyloan" data-id="${c.id}" data-p="${price}" ${S.cash<price*.5?'disabled':''}>Pay ${money(price*.5)} + borrow ${money(price*.5)}</button><button class="btn" data-close>Changed my mind</button></div>`);}
+/* trade desk */
+const deskOn=()=>S.tier>=2;
+function deskRoutes(){const cs=CITIES.filter(c=>c.id!==S.loc&&canReach(S.loc,c.id)).slice(0,40);const out=[];cs.forEach(c=>{const b=cityBest(c.id,1)[0];if(b)out.push({c,p:b.p,g:b.g});});return out.sort((a,b)=>b.g-a.g).slice(0,3);}
+function viewDeskCard(){if(!deskOn())return '';const D=S.desk;return `<button class="card deskcard" data-ma="desk"><div class="between"><h3>Trade desk</h3><span class="label">${D.fund>=1?'Working':'Idle'}</span></div><div class="between" style="margin-top:4px"><span class="muted">${D.fund>=1?`${money(D.fund)} trading for you`:'Hire a crew to trade for you every turn'}</span><b class="${D.last>=0?'up':'down'}">${D.hist.length?(D.last>=0?'+':'')+money(D.last)+' last turn':''}</b></div></button>`;}
+function openDesk(){const D=S.desk,rt=deskRoutes();openModal(`<span class="evtag t-info">Trade desk</span><h2>${money(D.fund)} working</h2><p>Your crew runs buy-low, sell-high routes for you every turn. Steady but low returns (about 0.3% a week, less on huge amounts). Sometimes a shipment goes wrong. You can still trade by hand anytime.</p>
+ ${D.hist.length>1?maChart(D.hist.slice(-16)):''}
+ <div class="recap"><div><span>Last turn</span><b class="${D.last>=0?'up':'down'}">${D.last>=0?'+':''}${money(D.last)}</b></div><div><span>Total earned</span><b class="${D.total>=0?'up':'down'}">${D.total>=0?'+':''}${money(D.total)}</b></div><div><span>Profits</span><b>${D.re?'Added back to the fund':'Paid to your cash'}</b></div></div>
+ ${rt.length?`<span class="label">Routes they're running now</span><div class="recap">${rt.map(r=>`<div><span>${r.p.name} to ${r.c.name}</span><span class="up">+${Math.round(r.g*100)}%</span></div>`).join('')}</div>`:''}
+ <div class="ev-btns"><div class="btnrow">${[['.25','25% of cash'],['1','All cash']].map(([f,l])=>`<button class="btn go" data-ma="deskin" data-f="${f}" ${S.cash<1?'disabled':''}>Add ${l}<br><small>${money(S.cash*+f)}</small></button>`).join('')}</div>
+ <div class="btnrow">${[['.5','Take out half'],['1','Take out all']].map(([f,l])=>`<button class="btn" data-ma="deskout" data-f="${f}" ${D.fund<1?'disabled':''}>${l}<br><small>${money(D.fund*+f)}</small></button>`).join('')}</div>
+ <button class="btn" data-ma="deskre">${D.re?'Reinvest profits: on':'Reinvest profits: off'}</button><button class="btn" data-close>Close</button></div>`);}
 
 function rollEvents(ctx){
  if(S.trips<=1)return [];
@@ -2632,7 +2810,7 @@ function viewMarket(){
    ${it?`<span class="own has">You own ${it.qty} · <span class="${s>=it.avg?'up':'down'}">${s>=it.avg?'+':''}${Math.round((s/it.avg-1)*100)}%</span></span>`:''}
    ${nb&&nb.g>.03?`<span class="own nb">Next turn: ${esc(nb.c.id===S.loc?'here':nb.c.name)} +${Math.round(nb.g*100)}%</span>`:it?'':`<span class="own">${p.unit}</span>`}</button>`;}).join('');
  const fl=[['all','All'],['mine','My cargo']].concat(dif().hints?[['cheap','Cheap here']]:[]).concat(Object.entries(CATS));
- return `<div class="card loc"><div class="between"><span class="label">You are in</span><span class="flag ${loc.c}">${flagName(loc)}</span></div><h2>${loc.name}</h2><p>${loc.vibe}</p>${dif().hints?hintTags(loc):''}
+ return viewDeskCard()+`<div class="card loc"><div class="between"><span class="label">You are in</span><span class="flag ${loc.c}">${flagName(loc)}</span></div><h2>${loc.name}</h2><p>${loc.vibe}</p>${dif().hints?hintTags(loc):''}
    <div class="shiftrow"><span>${S.gig?'Done for this stop. Travel or stay to start a new week.':'Need cash? One paid job per stop.'}</span><button class="btn ${S.gig?'':'sun'}" data-act="work" ${S.gig?'disabled':''}>${S.gig?'Worked':`${job().btn} (~${money(shiftPay())})`}</button></div></div>
   <div class="card cargo"><div class="between"><h3 style="font-size:20px">Cargo</h3><span class="label">${used()} / ${cap()} · ${ride().name}</span></div><div class="capbar"><i style="width:${used()/cap()*100}%"></i></div>
    ${items.length?`<div class="tags">${items.map(([p,it])=>`<button class="tag info" data-sellitem="${p}">${it.qty} ${P(p).name}</button>`).join('')}</div><div class="between"><span class="muted" style="font-size:13px;font-weight:700">Worth here</span><b>${money(cargoValue())}</b></div>`:'<span class="muted" style="font-size:14px;font-weight:700">Empty. Tap any product to see where it sells highest next turn.</span>'}</div>
@@ -2676,10 +2854,10 @@ function viewDeals(){
   const badge=(co.owner==='me'?`<span class="badge2 b-mine">Yours${co.listed?` · ${Math.round(keepOf(co)*100)}%`:''}</span>`:co.owner?`<span class="badge2 b-rival">Run by ${esc(first(co.owner))}</span>`:co.listed?'':'<span class="badge2 b-free">For sale</span>')+(co.listed?` <span class="badge2 b-info">Public · ${co.sym}</span>`:'');
   return `<button class="deal" data-co="${co.id}"><span class="logo2" style="background:${col}">${name[0]}</span><span><b>${esc(name)}</b><small>${type} · ${REGIONS[coReg(co.id)]} · earns ~${money(co.val*yld*(co.owner==='me'?keepOf(co):1))}/wk${co.owner==='me'&&co.listed?' for you':''}</small>${badge}</span>
    <span class="rt">${money(co.owner==='me'?co.val*keepOf(co):price)}<small class="${ch>=0?'up':'down'}">${ch>=0?'+':''}${ch.toFixed(1)}%</small></span></button>`;}).join('');
- const intro={life:'Spend your fortune on homes, cars, yachts, jets, islands and more. Homes cut your living costs, jets cut travel costs, and fame boosts your business profits.',stocks:'Buy shares in public companies. Prices move every week with the news, and some pay dividends. Easy to buy and sell, any time.',startups:'Risky bets on young companies. Most fail, some grow 10x, and a few get bought out for a big payday.',cos:'Buy whole businesses. They pay you profits every week. Some already trade on the stock market, and any company you own worth over $10M can go public: sell part of it for cash and keep the rest.'}[UI.deals];
+ const intro={life:'Spend your fortune on homes, cars, yachts, jets, islands and more. Homes cut your living costs, jets cut travel costs, and fame boosts your business profits.',stocks:'Buy shares in public companies. Prices move every week with the news, and some pay dividends. Easy to buy and sell, any time.',startups:'Risky bets on young companies. Most fail, some grow 10x, and a few get bought out for a big payday.',cos:'Buy companies, run them, and sell them for a profit. Every turn brings new deals. Investigate before you buy, haggle on price, and watch industry cycles: buy in a slump, sell in a boom.'}[UI.deals];
  return `<div class="card loc"><span class="label">Invest</span><h2>${{stocks:'Stock market',startups:'Startups',cos:'Companies',life:'Lifestyle'}[UI.deals]}</h2><p>${intro}</p>
-   <div class="seg" style="flex-wrap:wrap">${[['stocks','Stocks'],['startups','Startups'],['cos','Companies'],['life','Lifestyle']].map(([k,n])=>`<button class="chip ${UI.deals===k?'on':''}" data-deals="${k}">${n}</button>`).join('')}</div></div>
-  ${UI.deals==='stocks'?viewStocks():UI.deals==='life'?viewLife():`<div class="dgrid">${UI.deals==='startups'?sts:cos}</div>`}`;
+   <div class="seg" style="flex-wrap:wrap">${[['cos','Companies'],['stocks','Stocks'],['startups','Startups'],['life','Lifestyle']].map(([k,n])=>`<button class="chip ${UI.deals===k?'on':''}" data-deals="${k}">${n}</button>`).join('')}</div></div>
+  ${UI.deals==='stocks'?viewStocks():UI.deals==='life'?viewLife():UI.deals==='cos'?viewMA():`<div class="dgrid">${sts}</div>`}`;
 }
 /* ===================== LIFESTYLE PICTURES (drawn, 200x130) ===================== */
 const LA={
@@ -3025,6 +3203,7 @@ document.addEventListener('click',e=>{
  if(e.target===$('#modal')){closeModal();if(UI.sel){UI.sel=null;renderGame();}return;}
  const t=e.target.closest('button,[data-city],[data-mapv]');if(!t)return;const d=t.dataset;
  if(d.bz){bizClick(d,t);return;}
+ if(d.ma){maClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
  else if(d.act==='continue'){const s=loadSave();if(s)startGame(s);else goCreate();}
