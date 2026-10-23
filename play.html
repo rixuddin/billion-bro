@@ -295,6 +295,7 @@ button.rrow:active{transform:scale(.99)}
 .kv2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.kv2 small{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.kv2 b{font-size:20px}
 .lifehead{background:linear-gradient(135deg,#FFE6EF,#FFFFFF)}
 .btn small{display:block;font-size:12px}
+#btext{white-space:pre-line}
 .nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:1fr 1fr 1.25fr 1fr 1fr 1fr;align-items:center}
 .tab{display:grid;justify-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);padding:6px 0;position:relative}
 .tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -1739,7 +1740,7 @@ const EVENTS=[
  {id:'bulk',tone:'choice',w:2,cond:()=>S.cash>40&&cap()-used()>=3,run:()=>{const opts=PRODUCTS.filter(x=>midPrice(S,S.loc,x.id)*.7*2<=S.cash);if(!opts.length)return null;const p=pick(opts);
    const unit=midPrice(S,S.loc,p.id)*.7,qty=Math.min(Math.max(10,Math.round(cap()/4)),cap()-used(),Math.floor(S.cash/unit));if(qty<2)return null;const cost=unit*qty;
    return{who:'sal',mood:'happy',pages:[`Hey kid! I got ${qty} ${p.name.toLowerCase()} I gotta move today.`,`${money(cost)} for the lot. That's about 30% under what they go for here. In or out?`],choices:[
-    {label:`Buy all ${qty} for ${money(cost)}`,go:true,run:()=>{if(S.cash<cost||cap()-used()<qty)return{who:'sal',mood:'neutral',pages:['Changed your mind? Somebody else will grab it.']};S.cash-=cost;giveItems(p.id,qty,cost);addLog(S,`Bulk deal: ${qty} ${p.name.toLowerCase()} for ${money(cost)}.`,'good');return{who:'sal',mood:'happy',pages:[`Pleasure doing business. Now go find a city that pays more.`]};}},
+    {label:`Buy all ${qty.toLocaleString()} ${p.name.toLowerCase()} for ${money(cost)}`,go:true,run:()=>{if(S.cash<cost||cap()-used()<qty)return{who:'sal',mood:'neutral',pages:['Changed your mind? Somebody else will grab it.']};S.cash-=cost;giveItems(p.id,qty,cost);addLog(S,`Bulk deal: ${qty} ${p.name.toLowerCase()} for ${money(cost)}.`,'good');return{who:'sal',mood:'happy',pages:[`Pleasure doing business. Now go find a city that pays more.`]};}},
     {label:'Pass',run:()=>({who:'sal',mood:'neutral',pages:['Your loss, kid.']})}]};}},
  {id:'moira',tone:'choice',w:1.5,cond:c=>PORTS.includes(c.dest)&&cap()-used()>=5,run:()=>{const qty=Math.min(Math.max(15,Math.round(cap()/3)),cap()-used()),cost=Math.round(P('lobster').base*.45*qty);if(S.cash<cost)return null;
    return{who:'moira',mood:'happy',pages:[`Big haul today. I'll sell you ${qty} crates of lobster right off the boat for ${money(cost)}.`,`New York and Toronto will pay a fortune for these. Interested?`],choices:[
@@ -1831,7 +1832,7 @@ const EV2=[
    {label:'Risk it',run:()=>{if(Math.random()<.5)return ok('lou','Lucky. It held up.','neutral');const h=hit(p,.5);return {who:'lou',mood:'worried',tag:['t-bad','Spoiled'],pages:[`Bad news. ${h.txt} spoiled.${h.ins}`]};}}]};}},
  {id:'bulkbuyer',tone:'choice',w:2.2,cond:()=>used()>0,run:()=>{const p=heldOf(),it=S.inv[p],u=sellP(p)*rnd(1.15,1.32),pct=Math.round((u/sellP(p)-1)*100);
   return {who:'raj',mood:'happy',pages:[`I'll take every one of your ${it.qty} ${nm(p)} right now. ${pr(u)} each, ${pct}% over what anyone here will pay.`,`That's ${money(u*it.qty)} in your pocket today.`],choices:[
-   {label:`Sell all for ${money(u*it.qty)}`,go:true,run:()=>{const g=sellNow(p,it.qty,u,'to a store chain');return ok('raj',`Pleasure. ${money(g)} sent over.`);}},
+   {label:`Sell all ${it.qty.toLocaleString()} ${nm(p)} for ${money(u*it.qty)}`,go:true,run:()=>{const g=sellNow(p,it.qty,u,'to a store chain');return ok('raj',`Pleasure. ${money(g)} sent over.`);}},
    {label:'Push for more',run:()=>{if(Math.random()<.5){const g=sellNow(p,it.qty,u*1.12,'to a store chain after haggling');return ok('raj',`You drive a hard bargain. Fine. ${money(g)}.`,'neutral');}return ok('raj','Too rich for me. Forget it.','angry');}},
    {label:'Keep them',run:()=>ok('raj','Your loss. Call me if you change your mind.','neutral')}]};}},
  {id:'recall',tone:'choice',w:1.2,cond:()=>used()>0,run:()=>{const p=heldOf(),it=S.inv[p];addEff(null,p,.7,2);
@@ -1899,7 +1900,7 @@ const EV2=[
    {label:'Stay in',go:true,run:()=>ok('whitlock','Networking is half the game, you know.','neutral')}]};}},
  {id:'overstock',tone:'choice',w:1.3,cond:()=>cap()-used()>=4,run:()=>{const p=pick(PRODUCTS),q=Math.min(cap()-used(),Math.max(4,Math.round(cap()/5))),u=buyP(p.id)*.55,cost=Math.round(u*q);if(cost>S.cash||cost<1)return null;
   return {who:'lou',mood:'neutral',pages:[`A client went bust and left ${q} ${nm(p.id)} in my warehouse. I need the space.`,`${money(cost)} takes the lot. That's 45% under shop price. Some boxes might be dented.`],choices:[
-   {label:`Buy ${q} for ${money(cost)}`,go:true,run:()=>{S.cash-=cost;const bad=Math.random()<.25?Math.round(q*.3):0;giveItems(p.id,q-bad,cost);addLog(S,`Bought ${q-bad} ${nm(p.id)} from a bankrupt client's stock.`,'good');return ok('lou',bad?`Heads up, ${bad} were wrecked. You still got ${q-bad} good ones.`:'All in good shape. Lucky you.');}},
+   {label:`Buy ${q.toLocaleString()} ${nm(p.id)} for ${money(cost)}`,go:true,run:()=>{S.cash-=cost;const bad=Math.random()<.25?Math.round(q*.3):0;giveItems(p.id,q-bad,cost);addLog(S,`Bought ${q-bad} ${nm(p.id)} from a bankrupt client's stock.`,'good');return ok('lou',bad?`Heads up, ${bad} were wrecked. You still got ${q-bad} good ones.`:'All in good shape. Lucky you.');}},
    {label:'Pass',run:()=>ok('lou','Someone else will grab them.','neutral')}]};}},
  /* ---------- business good / bad ---------- */
  {id:'theft2',tone:'bad',w:1.4,cond:c=>used()>0&&!c.guard,run:()=>{const p=heldOf(),h=hit(p,.22);return {who:'brady',mood:'worried',pages:[`Somebody broke into the lockup where your stock was stored last night.`,`They got away with ${h.txt}.${h.ins||' Insurance would have covered that, you know.'}`]};}},
@@ -1942,7 +1943,7 @@ const ROAD=[
    {label:'Push through',run:()=>{if(Math.random()<.5)return ok('mo','White knuckles the whole way, but nothing broke.','neutral');const h=hit(p,.25);return {who:'mo',mood:'worried',tag:['t-bad','Storm damage'],pages:[`Bad bumps. ${h.txt} broke on the way.${h.ins}`]};}}]};}},
  {id:'r_buyer',w:2.4,cond:()=>used()>0,run:c=>{const p=heldOf(),it=S.inv[p],n=Math.max(1,Math.round(it.qty*.35)),u=sellP(p)*rnd(1.2,1.35);
   return {who:'tess',mood:'happy',pages:[`At a truck stop, a trucker spotted your ${nm(p)}. She wants ${n} of them for a shop back home.`,`${pr(u)} each, cash. That's better than ${C(c.dest).name} pays.`],choices:[
-   {label:`Sell ${n} for ${money(u*n)}`,go:true,run:()=>{const g=sellNow(p,n,u,'at a truck stop');return ok('tess',`Pleasure! ${money(g)} in your pocket.`);}},
+   {label:`Sell ${n.toLocaleString()} ${nm(p)} for ${money(u*n)}`,go:true,run:()=>{const g=sellNow(p,n,u,'at a truck stop');return ok('tess',`Pleasure! ${money(g)} in your pocket.`);}},
    {label:'Keep them',run:()=>ok('tess','Fair enough. Safe roads.','neutral')}]};}},
  {id:'r_break',w:1.8,cond:()=>ride().mode!=='bus',run:c=>{const f=Math.round(fee(25)*(ride().mode==='plane'?3:ride().mode==='truck'?2:1));
   return {who:'fran',mood:'worried',pages:[`Your ${ride().name.toLowerCase()} started making a terrible noise just outside ${C(c.dest).name}.`,`I can fix it properly for ${money(f)}. Or I patch it for free, but it'll crawl on your next trip, adding a week.`],choices:[
@@ -1983,7 +1984,7 @@ const ROAD=[
    {label:'Wait in line (next trip +1 week)',run:()=>{NX().slow=(NX().slow||0)+1;return ok('ade','Next flight leaves a week late.','neutral');}}]};}},
  {id:'r_farm',w:1.4,cond:()=>cap()-used()>=3,run:c=>{const p=pick(FOOD.filter(x=>P(x))),q=Math.min(cap()-used(),Math.max(3,Math.round(cap()/6))),u=buyP(p)*.55,cost=Math.round(u*q);if(cost>S.cash||cost<1)return null;
   return {who:'mo',mood:'happy',pages:[`A farm stand by the highway is selling ${nm(p)} for almost nothing. Straight from the source.`,`${q} for ${money(cost)}. That's about 45% under city prices.`],choices:[
-   {label:`Buy ${q} for ${money(cost)}`,go:true,run:()=>{S.cash-=cost;giveItems(p,q,cost);addLog(S,`Bought ${q} ${nm(p)} at a farm stand.`,'good');return ok('mo','Fresh and cheap. Love it.');}},
+   {label:`Buy ${q.toLocaleString()} ${nm(p)} for ${money(cost)}`,go:true,run:()=>{S.cash-=cost;giveItems(p,q,cost);addLog(S,`Bought ${q} ${nm(p)} at a farm stand.`,'good');return ok('mo','Fresh and cheap. Love it.');}},
    {label:'Keep going',run:()=>ok('mo','Fair, the bag\'s pretty full anyway.','neutral')}]};}},
  {id:'r_found',w:1,cond:()=>cap()-used()>=2,run:c=>{const p=pick(PRODUCTS),q=Math.min(cap()-used(),Math.max(2,Math.round(cap()/10))),rw=fee(12);
   return {who:'mo',mood:'neutral',pages:[`There are ${q} boxes of ${nm(p.id)} sitting in a ditch. No labels, nobody around.`,`You could take them. Or call it in, there might be a reward.`],choices:[
@@ -1999,7 +2000,7 @@ const ROAD=[
    {label:'It\'ll be fine',run:()=>{if(Math.random()<.5)return ok('gus','It was fine. This time.','neutral');const h=hit(p,.2);return {who:'gus',mood:'worried',tag:['t-bad','Overboard'],pages:[`${h.txt} went overboard.${h.ins}`]};}}]};}},
  {id:'r_night',w:1.5,cond:()=>used()>0,run:c=>{const p=heldOf(),it=S.inv[p],n=Math.max(1,Math.round(it.qty*.3)),u=sellP(p)*1.28;
   return {who:'rosa',mood:'happy',pages:[`You arrived in time for ${C(c.dest).name}'s night market. Buyers are paying cash and not haggling.`,`You could sell ${n} ${nm(p)} at ${pr(u)} each before the stalls close.`],choices:[
-   {label:`Sell ${n} for ${money(u*n)}`,go:true,run:()=>{const g=sellNow(p,n,u,'at a night market');return ok('rosa',`${money(g)}. Great night!`);}},
+   {label:`Sell ${n.toLocaleString()} ${nm(p)} for ${money(u*n)}`,go:true,run:()=>{const g=sellNow(p,n,u,'at a night market');return ok('rosa',`${money(g)}. Great night!`);}},
    {label:'Get some sleep',run:()=>ok('rosa','Rest up!','neutral')}]};}},
  {id:'r_smuggle',w:1,run:c=>{const pay=fee(55),fine=fee(130);
   return {who:'hank',mood:'smug',pages:[`Since you're driving to ${C(c.dest).name} anyway, carry a little package for me. Don't open it.`,`${money(pay)} when it arrives.`],choices:[
@@ -2012,7 +2013,7 @@ const ROAD=[
    {label:'Ride alone',run:()=>ok(rivalWho(r),'Suit yourself.','neutral')}]};}},
  {id:'r_rival',w:1.2,cond:()=>used()>0,run:c=>{const r=pick(S.rivals),p=heldOf(),it=S.inv[p];
   return {who:rivalWho(r),mood:'smug',pages:[`Funny seeing you here. I'm bringing a truckload of ${nm(p)} into ${C(c.dest).name} tomorrow.`,`Prices are going to tank. Sell yours today, or watch them drop 20%.`],choices:[
-   {label:`Sell all ${it.qty} today at 95%`,run:()=>{const g=sellNow(p,it.qty,sellP(p)*.95,'before a rival flooded the market');return ok(rivalWho(r),`Smart. You got ${money(g)}. Now get out of my market.`,'smug');}},
+   {label:`Sell all ${it.qty.toLocaleString()} ${nm(p)} today at 95% (${money(it.qty*sellP(p)*.95)})`,run:()=>{const g=sellNow(p,it.qty,sellP(p)*.95,'before a rival flooded the market');return ok(rivalWho(r),`Smart. You got ${money(g)}. Now get out of my market.`,'smug');}},
    {label:'Call the bluff',go:true,run:()=>{if(Math.random()<.5){addEff(c.dest,p,.8,1);return ok(rivalWho(r),`Not a bluff. ${P(p).name} just dropped 20% here.`,'smug');}return ok(rivalWho(r),'...Okay, my truck broke down. Enjoy it.','angry');}}]};}},
 ];
 const roadTag=['t-choice','On the road'];
@@ -2921,7 +2922,8 @@ function showScene(changed){
  $('#bextra').innerHTML='';$('#bchoices').innerHTML='';$('#tapnext').hidden=true;
  $('#sdots').innerHTML=SC.list.map((_,i)=>`<i class="${i<=SC.i?'on':''}"></i>`).join('');
  if(changed&&sc.onShow)sc.onShow();
- typeText(pg.text,()=>{$('#bextra').innerHTML=pg.extra||'';const last=SC.p===pagesOf(sc).length-1;
+ const pgs=pagesOf(sc),lastP=SC.p===pgs.length-1,full=lastP&&sc.choices&&pgs.length>1?pgs.map(x=>x.text).join('\n\n'):pg.text;
+ typeText(full,()=>{$('#bextra').innerHTML=pg.extra||'';const last=SC.p===pagesOf(sc).length-1;
   if(last&&sc.choices)$('#bchoices').innerHTML=sc.choices.map((c,i)=>`<button class="btn ${c.go?'go':''}" data-sc="${i}">${esc(c.label)}</button>`).join('');else $('#tapnext').hidden=false;});
 }
 function typeText(text,cb){clearInterval(typer);const el=$('#btext');SC.full=text;SC.cb=cb;SC.typing=true;
