@@ -296,7 +296,7 @@ button.rrow:active{transform:scale(.99)}
 .lifehead{background:linear-gradient(135deg,#FFE6EF,#FFFFFF)}
 .btn small{display:block;font-size:12px}
 #btext{white-space:pre-line}
-.nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:1fr 1fr 1.25fr 1fr 1fr 1fr;align-items:center}
+.nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:repeat(var(--navc,5),1fr);align-items:center}
 .tab{display:grid;justify-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);padding:6px 0;position:relative}
 .tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:var(--ink)}
@@ -1394,7 +1394,7 @@ const loanRate=()=>dif().loan*(tr().bank?.7:1);
 const LF=id=>LIFE.find(x=>x.id===id);
 const lifeIds=()=>Object.keys(S.life||{});
 const lifeVal=()=>lifeIds().reduce((a,id)=>a+S.life[id].val,0);
-const fame=()=>lifeIds().reduce((a,id)=>a+LF(id).fame,0)+(S&&S.fam?partnerFame():0);
+const fame=()=>lifeIds().reduce((a,id)=>a+LF(id).fame,0)+(LIFE_ON&&S&&S.fam?partnerFame():0);
 const homeCut=()=>Math.max(0,...lifeIds().map(id=>LF(id).live||0));
 const fareCut=()=>Math.min(1,...lifeIds().map(id=>LF(id).fare||1));
 const fastJet=()=>lifeIds().some(id=>LF(id).fast);
@@ -1688,7 +1688,7 @@ function customsScene(from,dest){
    addLog(S,'Slipped past the border with undeclared goods.','');return {who:'leblanc',mood:'neutral',pages:['Alright. Move along.']};}}]};
 }
 function tierScene(t){const T=TIERS[t];return {who:'whitlock',mood:'happy',tag:['t-good','New rank'],onShow:confetti,pages:[`Well, well. ${money(T.at)} in net worth. You're officially a ${T.name}, ${first(S.name)}.`,`Next up: ${T.unlock.toLowerCase()}. Keep going.`]};}
-function winScene(){return {who:'whitlock',mood:'happy',tag:['t-good','You won the bet'],onShow:confetti,pages:[`One billion dollars. You actually did it, ${first(S.name)}. First in the class.`,lifeEnding(),`The bet is yours. But there are people out there worth a lot more than a billion. The game keeps going.`]};}
+function winScene(){return {who:'whitlock',mood:'happy',tag:['t-good','You won the bet'],onShow:confetti,pages:[`One billion dollars. You actually did it, ${first(S.name)}. First in the class.`,...(LIFE_ON?[lifeEnding()]:[]),`The bet is yours. But there are people out there worth a lot more than a billion. The game keeps going.`]};}
 function overScene(){clearSave();return {who:'okonkwo',mood:'worried',tag:['t-bad','Game over'],pages:[`Your debt has reached ${money(S.debt)}. That's past the ${money(BANKRUPT)} line, and the bank has to call it. I'm sorry.`,{text:`You're bankrupt and out of the bet. Your classmates keep racing without you.`,extra:`<div class="recap"><div><span>Weeks survived</span><b>${S.week}</b></div><div><span>Peak net worth</span><b>${money(S.peak)}</b></div><div><span>Best class rank</span><b>#${S.bestRank}</b></div><div><span>Trips made</span><b>${S.trips}</b></div></div>`}],
  choices:[...[1,2,10].filter(n=>HIST.length>=n).map(n=>({label:`Go back ${n} turn${n>1?'s':''} (week ${histWeek(n)})`,go:n===1,run:()=>{rewind(n);return 'stop';}})),{label:'Take the bet again',go:!HIST.length,run:()=>{goCreate();return 'stop';}},{label:'Back to title',run:()=>{goTitle();return 'stop';}}]};}
 function introScene(){return [
@@ -2664,6 +2664,11 @@ function maClick(d){const c=d.id?(S.listings.find(x=>x.id===d.id)||S.acq.find(x=
   case 'ipo':{const g=maVal(c)*.3*1.15;S.cash+=g;c.own=(c.own||1)*.7;c.paid*=.7;c.pub=true;c.prem=1.1;addLog(S,`Took ${c.name} public, raised ${money(g)}.`,'good');confetti();save();renderGame();return openOwnMA(c.id);}
   case 'sell':{const of=maOffers(c);return openModal(`<span class="evtag t-choice">Buyer offers</span><h2>Sell ${esc(c.name)}?</h2><p>You paid ${money(c.paid)}. ${indS(c.ind)>1.15?'Its industry is hot right now, so buyers are paying up.':indS(c.ind)<.85?'Its industry is down right now, so offers are low.':''}</p><div class="ev-btns">${of.map((o,i)=>`<button class="btn ${o>=c.paid?'go':'danger'}" data-ma="sellgo" data-id="${c.id}" data-p="${o}">${['A rival company','A private equity firm','A foreign buyer'][i]}: ${money(o)} (${o>=c.paid?'+':''}${money(o-c.paid)})</button>`).join('')}<button class="btn" data-close>Keep it</button></div>`);}
   case 'sellgo':closeModal();maSellNow(c,+d.p);return after();
+  case 'sellpick':{const sv=sharesValue()*(1-commission());return openModal(`<span class="evtag t-choice">Sell stocks</span><h2>How much do you want to sell?</h2><p>Sells the same share of every stock you own, at today's prices after the ${(commission()*100).toFixed(1)}% fee. Short positions aren't touched.</p><div class="ev-btns"><div class="btnrow">${[['.25','25%'],['.5','50%']].map(([f,l])=>`<button class="btn" data-ma="sellstocks" data-f="${f}">${l}<small>about ${money(sv*+f)}</small></button>`).join('')}</div><div class="btnrow">${[['.75','75%'],['1','All of it']].map(([f,l])=>`<button class="btn ${f==='1'?'danger':''}" data-ma="sellstocks" data-f="${f}">${l}<small>about ${money(sv*+f)}</small></button>`).join('')}</div><button class="btn" data-close>Cancel</button></div>`);}
+  case 'sellstocks':{const f=+d.f,hs=Object.entries(S.shares);let got=0,pf=0;hs.forEach(([k,h])=>{const n=f>=1?h.n:Math.floor(h.n*f);if(n<1)return;const g=n*ST(k).p*(1-commission());got+=g;pf+=g-n*h.avg;});
+   return openModal(`<span class="evtag t-bad">Sell stocks</span><h2>${f>=1?'Sell all your stocks?':`Sell ${Math.round(f*100)}% of every stock?`}</h2><p>${hs.length} ${hs.length===1?'stock':'different stocks'} at today's prices, after the ${(commission()*100).toFixed(1)}% fee.</p><div class="recap"><div><span>You get</span><b class="up">${money(got)}</b></div><div><span>Profit or loss vs what you paid</span><b class="${pf>=0?'up':'down'}">${pf>=0?'+':''}${money(pf)}</b></div></div><p class="muted" style="font-size:13px">Short positions aren't touched.</p><div class="ev-btns"><button class="btn danger big" data-ma="sellstocksgo" data-f="${f}">Sell for ${money(got)}</button><button class="btn" data-close>Cancel</button></div>`);}
+  case 'sellstocksgo':{closeModal();const f=+d.f;let got=0,pf=0,c=0;Object.entries(S.shares).forEach(([k,h])=>{const n=f>=1?h.n:Math.floor(h.n*f);if(n<1)return;const g=n*ST(k).p*(1-commission());got+=g;pf+=g-n*h.avg;h.n-=n;if(!h.n)delete S.shares[k];c++;});
+   S.cash+=got;addLog(S,`Sold ${f>=1?'all':Math.round(f*100)+'% of'} your stocks (${c}) for ${money(got)} (${pf>=0?'+':''}${money(pf)}).`,pf>=0?'good':'bad');popCash(`+${money(got)}`,'var(--cash)');return after();}
   case 'desk':return openDesk();
   case 'deskin':{const a=Math.min(S.cash,S.cash*+d.f);S.cash-=a;S.desk.fund+=a;toast(`${money(a)} handed to your trade desk.`);save();renderGame();return openDesk();}
   case 'deskout':{const a=S.desk.fund*+d.f;S.desk.fund-=a;S.cash+=a;toast(`${money(a)} back in your cash.`);save();renderGame();return openDesk();}
@@ -2682,7 +2687,8 @@ function openDesk(){const D=S.desk,rt=deskRoutes();openModal(`<span class="evtag
  <div class="btnrow">${[['.5','Take out half'],['1','Take out all']].map(([f,l])=>`<button class="btn" data-ma="deskout" data-f="${f}" ${D.fund<1?'disabled':''}>${l}<br><small>${money(D.fund*+f)}</small></button>`).join('')}</div>
  <button class="btn" data-ma="deskre">${D.re?'Reinvest profits: on':'Reinvest profits: off'}</button><button class="btn" data-close>Close</button></div>`);}
 
-/* ===================== PERSONAL LIFE ===================== */
+/* ===================== PERSONAL LIFE (turned off for now: LIFE_ON) ===================== */
+const LIFE_ON=false;
 const F_NAMES=['Ava','Sofia','Isabella','Mia','Chloe','Valentina','Nadia','Leila','Camille','Zara','Elena','Priya','Maya','Gabriela','Hana','Amara','Lucia','Sienna','Naomi','Yasmin','Bianca','Ines','Freya','Celine'];
 const M_NAMES=['Lucas','Mateo','Julian','Rafael','Omar','Dante','Kai','Marcus','Leo','Adrian','Theo','Elias','Nikolai','Andre','Felix','Ravi','Hugo','Samir'];
 const SURN=['Rossi','Laurent','Kim','Silva','Haddad','Novak','Okafor','Moreau','Tanaka','Costa','Reyes','Lindqvist','Patel','Morgan','Duarte','Volkov','Adeyemi','Bianchi'];
@@ -2727,13 +2733,13 @@ const famUpkeep=()=>FP().reduce((a,p)=>a+(p.allow||0),0)+partners().reduce((a,p)
 function happiness(){const fam=family(),fb=fam.length?fam.reduce((a,p)=>a+p.bond,0)/fam.length:50,m=mainP();
  return Math.round(clamp(35+fb*.25+(m?m.love*.25:0)+kids().reduce((a,k)=>a+k.bond*.05,0)-S.fam.stress*.3-S.fam.scandal*.4+Math.min(10,partners().length*2),0,100));}
 const bar=(v,c)=>`<div class="capbar" style="height:8px"><i style="width:${clamp(v,0,100)}%;background:${c||(v>=60?'var(--cash)':v>=35?'#FFB21F':'var(--loss)')}"></i></div>`;
-function famWeek(){const F=S.fam;FP().forEach(p=>{if(p.rel==='partner'){if(S.week-p.last>3)p.love=Math.max(0,p.love-1.5*(p.trait==='kind'||p.trait==='diva'?1.4:1));}else if(S.week-p.last>4)p.bond=Math.max(0,p.bond-.7);});
+function famWeek(){if(!LIFE_ON)return 0;const F=S.fam;FP().forEach(p=>{if(p.rel==='partner'){if(S.week-p.last>3)p.love=Math.max(0,p.love-1.5*(p.trait==='kind'||p.trait==='diva'?1.4:1));}else if(S.week-p.last>4)p.bond=Math.max(0,p.bond-.7);});
  F.stress=clamp(F.stress+1.1+.25*(S.biz.length+S.acq.length),0,100);F.pb=clamp(F.pb-.4+Math.max(0,partners().length-1)*.8,0,100);F.scandal=Math.max(0,F.scandal-1);
  const c=famUpkeep();if(c>0)payOut(c);return c;}
 function useTp(n){if(S.fam.tp<n){toast('No time left this turn. Travel to get more.');return false;}S.fam.tp-=n;return true;}
 /* ---- turn hook ---- */
 function normP(){const ps=partners();if(ps.length&&!ps.some(p=>!p.secret)){const best=ps.slice().sort((a,b)=>b.love-a.love)[0];best.secret=false;}}
-function famTurn(){const F=S.fam,out=[];normP();
+function famTurn(){if(!LIFE_ON)return [];const F=S.fam,out=[];normP();
  const sec=secrets(),m=mainP();
  if(sec.length&&m){F.sus=clamp(F.sus+sec.length*7*(m.trait==='jealous'?1.5:1)-(F.spent||0)*4,0,100);}else F.sus=Math.max(0,F.sus-10);
  F.spent=0;F.tp=3;
@@ -2984,6 +2990,7 @@ function renderGame(){
  if(!S)return;
  const nw=netWorth(),t=S.tier,next=TIERS[t+1],pct=next?clamp((nw-TIERS[t].at)/(next.at-TIERS[t].at)*100,0,100):100;
  const loc=C(S.loc),rk=myRank(),low=S.cash+S.savings<liveCost();
+ if(UI.tab==='life'&&!LIFE_ON)UI.tab='market';
  const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz,life:viewPersonal};
  const changed=UI.lastTab!==UI.tab;UI.lastTab=UI.tab;
  $('#scr-game').innerHTML=`<header class="hud">
@@ -2994,9 +3001,9 @@ function renderGame(){
     <span class="pill ${low?'warn':''}">${icon('home')}Living ${money(liveCost())}/wk</span>${S.debt>=1?`<span class="pill ${dueIn()!==null&&dueIn()<=8||S.missed?'warn':''}">${icon('debt')}Loan ${money(S.debt)}${S.due?` · due in ${Math.max(0,dueIn())} wk`:''}</span>`:''}</div>
    <div><div class="track"><i style="width:${pct}%"></i></div><div class="tierline"><span>${TIERS[t].name}</span><span>${next?`${money(next.at-nw)} to ${next.name}`:'Top of the world'}</span></div></div></header>
   <main class="view" ${changed?'':'style="animation:none"'}>${views[UI.tab]()}</main>
-  <nav class="nav"><div class="nav-in">${tabBtn('market','Market')}${tabBtn('deals','Invest')}
+  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr 1fr 1.25fr 1fr 1fr${LIFE_ON?' 1fr':''}">${tabBtn('market','Market')}${tabBtn('deals','Invest')}
    <button class="travelbtn ${UI.tab==='travel'?'on':''}" data-tab="travel" aria-label="Travel">${icon('travel')}<b>Travel</b></button>
-   ${tabBtn('biz','Business')}${tabBtn('life','Life')}${tabBtn('bank','Bank')}</div></nav>`;
+   ${tabBtn('biz','Business')}${LIFE_ON?tabBtn('life','Life'):''}${tabBtn('bank','Bank')}</div></nav>`;
  tweenCash(S.cash);
 }
 const tabBtn=(k,label)=>`<button class="tab ${UI.tab===k?'on':''}" data-tab="${k}">${icon(k)}${label}</button>`;
@@ -3253,6 +3260,7 @@ function viewStocks(){
  return `<div class="card" style="display:grid;gap:8px"><div class="between"><span class="label">World 500 index</span><span class="${ixCh>=0?'up':'down'}" style="font-weight:900">${ixCh>=0?'▲':'▼'} ${Math.abs(ixCh).toFixed(1)}%</span></div>
    <div class="between"><b style="font-family:var(--display);font-size:30px;font-weight:400">${ix[ix.length-1].toLocaleString()}</b><span style="flex:1;max-width:180px">${spark(ix,180,44,ixCh>=0?'#12B076':'#F0574A')}</span></div>
    <div class="kv"><div><span>Your shares</span><b>${money(sv)} <small class="${pf>=0?'up':'down'}">${pf>=0?'+':''}${money(pf)}</small></b></div>${sl?`<div><span>Short positions (you owe)</span><b class="down">${money(sl)}</b></div>`:''}<div><span>Trading fee</span><b>${(commission()*100).toFixed(1)}% per trade</b></div></div>
+   ${sv>=1?`<button class="btn sun" data-ma="sellpick">Need cash? Sell part of all your stocks at once</button>`:''}
    ${canShort()?'':'<p class="muted" style="margin:0;font-size:13px">Short selling (betting a stock will fall) unlocks at Owner rank.</p>'}</div>
   <div class="dgrid">${rows}</div>`;
 }
