@@ -2711,6 +2711,8 @@ function openDesk(){const D=S.desk,rt=deskRoutes();openModal(`<span class="evtag
 
 /* ===================== PERSONAL LIFE (turned off for now: LIFE_ON) ===================== */
 const LIFE_ON=true;
+// real-world prices: cheap when you're broke, top-end when you're a billionaire, never a % of your fortune
+const rp=(lo,hi)=>Math.round(lo+(hi-lo)*clamp(Math.log10(Math.max(1,W())/1e4)/6,0,1));
 const F_NAMES=['Ava','Sofia','Isabella','Mia','Chloe','Valentina','Nadia','Leila','Camille','Zara','Elena','Priya','Maya','Gabriela','Hana','Amara','Lucia','Sienna','Naomi','Yasmin','Bianca','Ines','Freya','Celine'];
 const M_NAMES=['Lucas','Mateo','Julian','Rafael','Omar','Dante','Kai','Marcus','Leo','Adrian','Theo','Elias','Nikolai','Andre','Felix','Ravi','Hugo','Samir'];
 const SURN=['Rossi','Laurent','Kim','Silva','Haddad','Novak','Okafor','Moreau','Tanaka','Costa','Reyes','Lindqvist','Patel','Morgan','Duarte','Volkov','Adeyemi','Bianchi'];
@@ -2749,8 +2751,8 @@ const secrets=()=>partners().filter(p=>p.secret);
 const kids=()=>FP().filter(p=>p.rel==='kid');
 const family=()=>FP().filter(p=>['mom','dad','sib'].includes(p.rel));
 const partnerFame=()=>partners().reduce((a,p)=>a+PT(p.type).fame*(p.trait==='socialite'?1.5:1),0)+S.fam.pb/10;
-const pCost=p=>Math.round(Math.max(60,W()*PT(p.type).cost*(p.trait==='gold digger'?1.5:p.trait==='frugal'?.5:p.trait==='diva'?1.25:1)));
-const kidCost=()=>Math.round(Math.max(150,W()*.0002));
+const pCost=p=>Math.round(rp(60,1.5e5)*(PT(p.type).cost/.0008)*(p.trait==='gold digger'?1.5:p.trait==='frugal'?.5:p.trait==='diva'?1.25:1));
+const kidCost=()=>Math.round(rp(150,30000));
 const famUpkeep=()=>FP().reduce((a,p)=>a+(p.allow||0),0)+partners().reduce((a,p)=>a+pCost(p),0)+kids().length*kidCost();
 function happiness(){const fam=family(),fb=fam.length?fam.reduce((a,p)=>a+p.bond,0)/fam.length:50,m=mainP();
  return Math.round(clamp(35+fb*.25+(m?m.love*.25:0)+kids().reduce((a,k)=>a+k.bond*.05,0)-S.fam.stress*.3-S.fam.scandal*.4+Math.min(10,partners().length*2),0,100));}
@@ -2777,7 +2779,7 @@ function scandalHit(){S.fam.scandal=Math.min(100,S.fam.scandal+30);S.biz.forEach
 function divorce(p){const prenup=p.prenup,liquid=Math.max(0,S.cash+S.savings),take=Math.round(liquid*(prenup?.05:.5));S.cash-=Math.min(S.cash,take);if(take>liquid-S.savings)S.savings=Math.max(0,S.savings-(take-(liquid-S.savings)));
  kids().forEach(k=>k.bond=Math.max(0,k.bond-20));S.fam.people=FP().filter(x=>x!==p);addLog(S,`Divorced ${p.name}. Settlement: ${money(take)}.`,'bad');return take;}
 function caughtScene(){const m=mainP(),x=pick(secrets()),who='f_'+m.id;S.fam.sus=0;const tab=PT(x.type).fame>=5||S.fam.pb>30;if(tab)scandalHit();
- const cost=Math.round(Math.max(2000,W()*.01));
+ const cost=Math.round(rp(2000,5e+06));
  return {who,mood:'angry',tag:['t-bad','Caught'],pages:[`${m.name} found out about you and ${x.name}.`,tab?`Worse, the tabloids have photos. Your reputation took a hit, and your parents saw the headlines.`:`"How long has this been going on?"`],choices:[
   {label:`Beg forgiveness (gift worth ${money(cost)})`,run:()=>{payOut(cost);m.trust=Math.max(0,(m.trust||60)-35);m.love=Math.max(0,m.love-20);if(m.trust<15||Math.random()<.3)return leaveScene(m);x.secret=true;return ok(who,'"One more chance. That\'s it."','neutral');}},
   {label:`End it with ${x.name.split(' ')[0]}`,run:()=>{S.fam.people=FP().filter(p=>p!==x);m.trust=Math.max(0,(m.trust||60)-25);m.love=Math.max(0,m.love-10);if(m.trust<10)return leaveScene(m);return ok(who,'"Fine. But I\'m watching you."','neutral');}},
@@ -2785,37 +2787,37 @@ function caughtScene(){const m=mainP(),x=pick(secrets()),who='f_'+m.id;S.fam.sus
   {label:'Deny everything',run:()=>{if(Math.random()<.4){m.trust=Math.max(0,(m.trust||60)-10);return ok(who,'"...Okay. I believe you. For now."','neutral');}m.trust=Math.max(0,(m.trust||60)-50);m.love=Math.max(0,m.love-30);return leaveScene(m);}}]};}
 function leaveScene(m){let t='';if(m.status==='married')t=` The divorce settlement cost you ${money(divorce(m))}${m.prenup?'. The prenup saved you from losing half':' with no prenup, that\'s half your cash'}.`;else S.fam.people=FP().filter(p=>p!==m);
  return {who:'f_'+m.id,mood:'angry',tag:['t-bad','Breakup'],pages:[`${m.name} packed their things and left.${t}`]};}
-function hushScene(){const x=pick(secrets()),f=Math.round(Math.max(1000,W()*.008));
+function hushScene(){const x=pick(secrets()),f=Math.round(rp(1000,5e+07));
  return {who:'hank',mood:'smug',tag:['t-bad','Blackmail'],pages:[`I've got photos of you and ${x.name}. Your ${mainP()&&mainP().status==='married'?'spouse':'partner'} would love to see them.`,`${money(f)} and they disappear.`],choices:[
   {label:`Pay (${money(f)})`,run:()=>{payOut(f);S.fam.sus=Math.max(0,S.fam.sus-20);return ok('hank','Pleasure. Until next time.','smug');}},
   {label:'Refuse',run:()=>{if(Math.random()<.5){S.fam.sus=100;return ok('hank','Your loss. Check your partner\'s inbox.','smug');}return ok('hank','Fine. I\'ll find another buyer.','angry');}}]};}
 /* ---- family and partner events ---- */
 const famPick=f=>{const l=family().filter(f||(()=>true));return l.length?pick(l):null;};
 const FAM_EV=[
- ()=>{const p=famPick(x=>x.rel!=='sib');if(!p)return null;const f=Math.round(Math.max(15000,W()*.01));return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} needs heart surgery. Insurance covers part of it, but there's ${money(f)} left to pay.`],choices:[
+ ()=>{const p=famPick(x=>x.rel!=='sib');if(!p)return null;const f=Math.round(rp(15000,400000));return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} needs heart surgery. Insurance covers part of it, but there's ${money(f)} left to pay.`],choices:[
   {label:`Pay for it (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+20);family().forEach(o=>{if(o!==p)o.bond=Math.min(100,o.bond+6);});return ok('f_'+p.id,'"Thank you. I don\'t know what we\'d do without you."');}},
   {label:'You can\'t help right now',run:()=>{p.bond=Math.max(0,p.bond-25);family().forEach(o=>{if(o!==p)o.bond=Math.max(0,o.bond-8);});return ok('f_'+p.id,'"I see. We\'ll manage."','worried');}}]};},
- ()=>{const p=famPick();if(!p)return null;const f=Math.round(Math.max(2000,W()*.002));return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`It's ${p.name.split(' ')[0]}'s birthday this week.`],choices:[
+ ()=>{const p=famPick();if(!p)return null;const f=Math.round(rp(2000,250000));return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`It's ${p.name.split(' ')[0]}'s birthday this week.`],choices:[
   {label:'Send flowers ($100)',run:()=>{payOut(100);p.bond=Math.min(100,p.bond+3);p.last=S.week;return ok('f_'+p.id,'"Aw, thank you!"');}},
   {label:`Throw them a party (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+12);p.last=S.week;return ok('f_'+p.id,'"Best birthday ever!"');}},
   {label:'Forget about it',run:()=>{p.bond=Math.max(0,p.bond-8);return ok('f_'+p.id,'"...Nobody called."','worried');}}]};},
- ()=>{const p=famPick(x=>x.rel==='sib');if(!p)return null;const f=Math.round(Math.max(15000,W()*.01));return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} is getting married! The wedding costs ${money(f)} and they're stretched thin.`],choices:[
+ ()=>{const p=famPick(x=>x.rel==='sib');if(!p)return null;const f=Math.round(rp(15000,2e+06));return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} is getting married! The wedding costs ${money(f)} and they're stretched thin.`],choices:[
   {label:`Pay for the wedding (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+25);family().forEach(o=>{if(o.rel!=='sib')o.bond=Math.min(100,o.bond+8);});return ok('f_'+p.id,'"You\'re the best. Seriously."');}},
   {label:'Just show up',run:()=>{p.bond=Math.min(100,p.bond+6);p.last=S.week;return ok('f_'+p.id,'"So glad you came."');}},
   {label:'Skip it, too busy',run:()=>{p.bond=Math.max(0,p.bond-20);family().forEach(o=>{if(o.rel!=='sib')o.bond=Math.max(0,o.bond-8);});return ok('f_'+p.id,'"Wow. Okay."','angry');}}]};},
- ()=>{const p=famPick(x=>x.rel==='sib'&&['needy','reckless','jealous '].includes(x.trait));if(!p)return null;const f=Math.round(Math.max(2000,W()*.005));return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} wants to borrow ${money(f)}. ${pick(['Their landlord is about to evict them.','They have a "can\'t lose" business idea.','They owe some bad people money.'])}`,`Half the time money like this never comes back.`],choices:[
+ ()=>{const p=famPick(x=>x.rel==='sib'&&['needy','reckless','jealous '].includes(x.trait));if(!p)return null;const f=Math.round(rp(2000,500000));return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} wants to borrow ${money(f)}. ${pick(['Their landlord is about to evict them.','They have a "can\'t lose" business idea.','They owe some bad people money.'])}`,`Half the time money like this never comes back.`],choices:[
   {label:`Lend it (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+8);if(Math.random()<.5)S.pending.push({type:'sibrepay',week:S.week+4,amount:f,pid:p.id});return ok('f_'+p.id,'"I\'ll pay you back. I promise."');}},
   {label:'Say no',run:()=>{p.bond=Math.max(0,p.bond-12);return ok('f_'+p.id,'"Must be nice to be rich."','angry');}}]};},
- ()=>{const p=famPick(x=>x.rel==='sib'&&x.bond<45);if(!p)return null;const f=Math.round(Math.max(3000,W()*.003));return {who:'anchor',mood:'neutral',tag:['t-bad','Tabloids'],pages:[`Your ${p.role.replace('Your ','')} ${p.name.split(' ')[0]} sold an embarrassing childhood story about you to a gossip site.`],choices:[
+ ()=>{const p=famPick(x=>x.rel==='sib'&&x.bond<45);if(!p)return null;const f=Math.round(rp(3000,1e+06));return {who:'anchor',mood:'neutral',tag:['t-bad','Tabloids'],pages:[`Your ${p.role.replace('Your ','')} ${p.name.split(' ')[0]} sold an embarrassing childhood story about you to a gossip site.`],choices:[
   {label:`Pay them to stop (${money(f)})`,run:()=>{payOut(f);p.bond=Math.min(100,p.bond+5);return ok('f_'+p.id,'"Fine. No more stories."','neutral');}},
   {label:'Confront them',run:()=>{p.bond=Math.max(0,p.bond-15);return ok('f_'+p.id,'"Maybe call me once in a while and I wouldn\'t need to."','angry');}},
   {label:'Ignore it',run:()=>{S.fam.scandal+=10;return ok('anchor','The story is everywhere for a few days.','neutral');}}]};},
- ()=>{const ps=family().filter(x=>x.rel!=='sib');if(ps.length<2)return null;const f=Math.round(Math.max(5000,W()*.003));return {who:'f_'+ps[0].id,mood:'happy',tag:['t-choice','Family'],pages:[`Your parents' wedding anniversary is coming up.`],choices:[
+ ()=>{const ps=family().filter(x=>x.rel!=='sib');if(ps.length<2)return null;const f=Math.round(rp(5000,1.5e+06));return {who:'f_'+ps[0].id,mood:'happy',tag:['t-choice','Family'],pages:[`Your parents' wedding anniversary is coming up.`],choices:[
   {label:`Send them on a cruise (${money(f)})`,run:()=>{payOut(f);ps.forEach(p=>p.bond=Math.min(100,p.bond+12));return ok('f_'+ps[0].id,'"A cruise! You spoil us."');}},
   {label:'Send a card',run:()=>{ps.forEach(p=>p.bond=Math.min(100,p.bond+2));return ok('f_'+ps[0].id,'"That\'s sweet, thank you."','neutral');}}]};},
- ()=>{const ps=family().filter(x=>x.rel!=='sib');if(!ps.length||S.fam.housed)return null;const f=Math.round(Math.max(3e5,W()*.02));return {who:'f_'+ps[0].id,mood:'worried',tag:['t-choice','Family'],pages:[`Your parents are retiring, but their savings are thin. They're thinking of selling the house to get by.`],choices:[
+ ()=>{const ps=family().filter(x=>x.rel!=='sib');if(!ps.length||S.fam.housed)return null;const f=Math.round(rp(3e5,2.5e+07));return {who:'f_'+ps[0].id,mood:'worried',tag:['t-choice','Family'],pages:[`Your parents are retiring, but their savings are thin. They're thinking of selling the house to get by.`],choices:[
   {label:`Buy them a house by the sea (${money(f)})`,run:()=>{payOut(f);S.fam.housed=true;ps.forEach(p=>p.bond=Math.min(100,p.bond+30));return ok('f_'+ps[0].id,'"We raised a good kid."');}},
-  {label:'Help with their bills',run:()=>{ps.forEach(p=>{p.allow=Math.max(p.allow||0,Math.round(Math.max(200,W()*.0002)));p.bond=Math.min(100,p.bond+10);});return ok('f_'+ps[0].id,'"That takes a weight off. Thank you."');}},
+  {label:'Help with their bills',run:()=>{ps.forEach(p=>{p.allow=Math.max(p.allow||0,Math.round(rp(200,50000)));p.bond=Math.min(100,p.bond+10);});return ok('f_'+ps[0].id,'"That takes a weight off. Thank you."');}},
   {label:'They\'ll figure it out',run:()=>{ps.forEach(p=>p.bond=Math.max(0,p.bond-12));return ok('f_'+ps[0].id,'"We understand."','worried');}}]};},
  ()=>{if(!family().length)return null;return {who:'f_'+family()[0].id,mood:'happy',tag:['t-choice','Family'],pages:['The whole family is getting together in Boston for a reunion.'],choices:[
   {label:'Go (uses 1 time this turn)',run:()=>{if(S.fam.tp<1)return ok('f_'+family()[0].id,'You\'re out of time this turn. Everyone noticed you weren\'t there.','worried');S.fam.tp--;family().forEach(p=>{p.bond=Math.min(100,p.bond+8);p.last=S.week;});S.fam.stress=Math.max(0,S.fam.stress-8);return ok('f_'+family()[0].id,'"So good to have everyone together."');}},
@@ -2826,7 +2828,7 @@ const FAM_EV=[
  ()=>{const p=famPick(x=>x.rel==='mom'&&x.bond<45);if(!p)return null;return {who:'f_'+p.id,mood:'worried',tag:['t-choice','Family'],pages:['"You never call anymore. Are you okay?"'],choices:[
   {label:'Call her now',run:()=>{p.bond=Math.min(100,p.bond+10);p.last=S.week;return ok('f_'+p.id,'"It\'s so good to hear your voice."');}},
   {label:'I\'ll call later',run:()=>{p.bond=Math.max(0,p.bond-5);return ok('f_'+p.id,'"Okay. Later then."','worried');}}]};},
- ()=>{const m=mainP();if(!m)return null;const f=Math.round(Math.max(3000,W()*.002));return {who:'f_'+m.id,mood:'worried',tag:['t-choice','Love'],pages:['"We barely see each other anymore. You\'re always working."'],choices:[
+ ()=>{const m=mainP();if(!m)return null;const f=Math.round(rp(3000,1e+06));return {who:'f_'+m.id,mood:'worried',tag:['t-choice','Love'],pages:['"We barely see each other anymore. You\'re always working."'],choices:[
   {label:`Plan a weekend away (${money(f)})`,run:()=>{payOut(f);m.love=Math.min(100,m.love+15);m.last=S.week;S.fam.stress=Math.max(0,S.fam.stress-10);return ok('f_'+m.id,'"This is exactly what we needed."');}},
   {label:'Promise to do better',run:()=>{m.love=Math.max(0,m.love-6);return ok('f_'+m.id,'"You always say that."','worried');}}]};},
  ()=>{const m=partners().find(p=>p.trait==='gold digger'||p.trait==='diva');if(!m)return null;const g=pick(GIFTS.filter(x=>x[1]>=4000&&x[1]<=Math.max(4000,W()*.05)));if(!g)return null;return {who:'f_'+m.id,mood:'smug',tag:['t-choice','Love'],pages:[`${m.name.split(' ')[0]} has been dropping hints about a ${g[0].toLowerCase()} (${money(g[1])}).`],choices:[
@@ -2842,6 +2844,20 @@ const FAM_EV=[
  ()=>{const k=kids().length?pick(kids()):null;if(!k)return null;return {who:'f_'+k.id,mood:'happy',tag:['t-choice','Family'],pages:[`${k.name} has ${pick(['a school play','a big soccer game','a piano recital','a science fair'])} this week and really wants you there.`],choices:[
   {label:'Go (uses 1 time this turn)',run:()=>{if(S.fam.tp<1)return ok('f_'+k.id,'You\'re out of time this turn and missed it.','worried');S.fam.tp--;k.bond=Math.min(100,k.bond+12);k.last=S.week;return ok('f_'+k.id,'"You came!"');}},
   {label:'Send someone to film it',run:()=>{k.bond=Math.max(0,k.bond-10);return ok('f_'+k.id,'"...It\'s fine."','worried');}}]};},
+ ()=>{if(W()<5e7||Math.random()>.25)return null;const pool=[...family(),...kids().filter(k=>kidAge(k)>=6),...(mainP()?[mainP()]:[])];if(!pool.length)return null;const p=pick(pool),n=first(p.name),rel=p.rel==='partner'?(p.status==='married'?'spouse':'partner'):p.rel==='kid'?(p.g==='f'?'daughter':'son'):p.role.replace('Your ','').toLowerCase();
+  const ran=Math.round(W()*rnd(.002,.005)),team=Math.round(ran*.12);
+  const bk=k=>{if(p.rel==='partner')p.love=clamp(p.love+k,0,100);else p.bond=clamp(p.bond+k,0,100);};
+  const fail=extra=>{const r2=Math.round(ran*1.5);return {who:'brady',mood:'worried',tag:['t-bad','Kidnapping'],pages:[`It went wrong. ${extra} The kidnappers moved ${n} and raised the price to ${money(r2)}.`],choices:[
+    {label:`Pay ${money(r2)}`,go:true,run:()=>{payOut(r2);bk(5);addLog(S,`Paid a ${money(r2)} ransom for ${n}.`,'bad');return ok('f_'+p.id,`${n} is home, shaken but safe.`,'worried');}},
+    {label:'Refuse to pay',run:()=>{bk(-40);S.fam.stress=Math.min(100,S.fam.stress+25);family().forEach(x=>x.bond=Math.max(0,x.bond-10));return ok('f_'+p.id,`Weeks later, police found ${n} and brought them home safe. They haven't forgiven you for not paying.`,'angry');}}]};};
+  return {who:'brady',mood:'worried',tag:['t-bad','Kidnapping'],pages:[`Your ${rel} ${n} was kidnapped on the way home. A note arrived an hour later.`,`They want ${money(ran)}. Everyone knows what you're worth, so they're sure you'll pay. No police, the note says.`],choices:[
+   {label:`Pay the ransom (${money(ran)})`,run:()=>{payOut(ran);bk(8);addLog(S,`Paid a ${money(ran)} ransom for ${n}.`,'bad');return ok('f_'+p.id,`${n} is home safe. "I knew you'd come for me."`);}},
+   {label:`Hire a private rescue team (${money(team)})`,go:true,run:()=>{payOut(team);if(Math.random()<.7){bk(15);addLog(S,`Rescued ${n} from kidnappers.`,'good');return ok('f_'+p.id,`The team got ${n} out without a scratch. The kidnappers are in custody.`);}return fail('The rescue team was spotted.');}},
+   {label:'Call the police',run:()=>{if(Math.random()<.4){bk(6);return ok('brady',`We found ${n}. They're safe, and the kidnappers are in custody.`,'happy');}return fail('The kidnappers found out about the police.');}}]};},
+ ()=>{if(W()<2e7||Math.random()>.3)return null;const f=Math.round(W()*rnd(.0005,.0015)),fx=Math.round(f*.1);return {who:'hank',mood:'smug',tag:['t-bad','Extortion'],pages:['Hackers broke into your family\'s phones and cloud accounts. They have private photos, messages and your business emails.',`They want ${money(f)} in crypto, or everything goes public.`],choices:[
+   {label:`Pay them (${money(f)})`,run:()=>{payOut(f);return ok('hank','Smart. The files are "deleted." Sure they are.','smug');}},
+   {label:`Hire a cyber security firm (${money(fx)})`,go:true,run:()=>{payOut(fx);if(Math.random()<.65)return ok('ruiz','The firm traced them and wiped the files. The FBI made arrests.','happy');scandalHit();return {who:'anchor',mood:'worried',tag:['t-bad','Leak'],pages:['The hackers leaked everything before the firm could stop them. Your family is all over the news.','Your reputation and the share price of your public companies took a hit.']};}},
+   {label:'Ignore them',run:()=>{if(Math.random()<.5){scandalHit();return {who:'anchor',mood:'worried',tag:['t-bad','Leak'],pages:['They weren\'t bluffing. Your family\'s private messages are all over the news.']};}return ok('hank','Huh. They went quiet. Lucky you.','neutral');}}]};},
 ];
 /* ---- actions ---- */
 function makePros(){const out=[],tier=lv(),wealth=W();for(let i=0;i<3;i++){const ok2=PTYPES.filter(t=>wealth>=t.need*.3);const t=pick(ok2);const g=S.fam.pref==='men'?'m':S.fam.pref==='anyone'?(Math.random()<.5?'f':'m'):'f';
@@ -2879,12 +2895,12 @@ function lifeClick(d){if(lifeClick2(d))return;const p=d.id?FPid(d.id):null;const
   case 'baby':{if(!useTp(1))return;p.last=S.week;F.spent++;if(Math.random()<.45){S.pending.push({type:'baby',week:S.week+ri(3,6),with:p.id});toast('Good news may be on the way...');}else toast('Not this time. Keep trying.');return after();}
   case 'kidtime':{if(!useTp(1))return;p.bond=Math.min(100,p.bond+10);p.last=S.week;F.stress=Math.max(0,F.stress-6);toast(`Spent the day with ${p.name}.`);return after();}
   case 'trust':{const f=Math.round(Math.max(1e4,W()*.02));if(S.cash<f)return toast('Not enough cash.');S.cash-=f;p.trust=(p.trust||0)+f;p.bond=Math.min(100,p.bond+5);toast(`${money(f)} added to ${p.name}'s trust fund.`);return after();}
-  case 'vacation':{const f=Math.round(Math.max(1500,W()*.004));if(S.cash<f)return toast('Not enough cash.');if(!useTp(2))return;payOut(f);F.stress=Math.max(0,F.stress-35);const m=mainP();if(m){m.love=Math.min(100,m.love+10);m.last=S.week;F.spent+=2;}kids().forEach(k=>{k.bond=Math.min(100,k.bond+8);k.last=S.week;});toast(`Vacation! Stress -35.`);return after();}
+  case 'vacation':{const f=Math.round(rp(1500,1e+06));if(S.cash<f)return toast('Not enough cash.');if(!useTp(2))return;payOut(f);F.stress=Math.max(0,F.stress-35);const m=mainP();if(m){m.love=Math.min(100,m.love+10);m.last=S.week;F.spent+=2;}kids().forEach(k=>{k.bond=Math.min(100,k.bond+8);k.last=S.week;});toast(`Vacation! Stress -35.`);return after();}
  }}
 const WED=[{n:'Courthouse wedding',c:500,pts:3},{n:'Classic wedding',c:40000,pts:8},{n:'Luxury wedding',c:1e6,pts:12},{n:'Royal-style wedding, 2,000 guests',c:2.5e7,pts:18}];
 function openWedding(id){const p=FPid(id);openModal(`<span class="evtag t-good">Engaged</span><h2>${esc(p.name.split(' ')[0])} said yes!</h2><p>Plan the wedding. A prenup protects you in a divorce (they'd get 5% of your cash instead of half), but asking might hurt their feelings${p.trait==='gold digger'?', and this one might call it off':''}.</p>
  <div class="ev-btns">${WED.map((w,i)=>`<div class="btnrow"><button class="btn go" data-lf="wedgo" data-id="${p.id}" data-i="${i}" data-pn="0" ${S.cash<w.c?'disabled':''}>${w.n}<small>${money(w.c)}</small></button><button class="btn" data-lf="wedgo" data-id="${p.id}" data-i="${i}" data-pn="1" ${S.cash<w.c?'disabled':''}>Same, with prenup<small>${money(w.c)}</small></button></div>`).join('')}<button class="btn" data-close>Decide later</button></div>`);}
-const dateOpts=()=>[{n:'Dinner',c:Math.round(Math.max(100,W()*.0003)),pts:6},{n:'Weekend in Paris',c:Math.round(Math.max(3000,W()*.002)),pts:12},{n:S.life&&Object.keys(S.life).some(k=>LF(k).cat==='yacht')?'Trip on your yacht':'Private yacht charter',c:S.life&&Object.keys(S.life).some(k=>LF(k).cat==='yacht')?Math.round(Math.max(500,W()*.0005)):Math.round(Math.max(20000,W()*.005)),pts:18}];
+const dateOpts=()=>[{n:'Dinner',c:Math.round(rp(100,20000)),pts:6},{n:'Weekend in Paris',c:Math.round(rp(3000,500000)),pts:12},{n:S.life&&Object.keys(S.life).some(k=>LF(k).cat==='yacht')?'Trip on your yacht':'Private yacht charter',c:S.life&&Object.keys(S.life).some(k=>LF(k).cat==='yacht')?Math.round(rp(500,100000)):Math.round(rp(20000,1.5e+06)),pts:18}];
 function openDate(id){const p=FPid(id);openModal(`<span class="evtag t-choice">Date night</span><h2>Take ${esc(p.name.split(' ')[0])} out</h2><p>Uses 1 time point. ${p.trait==='kind'?'They care more about the time than the price.':''}</p><div class="ev-btns">${dateOpts().map((o,i)=>`<button class="btn go" data-lf="dateGo" data-id="${p.id}" data-i="${i}" ${S.cash<o.c?'disabled':''}>${o.n} · ${money(o.c)} · love +${o.pts}</button>`).join('')}<button class="btn" data-close>Cancel</button></div>`);}
 function openGifts(id){const p=FPid(id);openModal(`<span class="evtag t-choice">Gift</span><h2>A gift for ${esc(p.name.split(' ')[0])}</h2><p>${TRAIT_TIP[p.trait]||''} Giving the same thing twice means less.</p><div class="ev-btns">${GIFTS.map(([n,c,pts],i)=>`<button class="btn ${S.cash>=c?'':'lock'}" data-lf="give" data-id="${p.id}" data-i="${i}" ${S.cash<c?'disabled':''}>${n} · ${money(c)}${p.gifts.includes(n)?' (again)':''}</button>`).join('')}<button class="btn" data-close>Close</button></div>`);}
 /* ---- view ---- */
@@ -2902,7 +2918,7 @@ function viewPersonal(){const F=S.fam,h=happiness(),m=mainP();
  return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Your life</h3><span class="label">Time this turn: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
   <div class="kv2"><div><small>Happiness</small><b>${h}</b>${bar(h)}</div><div><small>Stress</small><b>${Math.round(F.stress)}</b>${bar(100-F.stress)}</div>${secrets().length&&m?`<div><small>Suspicion</small><b>${Math.round(F.sus)}</b>${bar(100-F.sus)}</div>`:''}${F.pb>=5?`<div><small>Playboy reputation</small><b>${Math.round(F.pb)}</b>${bar(Math.min(100,F.pb),'#8D63F2')}</div>`:''}</div>
   <small class="muted">You get 3 time points every turn. Family and partners drift away if you ignore them. Upkeep for family and partners: ${money(famUpkeep())}/wk.</small>
-  <div class="btnrow" style="margin-top:10px"><button class="btn go" data-lf="meet">Meet someone<small>${F.prosTurn===S.trips?'See who you met':'1 time point'}</small></button><button class="btn" data-lf="vacation">Vacation<small>2 time · ${money(Math.max(1500,W()*.004))} · stress -35</small></button></div></div>
+  <div class="btnrow" style="margin-top:10px"><button class="btn go" data-lf="meet">Meet someone<small>${F.prosTurn===S.trips?'See who you met':'1 time point'}</small></button><button class="btn" data-lf="vacation">Vacation<small>2 time · ${money(rp(1500,1e+06))} · stress -35</small></button></div></div>
  ${meet}
  ${partners().length?`<div class="sec-title"><h3>Love life</h3><span class="label">${partners().length} ${partners().length===1?'partner':'partners'}</span></div>${partners().map(personCard).join('')}`:''}
  ${kids().length?`<div class="sec-title"><h3>Kids</h3></div>${kids().map(personCard).join('')}`:''}
@@ -2927,7 +2943,7 @@ const age=()=>S.age0+Math.floor(turnsIn()/TPY);
 const turnOfYear=()=>turnsIn()%TPY+1;
 const yearNo=()=>Math.floor(turnsIn()/TPY)+1;
 const hpLabel=h=>h>=80?'Excellent':h>=60?'Good':h>=40?'Fair':h>=20?'Poor':'Critical';
-const careCost=k=>Math.round(Math.max(k==='trainer'?300:800,W()*(k==='trainer'?.0004:.0008)));
+const careCost=k=>k==='trainer'?rp(300,1.5e5):rp(800,4e5);
 /* ---- countries and bonds ---- */
 const BOND_RISK={CA:0,US:0,CH:0,DE:0,GB:0,JP:0,AU:0,SG:0,FR:1,KR:1,AE:1,HK:1,ES:1,IT:1,CN:1,MA:2,MX:2,IN:2,CO:2,BR:2,ZA:2,TR:2,KE:2,NG:2,EG:2,AR:2,RU:2};
 const RISK_LBL=['Very safe','Medium risk','High risk'];
@@ -2953,7 +2969,7 @@ function timeTurn(scenes){
  // health warnings
  if(S.hp<35&&!S.hpWarn){S.hpWarn=true;scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Health'],pages:[`Your doctor called. Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)} out of 100).`,'Too much work and stress. A personal trainer, a doctor, a checkup or a vacation in the Life tab would help. Keep ignoring it and it will catch up with you.']});}
  if(S.hp>=45)S.hpWarn=false;
- if(S.hp<=8){S.hp=25;S.cash-=Math.min(S.cash,Math.round(Math.max(5000,W()*.01)));scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Hospital'],pages:['You collapsed and spent weeks in the hospital. You pulled through, barely.','The bills were huge. Next time you might not be so lucky. Take care of yourself.']});}
+ if(S.hp<=8){S.hp=25;S.cash-=Math.min(S.cash,Math.round(rp(5000,2e+06)));scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Hospital'],pages:['You collapsed and spent weeks in the hospital. You pulled through, barely.','The bills were huge. Next time you might not be so lucky. Take care of yourself.']});}
  // new year
  if(turnsIn()>0&&turnsIn()%TPY===0)scenes.push(newYearScene());}
 function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1));if(S.inflHist.length>40)S.inflHist.shift();
@@ -2966,18 +2982,18 @@ function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1)
  return {who:'anchor',mood:crisis?'worried':'happy',tag:[crisis?'t-bad':'t-good',`Year ${yearNo()}`],onShow:confetti,pages:lines};}
 /* ---- health actions ---- */
 function healthClick(d){switch(d.hl){
- case 'checkup':{const f=Math.round(Math.max(200,W()*.0005));if(S.cash<f)return toast('Not enough cash.');if(S.lastCheck===S.trips)return toast('You already had a checkup this turn.');S.cash-=f;S.lastCheck=S.trips;S.hp=Math.min(100,S.hp+3);
+ case 'checkup':{const f=Math.round(rp(200,20000));if(S.cash<f)return toast('Not enough cash.');if(S.lastCheck===S.trips)return toast('You already had a checkup this turn.');S.cash-=f;S.lastCheck=S.trips;S.hp=Math.min(100,S.hp+3);
   return openModal(`<span class="evtag t-info">Checkup</span><h2>Health: ${hpLabel(S.hp)} (${Math.round(S.hp)}/100)</h2><p>${S.hp>=70?'The doctor says you\'re in great shape. Keep it up.':S.hp>=45?'Some wear and tear. Less stress and more rest would help.':'The doctor is worried. Your body is paying for the long hours. Get a trainer or doctor and take a vacation soon.'}</p><div class="ev-btns"><button class="btn" data-close>Close</button></div>`);}
  case 'trainer':S.hcare.trainer=!S.hcare.trainer;toast(S.hcare.trainer?`Personal trainer hired (${money(careCost('trainer'))} a turn).`:'Trainer let go.');return after();
  case 'doctor':S.hcare.doctor=!S.hcare.doctor;toast(S.hcare.doctor?`Personal doctor hired (${money(careCost('doctor'))} a turn).`:'Doctor let go.');return after();
- case 'rest':{const f=Math.round(Math.max(1500,W()*.004));if(S.cash<f)return toast('Not enough cash.');if(S.lastRest===S.trips)return toast('You already took a break this turn.');S.cash-=f;S.lastRest=S.trips;S.hp=Math.min(100,S.hp+8);toast(`Vacation. Health +8.`);return after();}
+ case 'rest':{const f=Math.round(rp(1500,1e+06));if(S.cash<f)return toast('Not enough cash.');if(S.lastRest===S.trips)return toast('You already took a break this turn.');S.cash-=f;S.lastRest=S.trips;S.hp=Math.min(100,S.hp+8);toast(`Vacation. Health +8.`);return after();}
 }}
 function viewHealth(){const h=S.hp;return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">You</h3><span class="label">Year ${yearNo()} · turn ${turnOfYear()} of ${TPY}</span></div>
  <div class="kv2"><div><small>Age</small><b>${age()}</b></div><div><small>Health</small><b>${Math.round(h)} · ${hpLabel(h)}</b>${bar(h)}</div><div><small>Inflation this year</small><b>${(S.infl*100).toFixed(1)}%</b></div><div><small>Prices vs when you started</small><b>${S.cpi>=1?'+':''}${Math.round((S.cpi-1)*100)}%</b></div></div>
  <small class="muted">Every ${TPY} turns is one year. Long hours, lots of companies, heavy debt and getting older wear your health down. Let it get too low and it will catch up with you.</small></div>
  <div class="card"><h3>Stay healthy</h3><div style="display:grid;gap:8px;margin-top:8px">
-  <button class="btn" data-hl="checkup">Doctor checkup<small>${money(Math.max(200,W()*.0005))} · see how you're really doing · health +3</small></button>
-  <button class="btn" data-hl="rest">Take a vacation<small>${money(Math.max(1500,W()*.004))} · health +8 · once a turn</small></button>
+  <button class="btn" data-hl="checkup">Doctor checkup<small>${money(rp(200,20000))} · see how you're really doing · health +3</small></button>
+  <button class="btn" data-hl="rest">Take a vacation<small>${money(rp(1500,1e+06))} · health +8 · once a turn</small></button>
   <button class="btn ${S.hcare.trainer?'go':''}" data-hl="trainer">${S.hcare.trainer?'Personal trainer: hired':'Hire a personal trainer'}<small>${money(careCost('trainer'))} a turn · slows health loss</small></button>
   <button class="btn ${S.hcare.doctor?'go':''}" data-hl="doctor">${S.hcare.doctor?'Personal doctor: hired':'Hire a personal doctor'}<small>${money(careCost('doctor'))} a turn · slows health loss</small></button></div></div>`;}
 /* ---- bonds view (Bank tab) ---- */
@@ -3227,7 +3243,7 @@ const CAREERS=['doctor','lawyer','chef','pilot','musician','architect','engineer
 const kidAge=k=>Math.max(0,Math.floor((turnsIn()-(k.born??turnsIn()))/TPY));
 const kidStage=a=>a<5?'Baby':a<13?'Kid':a<18?'Teen':a<22?'Young adult':'Adult';
 const heirScore=k=>Math.round(clamp((k.biz*.5+k.smarts*.25+k.drive*.25)*(k.bond>=40?1:.8),0,100));
-const schoolCost=k=>{let c=0;if(k.school&&kidAge(k)<18)c+=Math.max(k.school==='boarding'?3000:800,W()*SCHOOLS[k.school][1])*(k.school==='public'?0:1);if(k.uni&&kidAge(k)>=18&&kidAge(k)<22)c+=Math.max(k.uni==='top'?6000:2000,W()*(k.uni==='top'?.0008:.0003));return Math.round(c);};
+const schoolCost=k=>{let c=0;if(k.school&&kidAge(k)<18)c+=k.school==='boarding'?rp(3000,1.5e5):k.school==='private'?rp(800,8e4):0;if(k.uni&&kidAge(k)>=18&&kidAge(k)<22)c+=k.uni==='top'?rp(6000,1.2e5):rp(2000,5e4);return Math.round(c);};
 const disowned=()=>FP().filter(p=>p.rel==='disowned');
 const parents=()=>FP().filter(p=>p.rel==='mom'||p.rel==='dad');
 function fixKid(k){if(k.born==null)k.born=turnsIn();if(k.smarts==null)k.smarts=ri(30,60);if(k.biz==null)k.biz=ri(10,30);if(k.drive==null)k.drive=ri(30,60);k.done=k.done||{};if(!KID_TRAITS.includes(k.trait))k.trait=pick(KID_TRAITS);return k;}
@@ -3246,7 +3262,7 @@ function babyScene(withId){const p=FPid(withId),k=makeKid(withId);family().forEa
   choices:[...sug.map(n=>({label:`Name them ${n}`,go:true,run:()=>{k.name=n+(sur?' '+sur:'');k.needName=false;regFam(k);return ok('f_'+k.id,`Welcome to the family, ${n}.`);}})),{label:'I\'ll pick my own name',run:()=>ok(p?'f_'+p.id:'whitlock','Take your time. Tap "Name your baby" in the Life tab.')}]};}
 /* ---- milestones ---- */
 function kidMilestone(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id,d=k.done;
- if(a>=5&&!d.school){d.school=true;const pc=Math.round(Math.max(800,W()*.0003)),bc=Math.round(Math.max(3000,W()*.001));
+ if(a>=5&&!d.school){d.school=true;const pc=Math.round(rp(800,80000)),bc=Math.round(rp(3000,150000));
   return {who,mood:'happy',tag:['t-choice',`${n} is 5`],pages:[`${n} is starting school. Where should they go?`,`Better schools grow their smarts faster. Boarding school is the best education money can buy, but they'd be away from home.`],choices:[
    {label:'Public school (free)',run:()=>{k.school='public';return ok(who,'"I made a friend already!"');}},
    {label:`Private school (${money(pc)} a turn)`,go:true,run:()=>{k.school='private';return ok(who,'"The uniform is itchy. But the teachers are nice."');}},
@@ -3257,46 +3273,46 @@ function kidMilestone(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id,d=k.don
    {label:'Chess',run:()=>{k.smarts+=8;return ok(who,'"I beat my teacher. Twice."');}},
    {label:'Music',run:()=>{k.smarts+=4;k.bond=Math.min(100,k.bond+4);return ok(who,'"Want to hear me play?"');}},
    {label:'Let them choose',run:()=>{k.bond=Math.min(100,k.bond+8);k[pick(['smarts','biz','drive'])]+=6;return ok(who,'"Thanks for letting me pick!"');}}]};}
- if(a>=15&&!d.summer){d.summer=true;const f=Math.round(Math.max(3000,W()*.002));const b=S.biz.length?pick(S.biz):null;return {who,mood:'happy',tag:['t-choice',`${n} is 15`],pages:[`Summer break is coming up. ${n} is ${k.drive>60?'bored and wants something to do':'planning to sleep until noon all summer'}.`],choices:[
+ if(a>=15&&!d.summer){d.summer=true;const f=Math.round(rp(3000,500000));const b=S.biz.length?pick(S.biz):null;return {who,mood:'happy',tag:['t-choice',`${n} is 15`],pages:[`Summer break is coming up. ${n} is ${k.drive>60?'bored and wants something to do':'planning to sleep until noon all summer'}.`],choices:[
    ...(b?[{label:`Summer job at ${b.name}`,go:true,run:()=>{k.biz+=8;k.drive+=5;k.bond=Math.max(0,k.bond-2);return ok(who,`"Work is hard. But I kind of get how ${b.name} makes money now."`);}}]:[]),
    {label:'Intern at a bank downtown',run:()=>{k.biz+=5;k.smarts+=3;return ok(who,'"I learned what a spreadsheet is. And I hate it. But I get it."');}},
    {label:`Family trip to Europe (${money(f)})`,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+10);S.fam.stress=Math.max(0,S.fam.stress-10);return ok(who,'"Best summer ever."');}},
    {label:'Let them relax',run:()=>{k.drive=Math.max(0,k.drive-4);k.bond=Math.min(100,k.bond+3);return ok(who,'"Finally, someone gets it."');}}]};}
- if(a>=18&&!d.uni){d.uni=true;const sc=Math.round(Math.max(2000,W()*.0003)),tc=Math.round(Math.max(6000,W()*.0008)),don=Math.round(Math.max(5e5,W()*.01)),inTop=k.smarts>=65;
+ if(a>=18&&!d.uni){d.uni=true;const sc=Math.round(rp(2000,50000)),tc=Math.round(rp(6000,120000)),don=Math.round(rp(5e5,5e+07)),inTop=k.smarts>=65;
   return {who,mood:'happy',tag:['t-choice',`${n} is 18`],pages:[`${n} finished high school. Smarts ${Math.round(k.smarts)}, business sense ${Math.round(k.biz)}, drive ${Math.round(k.drive)}.`,inTop?`Their grades are good enough for a top university.`:`Their grades aren't quite good enough for a top university. A big donation might change the school's mind.`],choices:[
    {label:'Skip university, start working',run:()=>{k.uni=null;k.biz+=8;k.drive+=6;k.done.career=false;return ok(who,'"Real world, here I come."');}},
    {label:`State university (${money(sc)} a turn)`,run:()=>{k.uni='state';return ok(who,'"Dorm life! I\'ll call. Probably."');}},
    inTop?{label:`Top university (${money(tc)} a turn)`,go:true,run:()=>{k.uni='top';k.drive+=3;return ok(who,'"I got in! I actually got in!"');}}:{label:`Donate ${money(don)} so they get into a top university`,run:()=>{payOut(don);k.uni='top';k.drive=Math.max(0,k.drive-5);if(Math.random()<.15){S.fam.scandal=Math.min(100,S.fam.scandal+25);return {who:'anchor',mood:'worried',tag:['t-bad','Scandal'],pages:[`A reporter found out you paid to get ${n} into university. It's all over the news.`,`They're still in, but your reputation took a hit.`]};}return ok(who,'"I got in. Thanks... I guess."','neutral');}}]};}
- if(a>=22&&!d.career){d.career=true;const al=Math.round(Math.max(500,W()*.0003));return {who,mood:'happy',tag:['t-choice',`${n} is 22`],pages:[`${n} is ready to decide what comes next. Business sense ${Math.round(k.biz)}, drive ${Math.round(k.drive)}.`,`If they join your empire, they learn the business and could take over one day. Kids who follow their own path are happier with you, but harder to hand everything to.`],choices:[
+ if(a>=22&&!d.career){d.career=true;const al=Math.round(rp(500,100000));return {who,mood:'happy',tag:['t-choice',`${n} is 22`],pages:[`${n} is ready to decide what comes next. Business sense ${Math.round(k.biz)}, drive ${Math.round(k.drive)}.`,`If they join your empire, they learn the business and could take over one day. Kids who follow their own path are happier with you, but harder to hand everything to.`],choices:[
    {label:'Join the family empire',go:true,run:()=>{k.career='family';k.job='works in the family empire';if(k.drive<35&&Math.random()<.5){k.bond=Math.max(0,k.bond-10);return ok(who,'"Fine. But I\'m only doing this because you asked."','neutral');}return ok(who,'"I won\'t let you down."');}},
    {label:'Follow their own dream',run:()=>{k.career=pick(CAREERS);k.job=k.career;k.bond=Math.min(100,k.bond+12);return ok(who,`"I'm going to be a ${k.career}. Thank you for believing in me."`);}},
    {label:`Give them an allowance (${money(al)} a week)`,run:()=>{k.career='none';k.job='lives off an allowance';k.allow=al;k.bond=Math.min(100,k.bond+6);k.drive=Math.max(0,k.drive-15);return ok(who,'"Best. Parent. Ever."');}}]};}
  return null;}
 function kidEvent(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id;
  if(a>=13&&a<=19){const L=[
-  ()=>{const f=Math.round(Math.max(5000,W()*.002));return {who:'brady',mood:'neutral',tag:['t-choice',`${n} in trouble`],pages:[`Police broke up a party and ${n} was there. They're fine, but they're at the station.`],choices:[
+  ()=>{const f=Math.round(rp(5000,500000));return {who:'brady',mood:'neutral',tag:['t-choice',`${n} in trouble`],pages:[`Police broke up a party and ${n} was there. They're fine, but they're at the station.`],choices:[
    {label:`Get a good lawyer (${money(f)})`,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+4);return ok(who,'"Thanks for not yelling. Yet."','worried');}},
    {label:'Ground them for a month',run:()=>{k.bond=Math.max(0,k.bond-8);k.drive+=3;return ok(who,'"This is so unfair."','angry');}},
    {label:'Talk it through',run:()=>{if(useTp(1)){k.bond=Math.min(100,k.bond+8);return ok(who,'"I\'m sorry. It was dumb."');}return ok(who,'You had no time left this turn. They spent the night stewing.','worried');}}]};},
-  ()=>{const c=Math.round(Math.max(30000,W()*.002));return {who,mood:'happy',tag:['t-choice',`${n} wants a car`],pages:[`"Everyone at school has a car. Can I get one? Please?"`],choices:[
+  ()=>{const c=Math.round(rp(30000,3e+06));return {who,mood:'happy',tag:['t-choice',`${n} wants a car`],pages:[`"Everyone at school has a car. Can I get one? Please?"`],choices:[
    {label:`Buy them a sports car (${money(c)})`,run:()=>{payOut(c);k.bond=Math.min(100,k.bond+10);k.drive=Math.max(0,k.drive-5);return ok(who,'"NO WAY. Best day of my life."');}},
    {label:'Make them earn half',go:true,run:()=>{k.drive+=8;k.biz+=3;k.bond=Math.max(0,k.bond-2);return ok(who,'"Fine. I\'ll get a job. Watch me."','neutral');}},
    {label:'No',run:()=>{k.bond=Math.max(0,k.bond-8);return ok(who,'"Whatever."','angry');}}]};},
-  ()=>{const f=Math.round(Math.max(10000,W()*.003));return {who,mood:'happy',tag:['t-choice',`${n}'s big idea`],pages:[`${n} wants to start a little business${pick([' selling custom sneakers',' making phone apps',' reselling vintage clothes',' running a lawn care crew'])}. They need ${money(f)} to get going.`],choices:[
+  ()=>{const f=Math.round(rp(10000,2e+06));return {who,mood:'happy',tag:['t-choice',`${n}'s big idea`],pages:[`${n} wants to start a little business${pick([' selling custom sneakers',' making phone apps',' reselling vintage clothes',' running a lawn care crew'])}. They need ${money(f)} to get going.`],choices:[
    {label:`Back them (${money(f)})`,go:true,run:()=>{payOut(f);k.biz+=10;k.drive+=5;if(Math.random()<.45){const back=f*ri(2,4);S.cash+=back;return ok(who,`"It worked! Here's ${money(back)} back. Told you."`);}return ok(who,'"It flopped. But I learned a ton."','neutral');}},
    {label:'Not yet',run:()=>{k.drive=Math.max(0,k.drive-3);return ok(who,'"Okay. I\'ll save up."','neutral');}}]};},
-  ()=>{const f=Math.round(Math.max(2000,W()*.0006));return {who,mood:'worried',tag:['t-choice',`${n}'s grades`],pages:[`${n}'s report card came in. It's not great.`],choices:[
+  ()=>{const f=Math.round(rp(2000,50000));return {who,mood:'worried',tag:['t-choice',`${n}'s grades`],pages:[`${n}'s report card came in. It's not great.`],choices:[
    {label:`Hire a tutor (${money(f)})`,go:true,run:()=>{payOut(f);k.smarts+=7;return ok(who,'"Okay, math makes a little more sense now."');}},
    {label:'Help them yourself',run:()=>{if(useTp(1)){k.smarts+=5;k.bond=Math.min(100,k.bond+6);return ok(who,'"You\'re actually good at this."');}return ok(who,'You had no time left this turn.','worried');}},
    {label:'They\'ll figure it out',run:()=>{k.smarts=Math.max(0,k.smarts-3);return ok(who,'"Cool. Thanks."','neutral');}}]};}];
   return pick(L)();}
  if(a>=22&&k.rel==='kid'){const L=[
-  ()=>{const f=Math.round(Math.max(20000,W()*.004));return {who,mood:'worried',tag:['t-choice',n],pages:[`${n} needs ${money(f)}. ${pick(['They want to buy their first home.','They got in over their head with a credit card.','They want to go back to school.'])}`],choices:[
+  ()=>{const f=Math.round(rp(20000,2e+07));return {who,mood:'worried',tag:['t-choice',n],pages:[`${n} needs ${money(f)}. ${pick(['They want to buy their first home.','They got in over their head with a credit card.','They want to go back to school.'])}`],choices:[
    {label:`Give it to them (${money(f)})`,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+8);k.drive=Math.max(0,k.drive-2);return ok(who,'"I owe you one."');}},
    {label:'Lend it, they pay it back',go:true,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+3);k.drive+=3;S.pending.push({type:'sibrepay',week:S.week+ri(6,12),amount:f,pid:k.id});return ok(who,'"Deal. I\'ll pay you back."');}},
    {label:'Say no',run:()=>{k.bond=Math.max(0,k.bond-10);k.drive+=4;return ok(who,'"Got it. I\'m on my own."','angry');}}]};},
   ()=>k.career!=='family'?null:{who,mood:'happy',tag:['t-choice',n],pages:[`${n} wants a bigger role in the empire. "I'm ready to run something on my own."`],choices:[
-   {label:'Give them a division to run',go:true,run:()=>{k.biz+=6;k.drive+=4;k.bond=Math.min(100,k.bond+6);if(k.biz<40&&Math.random()<.4){const l=Math.round(Math.max(1e4,W()*.004));payOut(l);return ok(who,`"I messed up. It cost us ${money(l)}. I'm sorry."`,'worried');}return ok(who,'"Thank you. I\'ll make you proud."');}},
+   {label:'Give them a division to run',go:true,run:()=>{k.biz+=6;k.drive+=4;k.bond=Math.min(100,k.bond+6);if(k.biz<40&&Math.random()<.4){const l=Math.round(rp(1e4,5e+07));payOut(l);return ok(who,`"I messed up. It cost us ${money(l)}. I'm sorry."`,'worried');}return ok(who,'"Thank you. I\'ll make you proud."');}},
    {label:'Not yet',run:()=>{k.bond=Math.max(0,k.bond-5);return ok(who,'"When, then?"','neutral');}}]}];
   return pick(L)();}
  return null;}
@@ -3329,7 +3345,7 @@ function famTurn2(out){const F=S.fam;
  if(F.stress>70)S.hp=Math.max(0,S.hp-.25);if(happiness()>70)S.hp=Math.min(100,S.hp+.05);
  // new year: everyone ages
  if(turnsIn()>0&&turnsIn()%TPY===0){kidsYear();FP().forEach(p=>{if(p.age!=null)p.age++;});
-  parents().forEach(p=>{if(p.age>=78&&Math.random()<(p.age-75)*.015){const inh=Math.round(Math.max(1e4,W()*.002)*(p.trait==='gambler'?.2:1));S.cash+=inh;F.lost.push({name:p.name,rel:p.rel,age:p.age});S.fam.people=FP().filter(x=>x!==p);
+  parents().forEach(p=>{if(p.age>=78&&Math.random()<(p.age-75)*.015){const inh=Math.round(rp(1e4,2e+06)*(p.trait==='gambler'?.2:1));S.cash+=inh;F.lost.push({name:p.name,rel:p.rel,age:p.age});S.fam.people=FP().filter(x=>x!==p);
    const oth=parents()[0]||family()[0];out.push({who:oth?'f_'+oth.id:'whitlock',mood:'worried',tag:['t-bad','Family'],pages:[`Your ${p.rel==='mom'?'mom':'dad'}, ${p.name}, passed away peacefully at ${p.age}.`,`The whole family came together for the funeral. ${p.bond>=60?'You were close until the end.':'You wish you had called more.'} They left you ${money(inh)}.`]});
    family().forEach(x=>x.bond=Math.min(100,x.bond+8));}});}}
 /* ---- life tab ---- */
@@ -3343,7 +3359,7 @@ function viewLifeTab(){const mode=UI.lfMode||'me',F=S.fam,h=happiness(),m=mainP(
  const timeCard=`<div class="card"><div class="between"><h3>Time and mood</h3><span class="label">Time this turn: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
   <div class="kv2"><div><small>Happiness</small><b>${h}</b>${bar(h)}</div><div><small>Stress</small><b>${Math.round(F.stress)}</b>${bar(100-F.stress)}</div>${secrets().length&&m?`<div><small>Suspicion</small><b>${Math.round(F.sus)}</b>${bar(100-F.sus)}</div>`:''}${F.pb>=5?`<div><small>Playboy reputation</small><b>${Math.round(F.pb)}</b>${bar(Math.min(100,F.pb),'#8D63F2')}</div>`:''}</div>
   <small class="muted">You get 3 time points every turn for dates, family and kids. High stress hurts your health. People drift away if you ignore them. Family and partners cost ${money(famUpkeep())} a week${F.lastSchool?`, plus ${money(F.lastSchool)} a turn for school`:''}.</small>
-  <button class="btn" data-lf="vacation" style="margin-top:10px">Family vacation<small>2 time · ${money(Math.max(1500,W()*.004))} · stress -35 · everyone gets closer</small></button></div>`;
+  <button class="btn" data-lf="vacation" style="margin-top:10px">Family vacation<small>2 time · ${money(rp(1500,1e+06))} · stress -35 · everyone gets closer</small></button></div>`;
  if(mode==='me')return top+viewHealth()+timeCard;
  if(mode==='love'){const meet=UI.lifeMeet&&F.prosTurn===S.trips?`<div class="card"><div class="between"><h3>People you met</h3><button class="chip" data-lf="closeMeet">Close</button></div>
   <div class="seg" style="margin:6px 0 10px">${['women','men','anyone'].map(v=>`<button class="chip ${F.pref===v?'on':''}" data-lf="pref" data-v="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div>
