@@ -296,6 +296,7 @@ button.rrow:active{transform:scale(.99)}
 .lifehead{background:linear-gradient(135deg,#FFE6EF,#FFFFFF)}
 .btn small{display:block;font-size:12px}
 #btext{white-space:pre-line}
+.nwlog{display:grid;gap:6px;margin:8px 0 12px;font-size:14px;font-weight:700}.nwlog div{padding:8px 10px;border-radius:10px;background:var(--surface2)}
 .nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:repeat(var(--navc,5),1fr);align-items:center}
 .tab{display:grid;justify-items:center;gap:2px;font-size:11px;font-weight:800;color:var(--muted);padding:6px 0;position:relative}
 .tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -1410,7 +1411,7 @@ const JOBS=[{at:0,btn:'Work a shift',done:null},
 const job=()=>{const w=Math.max(0,netWorth());let j=JOBS[0];for(const x of JOBS)if(w>=x.at)j=x;return j;};
 const shiftPay=()=>{const w=Math.max(0,netWorth());return Math.round(Math.max(basePay(),w>1e4?w*.016*Math.pow(w/1e4,-.22):0));};
 const scale=()=>Math.max(1,Math.pow(Math.max(0,netWorth())/1500,.85));
-function addLog(s,t,tone){s.log.unshift({w:s.week,t,tone:tone||''});s.log=s.log.slice(0,50);}
+function addLog(s,t,tone){s.logN=(s.logN||0)+1;s.log.unshift({w:s.week,t,tone:tone||'',n:s.logN});s.log=s.log.slice(0,50);}
 function addEff(c,p,mult,weeks){S.effects.push({c,p,mult,weeks});}
 function tierOf(nw){let t=0;TIERS.forEach((x,i)=>{if(nw>=x.at)t=i;});return t;}
 function ranking(){const all=S.rivals.map(r=>({name:r.name,nw:r.nw,last:r.last,look:r.look,sub:ARCH[r.arch].name,me:false,r}));all.push({name:S.name,nw:netWorth(),last:S.lastNw??0,look:S.look,sub:TRAITS[S.trait].name,me:true});return all.sort((a,b)=>b.nw-a.nw);}
@@ -1440,7 +1441,7 @@ function buy(p,n){
  const space=cap()-used();if(space<=0)return toast('Your cargo is full. Sell something first.');
  const k=1+IMP(p);let qty=0,cost=0,unit=buyP(p);const u0=unit;while(qty<n&&qty<space&&cost+unit<=S.cash){cost+=unit;qty++;unit=stepU(unit,u0,k);}
  if(!qty)return toast('Not enough cash for that.');
- S.cash-=cost;giveItems(p,qty,cost);sfx('buy');press().buy[p]=Math.min(1.3,(press().buy[p]||1)*Math.pow(k,qty));S.trades++;
+ S.cash-=cost;giveItems(p,qty,cost);sfx('buy');addLog(S,`Bought ${qty.toLocaleString()} ${P(p).name.toLowerCase()} in ${C(S.loc).name} for ${money(cost)}.`,'');press().buy[p]=Math.min(1.3,(press().buy[p]||1)*Math.pow(k,qty));S.trades++;
  popCash(`-${money(cost)}`,'var(--loss)');after(p);
 }
 function sell(p,n){
@@ -1512,7 +1513,7 @@ function travel(dest){
  if(!stay&&S.freeFare&&ride().mode==='bus')S.freeFare=false;
  if(!stay)S.nx={};
  const recap=[],news={heads:[],personal:[],moves:[],bz:[]};
- S.lastNw=netWorth();S.nwParts=nwParts();S.rivals.forEach(r=>r.last=r.nw);S.cos.forEach(c=>c.last=c.val);S.startups.forEach(s=>s.last=s.val);
+ S.lastNw=netWorth();S.nwParts=nwParts();S.logMark=S.logN||0;S.rivals.forEach(r=>r.last=r.nw);S.cos.forEach(c=>c.last=c.val);S.startups.forEach(s=>s.last=s.val);
  const pz=press();PRODUCTS.forEach(p=>{const b=pz.buy[p.id]||1,s=pz.sell[p.id]||1;S.f[S.loc][p.id]=clamp(S.f[S.loc][p.id]*Math.sqrt(b*s),.5,1.9);});S.press={buy:{},sell:{}};
  S.prev=allPrices(S);
  if(!stay){S.cash-=cost;recap.push([`${modeName(from,dest)==='bus'?'Bus ticket':modeName(from,dest)==='flight'?'Flight ticket':modeName(from,dest)==='cargo plane'?'Fuel and airport fees':'Fuel and tolls'}${ferry(from,dest)?' + ferry':''}`,-cost]);}
@@ -1562,6 +1563,7 @@ function travel(dest){
  finishTrip(scenes,trip,recap,from,stay,weeks);
 }
 function finishTrip(scenes,trip,recap,from,stay,weeks){
+ S.lastRecap=recap.filter(r=>r[1]!==null&&Math.abs(r[1])>=1).map(r=>[r[0],Math.round(r[1])]);
  const nw=netWorth();S.peak=Math.max(S.peak,nw);S.bestRank=Math.min(S.bestRank,myRank());
  const dn=C(S.loc).name;
  trip.pages=[{text:stay?`You stayed in ${dn} this week. Prices moved while you were here.`:`${weeks>1?`${weeks} weeks`:'One week'} on the ${modeName(from,S.loc)} from ${C(from).name} to ${dn}. Welcome to ${dn}!`,
@@ -2429,9 +2431,11 @@ function ugScene(){if(!S.ug.ops.length||Math.random()>.35)return null;for(let i=
 function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),acq:acqValue(),desk:S.desk.fund,life:lifeVal(),debt:-S.debt};}
 const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Old companies and startups',biz:'Your businesses',acq:'Companies you bought',desk:'Trade desk',life:'Lifestyle',debt:'Loans'};
 function openNw(){const now=nwParts(),was=S.nwParts||now,d=netWorth()-(S.lastNw??netWorth());
- openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This turn</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since you set off on your last trip.</p>
+ openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This turn</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since you set off on your last trip, and exactly where the money went.</p><span class="label">By type</span>
   <div class="recap">${Object.keys(NW_LBL).map(k=>{const ch=now[k]-(was[k]||0);if(Math.abs(ch)<1&&Math.abs(now[k])<1)return '';return `<div><span>${NW_LBL[k]}</span><span class="${ch>0?'up':ch<0?'down':'muted'}">${ch>0?'+':''}${money(ch)}</span></div>`;}).join('')}
   <div><span>Net worth now</span><b>${money(netWorth())}</b></div>${S.ug.dirty>=1?`<div><span>Dirty cash (hidden, not counted)</span><b class="muted">${money(S.ug.dirty)}</b></div>`:''}</div>
+  ${(S.lastRecap||[]).length?`<span class="label">Cash in and out on your last trip</span><div class="recap">${S.lastRecap.map(([l,v])=>`<div><span>${esc(l)}</span><span class="${v>0?'up':'down'}">${v>0?'+':''}${money(v)}</span></div>`).join('')}</div>`:''}
+  ${(()=>{const ev=S.log.filter(x=>x.n>(S.logMark||0)).slice(0,40);return ev.length?`<span class="label">Everything that happened this turn</span><div class="nwlog">${ev.map(x=>`<div class="${x.tone==='good'?'up':x.tone==='bad'?'down':''}">${esc(x.t)}</div>`).join('')}</div>`:'';})()}
   <p class="muted" style="font-size:13px">Cash spent on cargo isn't lost: it moves from cash into cargo until you sell.</p><div class="ev-btns"><button class="btn" data-close>Close</button></div>`);}
 
 /* ===================== BUSINESS TAB VIEW ===================== */
