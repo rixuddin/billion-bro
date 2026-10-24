@@ -294,6 +294,7 @@ button.rrow:active{transform:scale(.99)}
 .pcard .capbar{margin-top:6px}.pcard .seg .chip{font-size:13px;padding:7px 11px}
 .kv2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.kv2 small{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.kv2 b{font-size:20px}
 .lifehead{background:linear-gradient(135deg,#FFE6EF,#FFFFFF)}
+.kidst{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:6px;margin-top:8px}.kidst span{background:var(--surface2);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:800;color:var(--muted);display:flex;justify-content:space-between;gap:4px}.kidst b{color:var(--ink,#25283A)}
 .btn small{display:block;font-size:12px}
 #btext{white-space:pre-line}
 .nwcats details summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}.nwcats details summary::-webkit-details-marker{display:none}.nwcats details summary span:first-child:after{content:' ▸';color:var(--muted);font-size:12px}.nwcats details[open] summary span:first-child:after{content:' ▾'}
@@ -1184,7 +1185,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -2709,7 +2710,7 @@ function openDesk(){const D=S.desk,rt=deskRoutes();openModal(`<span class="evtag
  <button class="btn" data-ma="deskre">${D.re?'Reinvest profits: on':'Reinvest profits: off'}</button><button class="btn" data-close>Close</button></div>`);}
 
 /* ===================== PERSONAL LIFE (turned off for now: LIFE_ON) ===================== */
-const LIFE_ON=false;
+const LIFE_ON=true;
 const F_NAMES=['Ava','Sofia','Isabella','Mia','Chloe','Valentina','Nadia','Leila','Camille','Zara','Elena','Priya','Maya','Gabriela','Hana','Amara','Lucia','Sienna','Naomi','Yasmin','Bianca','Ines','Freya','Celine'];
 const M_NAMES=['Lucas','Mateo','Julian','Rafael','Omar','Dante','Kai','Marcus','Leo','Adrian','Theo','Elias','Nikolai','Andre','Felix','Ravi','Hugo','Samir'];
 const SURN=['Rossi','Laurent','Kim','Silva','Haddad','Novak','Okafor','Moreau','Tanaka','Costa','Reyes','Lindqvist','Patel','Morgan','Duarte','Volkov','Adeyemi','Bianchi'];
@@ -2769,6 +2770,7 @@ function famTurn(){if(!LIFE_ON)return [];const F=S.fam,out=[];normP();
  partners().filter(p=>p.love<15).slice(0,1).forEach(p=>{if(p.status==='married'){out.push(leaveScene(p));}else{S.fam.people=FP().filter(x=>x!==p);out.push({who:'f_'+p.id,mood:'angry',tag:['t-bad','Breakup'],pages:[`${p.name} left you. "You never had time for me."`]});}normP();});
  if(F.stress>=85){F.stress-=25;S.biz.forEach(b=>b.fx.push({k:'rev',m:.9,w:2}));out.push({who:'whitlock',mood:'worried',tag:['t-bad','Burnout'],pages:['You collapsed at a meeting from exhaustion. The doctor ordered rest.','Your businesses will run 10% worse for two weeks while you recover. Take a vacation in the Life tab to keep stress down.']});}
  if(Math.random()<.55){for(let i=0;i<6;i++){const s=pick(FAM_EV)();if(s){out.push(s);break;}}}
+ famTurn2(out);
  return out;}
 /* ---- scandal ---- */
 function scandalHit(){S.fam.scandal=Math.min(100,S.fam.scandal+30);S.biz.forEach(b=>{if(b.pub)b.sent*=.88;});S.acq.forEach(c=>{if(c.pub)c.prem=(c.prem||1)*.88;});family().forEach(p=>{if(p.rel!=='sib')p.bond=Math.max(0,p.bond-8);});}
@@ -2846,7 +2848,7 @@ function makePros(){const out=[],tier=lv(),wealth=W();for(let i=0;i<3;i++){const
  const taken=FP().map(x=>x.name.split(' ')[0]).concat(out.map(x=>x.name.split(' ')[0]));const pool=(g==='f'?F_NAMES:M_NAMES).filter(n=>!taken.includes(n));
  out.push({id:'q'+(S.fam.seq++),g,type:t.id,name:pick(pool.length?pool:(g==='f'?F_NAMES:M_NAMES))+' '+pick(SURN),trait:pick(t.traits),look:g==='f'?womanLook():manLook()});}S.fam.pros=out;S.fam.prosTurn=S.trips;}
 const askChance=q=>{const t=PT(q.type);return clamp(.35+fame()*.01+partnerFame()*.01+lv()*.1+Math.min(.15,S.fam.pb/200)-t.diff-(W()<t.need?.3:0),.05,.92);};
-function lifeClick(d){const p=d.id?FPid(d.id):null;const F=S.fam;
+function lifeClick(d){if(lifeClick2(d))return;const p=d.id?FPid(d.id):null;const F=S.fam;
  switch(d.lf){
   case 'call':{if(p.called===S.trips)return toast('You already called this turn.');p.called=S.trips;p.bond=Math.min(100,p.bond+(p.trait==='worrier'?5:3));p.last=S.week;toast(`Called ${p.name.split(' ')[0]}.`);return after();}
   case 'visit':{const f=S.loc==='boston'?0:Math.round(fare(S.loc,'boston')*2);if(S.cash<f)return toast('You can\'t afford the flights.');if(!useTp(1))return;payOut(f);p.bond=Math.min(100,p.bond+(p.trait==='proud'?14:10));p.last=S.week;F.spent++;F.stress=Math.max(0,F.stress-5);toast(S.loc==='boston'?`Spent the day with ${p.name.split(' ')[0]}.`:`Flew ${p.name.split(' ')[0]} out to see you (${money(f)}).`);return after();}
@@ -2887,7 +2889,7 @@ function openDate(id){const p=FPid(id);openModal(`<span class="evtag t-choice">D
 function openGifts(id){const p=FPid(id);openModal(`<span class="evtag t-choice">Gift</span><h2>A gift for ${esc(p.name.split(' ')[0])}</h2><p>${TRAIT_TIP[p.trait]||''} Giving the same thing twice means less.</p><div class="ev-btns">${GIFTS.map(([n,c,pts],i)=>`<button class="btn ${S.cash>=c?'':'lock'}" data-lf="give" data-id="${p.id}" data-i="${i}" ${S.cash<c?'disabled':''}>${n} · ${money(c)}${p.gifts.includes(n)?' (again)':''}</button>`).join('')}<button class="btn" data-close>Close</button></div>`);}
 /* ---- view ---- */
 function personCard(p){const isP=p.rel==='partner',k=isP?p.love:p.bond,face=portrait(p.look,46,{mood:k>=60?'happy':k>=35?'neutral':'worried'});
- const tag=isP?`${PT(p.type).n}${p.status==='married'?' · Married':p.status==='engaged'?' · Engaged':''}${p.secret?' · Secret':''}`:p.role+(p.job?` · ${p.job}`:'');
+ const tag=isP?`${PT(p.type).n}${p.status==='married'?' · Married':p.status==='engaged'?' · Engaged':''}${p.secret?' · Secret':''}`:p.role+(p.age?` · ${p.age}`:'')+(p.job?` · ${p.job}`:'');
  let btns='';
  if(isP){btns=`<button class="chip" data-lf="date" data-id="${p.id}">Date</button><button class="chip" data-lf="gift" data-id="${p.id}">Gift</button>${p.status==='dating'&&!S.fam.people.some(x=>x.status==='married'||x.status==='engaged')?`<button class="chip" data-lf="propose" data-id="${p.id}">Propose</button>`:''}${p.status==='engaged'?`<button class="chip" data-lf="wedding" data-id="${p.id}">Plan wedding</button>`:''}${(p.status==='married'||p.love>=70)&&!p.secret?`<button class="chip" data-lf="baby" data-id="${p.id}">Try for a baby</button>`:''}<button class="chip" data-lf="breakup" data-id="${p.id}">${p.status==='married'?'Divorce':'Break up'}</button>`;}
  else if(p.rel==='kid')btns=`<button class="chip" data-lf="kidtime" data-id="${p.id}">Spend the day</button><button class="chip" data-lf="gift" data-id="${p.id}">Gift</button><button class="chip" data-lf="trust" data-id="${p.id}">Add to trust fund</button>`;
@@ -2970,15 +2972,14 @@ function healthClick(d){switch(d.hl){
  case 'doctor':S.hcare.doctor=!S.hcare.doctor;toast(S.hcare.doctor?`Personal doctor hired (${money(careCost('doctor'))} a turn).`:'Doctor let go.');return after();
  case 'rest':{const f=Math.round(Math.max(1500,W()*.004));if(S.cash<f)return toast('Not enough cash.');if(S.lastRest===S.trips)return toast('You already took a break this turn.');S.cash-=f;S.lastRest=S.trips;S.hp=Math.min(100,S.hp+8);toast(`Vacation. Health +8.`);return after();}
 }}
-function viewLifeTab(){const h=S.hp;return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Your life</h3><span class="label">Year ${yearNo()} · turn ${turnOfYear()} of ${TPY}</span></div>
+function viewHealth(){const h=S.hp;return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">You</h3><span class="label">Year ${yearNo()} · turn ${turnOfYear()} of ${TPY}</span></div>
  <div class="kv2"><div><small>Age</small><b>${age()}</b></div><div><small>Health</small><b>${Math.round(h)} · ${hpLabel(h)}</b>${bar(h)}</div><div><small>Inflation this year</small><b>${(S.infl*100).toFixed(1)}%</b></div><div><small>Prices vs when you started</small><b>${S.cpi>=1?'+':''}${Math.round((S.cpi-1)*100)}%</b></div></div>
  <small class="muted">Every ${TPY} turns is one year. Long hours, lots of companies, heavy debt and getting older wear your health down. Let it get too low and it will catch up with you.</small></div>
  <div class="card"><h3>Stay healthy</h3><div style="display:grid;gap:8px;margin-top:8px">
   <button class="btn" data-hl="checkup">Doctor checkup<small>${money(Math.max(200,W()*.0005))} · see how you're really doing · health +3</small></button>
   <button class="btn" data-hl="rest">Take a vacation<small>${money(Math.max(1500,W()*.004))} · health +8 · once a turn</small></button>
   <button class="btn ${S.hcare.trainer?'go':''}" data-hl="trainer">${S.hcare.trainer?'Personal trainer: hired':'Hire a personal trainer'}<small>${money(careCost('trainer'))} a turn · slows health loss</small></button>
-  <button class="btn ${S.hcare.doctor?'go':''}" data-hl="doctor">${S.hcare.doctor?'Personal doctor: hired':'Hire a personal doctor'}<small>${money(careCost('doctor'))} a turn · slows health loss</small></button></div></div>
- <div class="card muted" style="text-align:center">Marriage, kids and passing your empire to an heir are coming in the next updates.</div>`;}
+  <button class="btn ${S.hcare.doctor?'go':''}" data-hl="doctor">${S.hcare.doctor?'Personal doctor: hired':'Hire a personal doctor'}<small>${money(careCost('doctor'))} a turn · slows health loss</small></button></div></div>`;}
 /* ---- bonds view (Bank tab) ---- */
 function viewBonds(){const cs=bondCountries(),sel=UI.bondCC||cs[0];const bt=bondsTotal();
  const mine=S.bonds.map(b=>{const v=bondValue(b),left=b.years*TPY-(turnsIn()-b.t);return `<div class="mrow"><span class="flag ${b.cc}">${b.cc}</span><span><b>${CNAME(b.cc)} ${b.years}-year${b.linked?' · inflation-protected':''}</b><small>Put in ${money(b.amt)} · ${(b.rate*100).toFixed(1)}%/yr · pays out in ${Math.ceil(left/TPY)} yr (${left} turns)</small></span><span class="rt">${money(v)}<button class="chip" data-bd="sell" data-id="${b.id}" style="margin-top:4px">Cash out early</button></span></div>`;}).join('');
@@ -3178,6 +3179,157 @@ function reClick(d){const r=S.re;switch(d.re){
  case 'sell':{const p=r.props.find(x=>x.id===d.id);if(!p)return;const g=reSaleNet(p),pr=g-p.cost;return openModal(`<span class="evtag t-bad">Sell</span><h2>Sell ${esc(p.name)}?</h2><p>You'd get ${money(g)} after agent fees${p.mort?`, and ${money(p.mort.bal)} of that pays off the mortgage`:''}. You've put ${money(p.cost)} into it, so that's a ${pr>=0?'profit':'loss'} of ${money(Math.abs(pr))}.</p><div class="ev-btns"><button class="btn danger big" data-re="sellgo" data-id="${p.id}">Sell for ${money(g)}</button><button class="btn" data-close>Keep it</button></div>`);}
  case 'sellgo':{closeModal();const x=reSell(d.id);if(x)toast(`Sold. ${x.prof>=0?'+':'-'}${money(Math.abs(x.prof))} ${x.prof>=0?'profit':'loss'}.`);return after();}
 }}
+
+/* ===================== FAMILY: KIDS, PREGNANCY, PARENTS AGING ===================== */
+const KID_TRAITS=['curious','loud','sweet','stubborn','rebel','charmer','shy','competitive'];
+const KID_TIP={curious:'Loves learning. Smarts grow faster.',loud:'Big personality. Hard to ignore.',sweet:'Easy to get along with. Bonds fast.',stubborn:'Does things their own way.',rebel:'Pushes back on everything. Teen years will be rough.',charmer:'Can talk anyone into anything.',shy:'Quiet, but notices everything.',competitive:'Hates losing. Drive grows faster.'};
+const SCHOOLS={public:['Public school',0,1],private:['Private school',.0003,2.2],boarding:['Elite boarding school',.001,3.5]};
+const CAREERS=['doctor','lawyer','chef','pilot','musician','architect','engineer','teacher','game designer','pro athlete','journalist','scientist'];
+const kidAge=k=>Math.max(0,Math.floor((turnsIn()-(k.born??turnsIn()))/TPY));
+const kidStage=a=>a<5?'Baby':a<13?'Kid':a<18?'Teen':a<22?'Young adult':'Adult';
+const heirScore=k=>Math.round(clamp((k.biz*.5+k.smarts*.25+k.drive*.25)*(k.bond>=40?1:.8),0,100));
+const schoolCost=k=>{let c=0;if(k.school&&kidAge(k)<18)c+=Math.max(k.school==='boarding'?3000:800,W()*SCHOOLS[k.school][1])*(k.school==='public'?0:1);if(k.uni&&kidAge(k)>=18&&kidAge(k)<22)c+=Math.max(k.uni==='top'?6000:2000,W()*(k.uni==='top'?.0008:.0003));return Math.round(c);};
+const disowned=()=>FP().filter(p=>p.rel==='disowned');
+const parents=()=>FP().filter(p=>p.rel==='mom'||p.rel==='dad');
+function fixKid(k){if(k.born==null)k.born=turnsIn();if(k.smarts==null)k.smarts=ri(30,60);if(k.biz==null)k.biz=ri(10,30);if(k.drive==null)k.drive=ri(30,60);k.done=k.done||{};if(!KID_TRAITS.includes(k.trait))k.trait=pick(KID_TRAITS);return k;}
+function ensureFam2(s){if(!s.fam)return s;const S0=S;S=s;const F=S.fam;F.due=F.due||[];F.lost=F.lost||[];
+ FP().forEach(p=>{if((p.rel==='mom'||p.rel==='dad')&&p.age==null)p.age=age()+ri(24,32);if(p.rel==='sib'&&p.age==null)p.age=age()+ri(-6,6);if(p.rel==='kid'||p.rel==='disowned')fixKid(p);});
+ // old-style pending babies move to the new due list
+ S.pending=(S.pending||[]).filter(pd=>{if(pd.type==='baby'){F.due.push({t:turnsIn()+2,with:pd.with});return false;}return true;});
+ S=S0;return s;}
+function makeKid(withId){const g=Math.random()<.5?'f':'m',par=FPid(withId);
+ const k=newPerson({g,rel:'kid',role:g==='f'?'Your daughter':'Your son',name:'Baby',bond:80,trait:pick(KID_TRAITS),look:g==='f'?womanLook():manLook(),par:withId,parName:par?par.name:null});k.look.build=0;fixKid(k);k.born=turnsIn();k.needName=true;
+ if(par)k.name='Baby '+par.name.split(' ').slice(1).join(' ');S.fam.people.push(k);regFam(k);return k;}
+function babyScene(withId){const p=FPid(withId),k=makeKid(withId);family().forEach(x=>{if(x.rel!=='sib')x.bond=Math.min(100,x.bond+10);});if(p)p.love=Math.min(100,(p.love||50)+10);
+ const used=FP().map(x=>first(x.name));const sug=[...new Set(Array.from({length:20},()=>pick(k.g==='f'?F_NAMES:M_NAMES)))].filter(n=>!used.includes(n)).slice(0,3);const sur=p?p.name.split(' ').slice(1).join(' '):'';
+ addLog(S,`Your ${k.g==='f'?'daughter':'son'} was born!`,'good');
+ return {who:p?'f_'+p.id:'whitlock',mood:'happy',tag:['t-good','Baby'],onShow:confetti,pages:[`It's a ${k.g==='f'?'girl':'boy'}!${p?` You and ${first(p.name)} are parents now.`:''}`,`${KID_TIP[k.trait]} Kids cost about ${money(kidCost())} a week, need your time, and one day one of them could take over everything you built. What's the name?`],
+  choices:[...sug.map(n=>({label:`Name them ${n}`,go:true,run:()=>{k.name=n+(sur?' '+sur:'');k.needName=false;regFam(k);return ok('f_'+k.id,`Welcome to the family, ${n}.`);}})),{label:'I\'ll pick my own name',run:()=>ok(p?'f_'+p.id:'whitlock','Take your time. Tap "Name your baby" in the Life tab.')}]};}
+/* ---- milestones ---- */
+function kidMilestone(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id,d=k.done;
+ if(a>=5&&!d.school){d.school=true;const pc=Math.round(Math.max(800,W()*.0003)),bc=Math.round(Math.max(3000,W()*.001));
+  return {who,mood:'happy',tag:['t-choice',`${n} is 5`],pages:[`${n} is starting school. Where should they go?`,`Better schools grow their smarts faster. Boarding school is the best education money can buy, but they'd be away from home.`],choices:[
+   {label:'Public school (free)',run:()=>{k.school='public';return ok(who,'"I made a friend already!"');}},
+   {label:`Private school (${money(pc)} a turn)`,go:true,run:()=>{k.school='private';return ok(who,'"The uniform is itchy. But the teachers are nice."');}},
+   {label:`Elite boarding school (${money(bc)} a turn)`,run:()=>{k.school='boarding';k.bond=Math.max(0,k.bond-12);return ok(who,'"Do I have to go? I\'ll miss you."','worried');}}]};}
+ if(a>=9&&!d.act){d.act=true;return {who,mood:'happy',tag:['t-choice',`${n} is 9`],pages:[`${n} wants to try something after school. What do you push them toward?`],choices:[
+   {label:'Sports',run:()=>{k.drive+=8;return ok(who,'"I scored a goal!"');}},
+   {label:'Coding and robotics',go:true,run:()=>{k.smarts+=4;k.biz+=4;return ok(who,'"I built a robot that sorts my socks."');}},
+   {label:'Chess',run:()=>{k.smarts+=8;return ok(who,'"I beat my teacher. Twice."');}},
+   {label:'Music',run:()=>{k.smarts+=4;k.bond=Math.min(100,k.bond+4);return ok(who,'"Want to hear me play?"');}},
+   {label:'Let them choose',run:()=>{k.bond=Math.min(100,k.bond+8);k[pick(['smarts','biz','drive'])]+=6;return ok(who,'"Thanks for letting me pick!"');}}]};}
+ if(a>=15&&!d.summer){d.summer=true;const f=Math.round(Math.max(3000,W()*.002));const b=S.biz.length?pick(S.biz):null;return {who,mood:'happy',tag:['t-choice',`${n} is 15`],pages:[`Summer break is coming up. ${n} is ${k.drive>60?'bored and wants something to do':'planning to sleep until noon all summer'}.`],choices:[
+   ...(b?[{label:`Summer job at ${b.name}`,go:true,run:()=>{k.biz+=8;k.drive+=5;k.bond=Math.max(0,k.bond-2);return ok(who,`"Work is hard. But I kind of get how ${b.name} makes money now."`);}}]:[]),
+   {label:'Intern at a bank downtown',run:()=>{k.biz+=5;k.smarts+=3;return ok(who,'"I learned what a spreadsheet is. And I hate it. But I get it."');}},
+   {label:`Family trip to Europe (${money(f)})`,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+10);S.fam.stress=Math.max(0,S.fam.stress-10);return ok(who,'"Best summer ever."');}},
+   {label:'Let them relax',run:()=>{k.drive=Math.max(0,k.drive-4);k.bond=Math.min(100,k.bond+3);return ok(who,'"Finally, someone gets it."');}}]};}
+ if(a>=18&&!d.uni){d.uni=true;const sc=Math.round(Math.max(2000,W()*.0003)),tc=Math.round(Math.max(6000,W()*.0008)),don=Math.round(Math.max(5e5,W()*.01)),inTop=k.smarts>=65;
+  return {who,mood:'happy',tag:['t-choice',`${n} is 18`],pages:[`${n} finished high school. Smarts ${Math.round(k.smarts)}, business sense ${Math.round(k.biz)}, drive ${Math.round(k.drive)}.`,inTop?`Their grades are good enough for a top university.`:`Their grades aren't quite good enough for a top university. A big donation might change the school's mind.`],choices:[
+   {label:'Skip university, start working',run:()=>{k.uni=null;k.biz+=8;k.drive+=6;k.done.career=false;return ok(who,'"Real world, here I come."');}},
+   {label:`State university (${money(sc)} a turn)`,run:()=>{k.uni='state';return ok(who,'"Dorm life! I\'ll call. Probably."');}},
+   inTop?{label:`Top university (${money(tc)} a turn)`,go:true,run:()=>{k.uni='top';k.drive+=3;return ok(who,'"I got in! I actually got in!"');}}:{label:`Donate ${money(don)} so they get into a top university`,run:()=>{payOut(don);k.uni='top';k.drive=Math.max(0,k.drive-5);if(Math.random()<.15){S.fam.scandal=Math.min(100,S.fam.scandal+25);return {who:'anchor',mood:'worried',tag:['t-bad','Scandal'],pages:[`A reporter found out you paid to get ${n} into university. It's all over the news.`,`They're still in, but your reputation took a hit.`]};}return ok(who,'"I got in. Thanks... I guess."','neutral');}}]};}
+ if(a>=22&&!d.career){d.career=true;const al=Math.round(Math.max(500,W()*.0003));return {who,mood:'happy',tag:['t-choice',`${n} is 22`],pages:[`${n} is ready to decide what comes next. Business sense ${Math.round(k.biz)}, drive ${Math.round(k.drive)}.`,`If they join your empire, they learn the business and could take over one day. Kids who follow their own path are happier with you, but harder to hand everything to.`],choices:[
+   {label:'Join the family empire',go:true,run:()=>{k.career='family';k.job='works in the family empire';if(k.drive<35&&Math.random()<.5){k.bond=Math.max(0,k.bond-10);return ok(who,'"Fine. But I\'m only doing this because you asked."','neutral');}return ok(who,'"I won\'t let you down."');}},
+   {label:'Follow their own dream',run:()=>{k.career=pick(CAREERS);k.job=k.career;k.bond=Math.min(100,k.bond+12);return ok(who,`"I'm going to be a ${k.career}. Thank you for believing in me."`);}},
+   {label:`Give them an allowance (${money(al)} a week)`,run:()=>{k.career='none';k.job='lives off an allowance';k.allow=al;k.bond=Math.min(100,k.bond+6);k.drive=Math.max(0,k.drive-15);return ok(who,'"Best. Parent. Ever."');}}]};}
+ return null;}
+function kidEvent(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id;
+ if(a>=13&&a<=19){const L=[
+  ()=>{const f=Math.round(Math.max(5000,W()*.002));return {who:'brady',mood:'neutral',tag:['t-choice',`${n} in trouble`],pages:[`Police broke up a party and ${n} was there. They're fine, but they're at the station.`],choices:[
+   {label:`Get a good lawyer (${money(f)})`,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+4);return ok(who,'"Thanks for not yelling. Yet."','worried');}},
+   {label:'Ground them for a month',run:()=>{k.bond=Math.max(0,k.bond-8);k.drive+=3;return ok(who,'"This is so unfair."','angry');}},
+   {label:'Talk it through',run:()=>{if(useTp(1)){k.bond=Math.min(100,k.bond+8);return ok(who,'"I\'m sorry. It was dumb."');}return ok(who,'You had no time left this turn. They spent the night stewing.','worried');}}]};},
+  ()=>{const c=Math.round(Math.max(30000,W()*.002));return {who,mood:'happy',tag:['t-choice',`${n} wants a car`],pages:[`"Everyone at school has a car. Can I get one? Please?"`],choices:[
+   {label:`Buy them a sports car (${money(c)})`,run:()=>{payOut(c);k.bond=Math.min(100,k.bond+10);k.drive=Math.max(0,k.drive-5);return ok(who,'"NO WAY. Best day of my life."');}},
+   {label:'Make them earn half',go:true,run:()=>{k.drive+=8;k.biz+=3;k.bond=Math.max(0,k.bond-2);return ok(who,'"Fine. I\'ll get a job. Watch me."','neutral');}},
+   {label:'No',run:()=>{k.bond=Math.max(0,k.bond-8);return ok(who,'"Whatever."','angry');}}]};},
+  ()=>{const f=Math.round(Math.max(10000,W()*.003));return {who,mood:'happy',tag:['t-choice',`${n}'s big idea`],pages:[`${n} wants to start a little business${pick([' selling custom sneakers',' making phone apps',' reselling vintage clothes',' running a lawn care crew'])}. They need ${money(f)} to get going.`],choices:[
+   {label:`Back them (${money(f)})`,go:true,run:()=>{payOut(f);k.biz+=10;k.drive+=5;if(Math.random()<.45){const back=f*ri(2,4);S.cash+=back;return ok(who,`"It worked! Here's ${money(back)} back. Told you."`);}return ok(who,'"It flopped. But I learned a ton."','neutral');}},
+   {label:'Not yet',run:()=>{k.drive=Math.max(0,k.drive-3);return ok(who,'"Okay. I\'ll save up."','neutral');}}]};},
+  ()=>{const f=Math.round(Math.max(2000,W()*.0006));return {who,mood:'worried',tag:['t-choice',`${n}'s grades`],pages:[`${n}'s report card came in. It's not great.`],choices:[
+   {label:`Hire a tutor (${money(f)})`,go:true,run:()=>{payOut(f);k.smarts+=7;return ok(who,'"Okay, math makes a little more sense now."');}},
+   {label:'Help them yourself',run:()=>{if(useTp(1)){k.smarts+=5;k.bond=Math.min(100,k.bond+6);return ok(who,'"You\'re actually good at this."');}return ok(who,'You had no time left this turn.','worried');}},
+   {label:'They\'ll figure it out',run:()=>{k.smarts=Math.max(0,k.smarts-3);return ok(who,'"Cool. Thanks."','neutral');}}]};}];
+  return pick(L)();}
+ if(a>=22&&k.rel==='kid'){const L=[
+  ()=>{const f=Math.round(Math.max(20000,W()*.004));return {who,mood:'worried',tag:['t-choice',n],pages:[`${n} needs ${money(f)}. ${pick(['They want to buy their first home.','They got in over their head with a credit card.','They want to go back to school.'])}`],choices:[
+   {label:`Give it to them (${money(f)})`,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+8);k.drive=Math.max(0,k.drive-2);return ok(who,'"I owe you one."');}},
+   {label:'Lend it, they pay it back',go:true,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+3);k.drive+=3;S.pending.push({type:'sibrepay',week:S.week+ri(6,12),amount:f,pid:k.id});return ok(who,'"Deal. I\'ll pay you back."');}},
+   {label:'Say no',run:()=>{k.bond=Math.max(0,k.bond-10);k.drive+=4;return ok(who,'"Got it. I\'m on my own."','angry');}}]};},
+  ()=>k.career!=='family'?null:{who,mood:'happy',tag:['t-choice',n],pages:[`${n} wants a bigger role in the empire. "I'm ready to run something on my own."`],choices:[
+   {label:'Give them a division to run',go:true,run:()=>{k.biz+=6;k.drive+=4;k.bond=Math.min(100,k.bond+6);if(k.biz<40&&Math.random()<.4){const l=Math.round(Math.max(1e4,W()*.004));payOut(l);return ok(who,`"I messed up. It cost us ${money(l)}. I'm sorry."`,'worried');}return ok(who,'"Thank you. I\'ll make you proud."');}},
+   {label:'Not yet',run:()=>{k.bond=Math.max(0,k.bond-5);return ok(who,'"When, then?"','neutral');}}]}];
+  return pick(L)();}
+ return null;}
+function kidsYear(){kids().forEach(k=>{const a=kidAge(k);if(a<18&&k.school)k.smarts+=SCHOOLS[k.school][2]*(k.trait==='curious'?1.3:1)+rnd(-1,2);else if(a<5)k.smarts+=rnd(0,2);
+  if(a>=18&&a<22&&k.uni)k.smarts+=k.uni==='top'?3:2;if(k.career==='family')k.biz+=rnd(3,6);else if(a>=18&&!k.uni&&k.career!=='none')k.biz+=rnd(1,3);
+  if(k.trait==='competitive')k.drive+=1.5;k.smarts=clamp(k.smarts,0,100);k.biz=clamp(k.biz,0,100);k.drive=clamp(k.drive,0,100);});}
+/* ---- unplanned pregnancy ---- */
+function oopsScene(p){const n=first(p.name),who='f_'+p.id,me=p.g==='m';
+ const pages=me?[`You just found out you're pregnant. ${n} is the other parent. This wasn't planned.`,`${p.secret?'This will be very hard to keep secret. ':''}It's your decision.`]:[`${n} sits you down. "I'm pregnant." This wasn't planned.`,`${p.secret?'If this comes out, everyone will know about the two of you. ':''}You need to talk about what happens next.`];
+ return {who,mood:'worried',tag:['t-choice','Big news'],pages,choices:[
+  {label:'Have the baby',go:true,run:()=>{S.fam.due.push({t:turnsIn()+7,with:p.id});p.love=Math.min(100,p.love+8);if(p.secret)S.fam.sus=Math.min(100,S.fam.sus+30);return ok(who,me?`${n} is with you all the way. The baby is due in about 7 turns.`:`"Really? We're doing this?" The baby is due in about 7 turns.`);}},
+  {label:me?'Decide not to go ahead':'Talk about not going ahead',run:()=>{
+   if(!me&&Math.random()<(p.trait==='kind'||p.trait==='jealous'?.6:.35)){S.fam.due.push({t:turnsIn()+7,with:p.id});p.love=Math.max(0,p.love-10);if(p.secret)S.fam.sus=Math.min(100,S.fam.sus+30);return ok(who,`You talked for hours. ${n} has decided to have the baby. It's her decision, and she hopes you'll be there. The baby is due in about 7 turns.`,'neutral');}
+   p.love=Math.max(0,p.love-3);return ok(who,`You talk it through and decide together not to go ahead. It's a hard conversation, but you both feel it's right for now.`,'neutral');}}]};}
+/* ---- disown and reconcile ---- */
+function disownKid(k){k.rel='disowned';k.role=k.g==='f'?'Disowned daughter':'Disowned son';k.bond=0;k.allow=0;const par=FPid(k.par);if(par&&par.rel==='partner')par.love=Math.max(0,par.love-15);family().forEach(x=>{if(x.rel!=='sib')x.bond=Math.max(0,x.bond-6);});kids().forEach(x=>x.bond=Math.max(0,x.bond-5));addLog(S,`Disowned ${k.name}.`,'bad');}
+/* ---- every turn ---- */
+function famTurn2(out){const F=S.fam;
+ // births
+ F.due=F.due.filter(d=>{if(turnsIn()>=d.t){out.push(babyScene(d.with));return false;}return true;});
+ // unplanned pregnancy (rare)
+ partners().forEach(p=>{if(p.love>=35&&!F.due.some(d=>d.with===p.id)&&Math.random()<.01)out.push(oopsScene(p));});
+ // school costs
+ const sc=kids().reduce((a,k)=>a+schoolCost(k),0);if(sc>0){payOut(sc);F.lastSchool=sc;}else F.lastSchool=0;
+ // milestones, one per turn
+ for(const k of kids()){const m=kidMilestone(k);if(m){out.push(m);break;}}
+ // a kid event now and then
+ if(kids().length&&Math.random()<.12){const e=kidEvent(pick(kids()));if(e)out.push(e);}
+ // stress and happiness affect health
+ if(F.stress>70)S.hp=Math.max(0,S.hp-.25);if(happiness()>70)S.hp=Math.min(100,S.hp+.05);
+ // new year: everyone ages
+ if(turnsIn()>0&&turnsIn()%TPY===0){kidsYear();FP().forEach(p=>{if(p.age!=null)p.age++;});
+  parents().forEach(p=>{if(p.age>=78&&Math.random()<(p.age-75)*.015){const inh=Math.round(Math.max(1e4,W()*.002)*(p.trait==='gambler'?.2:1));S.cash+=inh;F.lost.push({name:p.name,rel:p.rel,age:p.age});S.fam.people=FP().filter(x=>x!==p);
+   const oth=parents()[0]||family()[0];out.push({who:oth?'f_'+oth.id:'whitlock',mood:'worried',tag:['t-bad','Family'],pages:[`Your ${p.rel==='mom'?'mom':'dad'}, ${p.name}, passed away peacefully at ${p.age}.`,`The whole family came together for the funeral. ${p.bond>=60?'You were close until the end.':'You wish you had called more.'} They left you ${money(inh)}.`]});
+   family().forEach(x=>x.bond=Math.min(100,x.bond+8));}});}}
+/* ---- life tab ---- */
+function kidCard(k){const a=kidAge(k),isD=k.rel==='disowned',face=portrait(k.look,46,{mood:isD?'angry':k.bond>=60?'happy':k.bond>=35?'neutral':'worried'});
+ const where=a<5?'At home':a<18?(k.school?SCHOOLS[k.school][0]:'At home'):a<22&&k.uni?(k.uni==='top'?'Top university':'State university'):k.job||'Working';
+ const stats=`<div class="kidst"><span>Smarts<b>${Math.round(k.smarts)}</b></span><span>Business<b>${Math.round(k.biz)}</b></span><span>Drive<b>${Math.round(k.drive)}</b></span>${a>=18&&!isD?`<span>Heir<b>${heirScore(k)}</b></span>`:''}</div>`;
+ const btns=isD?`<button class="chip" data-lf="reconcile" data-id="${k.id}">Reach out</button>`:`${k.needName?`<button class="chip on" data-lf="name" data-id="${k.id}">Name your baby</button>`:''}<button class="chip" data-lf="kidtime" data-id="${k.id}">Spend the day</button>${a>=10?`<button class="chip" data-lf="work" data-id="${k.id}">Bring to work</button>`:''}<button class="chip" data-lf="gift" data-id="${k.id}">Gift</button><button class="chip" data-lf="trust" data-id="${k.id}">Trust fund${k.trust?` (${money(k.trust)})`:''}</button>${a>=13?`<button class="chip" data-lf="disown" data-id="${k.id}">Disown</button>`:''}`;
+ return `<div class="pcard"><div class="row">${face}<div style="min-width:0;flex:1"><div class="between"><b>${esc(k.name)}</b><small class="muted">${isD?'Disowned':`Bond ${Math.round(k.bond)}`}</small></div><small class="muted">${a} · ${kidStage(a)} · ${esc(where)} · ${k.trait}</small>${isD?'':bar(k.bond)}</div></div>${stats}<div class="seg" style="margin-top:8px">${btns}</div></div>`;}
+function viewLifeTab(){const mode=UI.lfMode||'me',F=S.fam,h=happiness(),m=mainP();
+ const top=`<div class="seg">${[['me','Me'],['love','Love'],['family','Family']].map(([k,l])=>`<button class="chip ${mode===k?'on':''}" data-lf="lmode" data-v="${k}">${l}${k==='family'&&kids().some(x=>x.needName)?' •':''}</button>`).join('')}</div>`;
+ const timeCard=`<div class="card"><div class="between"><h3>Time and mood</h3><span class="label">Time this turn: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
+  <div class="kv2"><div><small>Happiness</small><b>${h}</b>${bar(h)}</div><div><small>Stress</small><b>${Math.round(F.stress)}</b>${bar(100-F.stress)}</div>${secrets().length&&m?`<div><small>Suspicion</small><b>${Math.round(F.sus)}</b>${bar(100-F.sus)}</div>`:''}${F.pb>=5?`<div><small>Playboy reputation</small><b>${Math.round(F.pb)}</b>${bar(Math.min(100,F.pb),'#8D63F2')}</div>`:''}</div>
+  <small class="muted">You get 3 time points every turn for dates, family and kids. High stress hurts your health. People drift away if you ignore them. Family and partners cost ${money(famUpkeep())} a week${F.lastSchool?`, plus ${money(F.lastSchool)} a turn for school`:''}.</small>
+  <button class="btn" data-lf="vacation" style="margin-top:10px">Family vacation<small>2 time · ${money(Math.max(1500,W()*.004))} · stress -35 · everyone gets closer</small></button></div>`;
+ if(mode==='me')return top+viewHealth()+timeCard;
+ if(mode==='love'){const meet=UI.lifeMeet&&F.prosTurn===S.trips?`<div class="card"><div class="between"><h3>People you met</h3><button class="chip" data-lf="closeMeet">Close</button></div>
+  <div class="seg" style="margin:6px 0 10px">${['women','men','anyone'].map(v=>`<button class="chip ${F.pref===v?'on':''}" data-lf="pref" data-v="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div>
+  ${F.pros.length?F.pros.map(q=>`<div class="pcard"><div class="row">${portrait(q.look,46)}<div style="min-width:0;flex:1"><b>${esc(q.name)}</b><small class="muted" style="display:block">${PT(q.type).n} · ${q.trait} · fame ${PT(q.type).fame}</small><small class="muted">${TRAIT_TIP[q.trait]||''} Costs about ${money(pCost(q))}/wk to date.</small></div></div><div class="between" style="margin-top:8px"><small class="muted">Chance: ${Math.round(askChance(q)*100)}%${mainP()?' · This would be an affair':''}</small><button class="btn go" data-lf="ask" data-id="${q.id}">Ask out</button></div></div>`).join(''):'<p class="muted">Nobody else here caught your eye. Try again next turn.</p>'}</div>`:'';
+  return top+`<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Love life</h3><span class="label">${partners().length?`${partners().length} ${partners().length===1?'partner':'partners'}`:'Single'}</span></div>
+   <p class="muted" style="margin:6px 0 10px;font-size:13px">Date, get engaged, marry (a prenup protects you in a divorce), or play the field. More partners raise your fame and your playboy reputation, but secret ones can get you caught.</p>
+   <button class="btn go" data-lf="meet">Meet someone<small>${F.prosTurn===S.trips?'See who you met':'1 time point'}</small></button></div>${meet}${partners().map(personCard).join('')}`;}
+ const ks=kids(),ds=disowned();
+ return top+`<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Family</h3><span class="label">${ks.length} ${ks.length===1?'kid':'kids'}</span></div>
+  <p class="muted" style="margin:6px 0 0;font-size:13px">${ks.length?'Your choices shape who your kids become. Business sense and drive decide who could take over your empire one day.':'No kids yet. With a partner, tap "Try for a baby" in the Love tab. Surprises happen too.'}</p></div>
+  ${ks.length?`<div class="sec-title"><h3>Kids</h3></div>${ks.map(kidCard).join('')}`:''}
+  ${F.due.length?`<div class="card muted">A baby is on the way. Due in ${Math.max(1,F.due[0].t-turnsIn())} ${F.due[0].t-turnsIn()===1?'turn':'turns'}.</div>`:''}
+  ${ds.length?`<div class="sec-title"><h3>Disowned</h3></div>${ds.map(kidCard).join('')}`:''}
+  <div class="sec-title"><h3>Parents and siblings</h3><span class="label">Hometown: Boston</span></div>${family().map(p=>personCard(p)).join('')}
+  ${F.lost.length?`<small class="muted" style="display:block;text-align:center;margin-top:8px">In memory: ${F.lost.map(x=>`${esc(x.name)} (${x.age})`).join(', ')}</small>`:''}`;}
+function lifeClick2(d){const p=d.id?FPid(d.id):null;switch(d.lf){
+ case 'lmode':UI.lfMode=d.v;UI.lifeMeet=false;return renderGame(),true;
+ case 'name':return openModal(`<span class="evtag t-good">New baby</span><h2>Name your ${p.g==='f'?'daughter':'son'}</h2><input class="name-in" id="kidname" maxlength="24" placeholder="First name" autocomplete="off"><div class="ev-btns" style="margin-top:10px"><button class="btn go big" data-lf="nameGo" data-id="${p.id}">Save name</button><button class="btn" data-close>Later</button></div>`),setTimeout(()=>{const i=document.getElementById('kidname');if(i)i.focus();},50),true;
+ case 'nameGo':{const i=document.getElementById('kidname'),v=(i?i.value:'').trim().replace(/[^\p{L}\p{M}' -]/gu,'').slice(0,24);if(!v){toast('Type a name first.');return true;}const sur=p.parName?p.parName.split(' ').slice(1).join(' '):'';p.name=v.split(' ')[0][0].toUpperCase()+v.slice(1)+(sur&&!v.includes(' ')?' '+sur:'');p.needName=false;regFam(p);closeModal();toast(`Welcome, ${first(p.name)}!`);after();return true;}
+ case 'work':{if(!useTp(1))return true;p.biz=Math.min(100,p.biz+3*(p.trait==='curious'?1.3:1));p.bond=Math.min(100,p.bond+3);p.last=S.week;toast(`${first(p.name)} spent the day at work with you. Business +3.`);after();return true;}
+ case 'disown':return openModal(`<span class="evtag t-bad">Disown</span><h2>Disown ${esc(first(p.name))}?</h2><p>They're cut off: no allowance, no trust fund payouts, and they can never inherit your empire. ${FPid(p.par)&&FPid(p.par).rel==='partner'?`${esc(first(FPid(p.par).name))} will be hurt. `:''}Your family won't like it either. You can try to reach out later, but they may never forgive you.</p><div class="ev-btns"><button class="btn danger big" data-lf="disowngo" data-id="${p.id}">Disown them</button><button class="btn" data-close>Never mind</button></div>`),true;
+ case 'disowngo':closeModal();disownKid(p);toast(`${first(p.name)} has been disowned.`);after();return true;
+ case 'reconcile':{if(!useTp(1))return true;if(Math.random()<(p.trait==='sweet'?.5:p.trait==='stubborn'||p.trait==='rebel'?.15:.3)){p.rel='kid';p.role=p.g==='f'?'Your daughter':'Your son';p.bond=30;toast(`${first(p.name)} agreed to come home.`);}else toast(`${first(p.name)} won't answer your calls.`);after();return true;}
+ case 'baby':{if(!p||!useTp(1))return true;p.last=S.week;S.fam.spent++;if(S.fam.due.some(x=>x.with===p.id)){toast('A baby is already on the way.');after();return true;}if(Math.random()<.4){S.fam.due.push({t:turnsIn()+7,with:p.id});toast('You\'re expecting! The baby is due in about 7 turns.');confetti();}else toast('Not this time. Keep trying.');after();return true;}
+}return false;}
 
 function rollEvents(ctx){
  if(S.trips<=1)return [];
