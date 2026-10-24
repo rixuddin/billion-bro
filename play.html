@@ -1184,7 +1184,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1331,10 +1331,10 @@ function newGame(c){
 /* ===================== ECONOMY ===================== */
 const dif=()=>DIFF[S.diff],tr=()=>TRAITS[S.trait],ride=()=>RIDES.find(r=>r.id===S.ride);
 function effMult(s,c,p){let m=1;s.effects.forEach(e=>{const cm=!e.c||e.c===c||(Array.isArray(e.c)&&e.c.includes(c));if(cm&&(!e.p||e.p===p))m*=e.mult;});return m;}
-function midPrice(s,c,p){const m=Math.pow(mOf(c,p),DIFF[s.diff].amp);return P(p).base*m*s.f[c][p]*effMult(s,c,p);}
+function midPrice(s,c,p){const m=Math.pow(mOf(c,p),DIFF[s.diff].amp);return P(p).base*(s.cpi||1)*m*s.f[c][p]*effMult(s,c,p);}
 function effMultAt(s,c,p,w){let m=1;s.effects.forEach(e=>{if(e.weeks<=w)return;const cm=!e.c||e.c===c||(Array.isArray(e.c)&&e.c.includes(c));if(cm&&(!e.p||e.p===p))m*=e.mult;});return m;}
 /* Forecast: next week's market noise is rolled one week ahead, so "next turn" prices are known (reports still get fuzzier on harder modes) */
-function fcMid(c,p,w){w=Math.max(1,w||1);let f=S.fn[c][p];for(let i=2;i<=w;i++)f=nextF(S,f,S.week+i-2,c,p);return P(p).base*Math.pow(mOf(c,p),dif().amp)*f*effMultAt(S,c,p,w);}
+function fcMid(c,p,w){w=Math.max(1,w||1);let f=S.fn[c][p];for(let i=2;i<=w;i++)f=nextF(S,f,S.week+i-2,c,p);return P(p).base*(S.cpi||1)*Math.pow(mOf(c,p),dif().amp)*f*effMultAt(S,c,p,w);}
 function fcSell(c,p,w){const v=fcMid(c,p,w)*sellMul(),a=dif().acc;return a?v*(1+(hash(S.week+'f'+c+p)*2-1)*a):v;}
 function fcBuy(c,p,w){return fcMid(c,p,w)*buyMul();}
 function allPrices(s){const o={};CITIES.forEach(c=>{o[c.id]={};PRODUCTS.forEach(p=>o[c.id][p.id]=+midPrice(s,c.id,p.id).toFixed(2));});return o;}
@@ -1374,7 +1374,7 @@ const shortLiab=()=>Object.entries(S.shorts).reduce((a,[k,h])=>a+h.n*ST(k).p,0);
 const commission=()=>({easy:.002,normal:.002,hard:.004,realistic:.006}[S.diff]);
 const canShort=()=>S.tier>=2;
 const shortRoom=()=>Math.max(0,netWorth()*.3-shortLiab());
-const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal()+bizValue()+acqValue()+S.desk.fund;
+const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal()+bizValue()+acqValue()+S.desk.fund+bondsTotal();
 const acqValue=()=>S.acq.reduce((a,c)=>a+maVal(c)*(c.own||1),0);
 const netWorth=()=>S.cash+assetsNoCash()-S.debt-shortLiab();
 function shock(sector,pct){S.sshock[sector]=(S.sshock[sector]||0)+pct;}
@@ -1402,7 +1402,7 @@ const homeCut=()=>Math.max(0,...lifeIds().map(id=>LF(id).live||0));
 const fareCut=()=>Math.min(1,...lifeIds().map(id=>LF(id).fare||1));
 const fastJet=()=>lifeIds().some(id=>LF(id).fast);
 const fameBoost=()=>Math.min(.3,fame()*.006);
-const liveCost=c=>Math.round(C(c||S.loc).live*dif().live*tr().live*(1-homeCut()));
+const liveCost=c=>Math.round(C(c||S.loc).live*(S.cpi||1)*dif().live*tr().live*(1-homeCut()));
 const basePay=()=>Math.round(liveCost()*dif().gig/55*tr().gig/tr().live);
 const JOBS=[{at:0,btn:'Work a shift',done:null},
  {at:2e4,btn:'Take a freelance gig',done:['Built a website for a bakery','Ran social media for a gym','Planned a wedding at the last minute','Wrote a business plan for a food truck','Did the books for a dentist']},
@@ -1557,6 +1557,7 @@ function travel(dest){
  bizScenes().forEach(x=>scenes.push(x));
  maScenes().forEach(x=>scenes.push(x));
  famTurn().forEach(x=>scenes.push(x));
+ timeTurn(scenes);
  {const u=ugScene();if(u)scenes.push(u);}
  if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
  if(S.trips%2===0)scenes.push(rivalScene());
@@ -2430,7 +2431,7 @@ const UGE=[
 function ugScene(){if(!S.ug.ops.length||Math.random()>.35)return null;for(let i=0;i<5;i++){const s=pick(UGE).run();if(s)return s;}return null;}
 
 /* ===================== NET WORTH PARTS ===================== */
-function nwItems(){const o={cash:{},cargo:{},stocks:{},invest:{},biz:{},acq:{},desk:{},life:{},debt:{}};
+function nwItems(){const o={cash:{},cargo:{},stocks:{},invest:{},biz:{},acq:{},desk:{},bonds:{},life:{},debt:{}};(S.bonds||[]).forEach(b=>{o.bonds[b.id]=[`${CNAME(b.cc)} ${b.years}-year bond`,bondValue(b)];});
  o.cash.c=['Cash',S.cash];if(S.savings>=1)o.cash.s=['Savings',S.savings];
  Object.entries(S.inv).forEach(([p,it])=>{o.cargo[p]=[`${P(p).name} (${it.qty.toLocaleString()})`,it.qty*sellP(p)];});
  Object.entries(S.shares).forEach(([k,h])=>{o.stocks[k]=[`${SD(k)[1]} (${k})`,h.n*ST(k).p];});Object.entries(S.shorts).forEach(([k,h])=>{o.stocks['s_'+k]=[`Short ${k}`,-h.n*ST(k).p];});
@@ -2439,8 +2440,8 @@ function nwItems(){const o={cash:{},cargo:{},stocks:{},invest:{},biz:{},acq:{},d
  S.biz.forEach(b=>{o.biz[b.id]=[b.name,bzVal(b)*b.own];});S.acq.forEach(c=>{o.acq[c.id]=[c.name,maVal(c)*(c.own||1)];});
  if(S.desk.fund>=1)o.desk.d=['Trade desk fund',S.desk.fund];lifeIds().forEach(id=>{o.life[id]=[LF(id).name,S.life[id].val];});if(S.debt>=1)o.debt.l=['Bank loan',-S.debt];
  Object.values(o).forEach(g=>Object.keys(g).forEach(k=>g[k][1]=Math.round(g[k][1])));return o;}
-function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),acq:acqValue(),desk:S.desk.fund,life:lifeVal(),debt:-S.debt};}
-const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Old companies and startups',biz:'Your businesses',acq:'Companies you bought',desk:'Trade desk',life:'Lifestyle',debt:'Loans'};
+function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),acq:acqValue(),desk:S.desk.fund,bonds:bondsTotal(),life:lifeVal(),debt:-S.debt};}
+const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Old companies and startups',biz:'Your businesses',acq:'Companies you bought',desk:'Trade desk',bonds:'Bonds',life:'Lifestyle',debt:'Loans'};
 function openNw(){const nwI=nwItems(),now=nwParts(),was=S.nwParts||now,d=netWorth()-(S.lastNw??netWorth());
  openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This turn</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since you set off on your last trip, and exactly where the money went.</p><span class="label">By type · tap a line to see each item</span>
   <div class="recap nwcats">${Object.keys(NW_LBL).map(k=>{const ch=now[k]-(was[k]||0);if(Math.abs(ch)<1&&Math.abs(now[k])<1)return '';
@@ -2914,6 +2915,89 @@ function lifeEnding(){const h=happiness(),m=mainP(),kc=kids().length,fb=family()
 PENDING2.baby=pd=>babyArrives(pd);
 PENDING2.sibrepay=pd=>{const p=FPid(pd.pid);S.cash+=pd.amount;addLog(S,`${p?p.name:'Your sibling'} paid you back ${money(pd.amount)}.`,'good');if(p)p.bond=Math.min(100,p.bond+8);return {who:p?'f_'+p.id:'mo',mood:'happy',tag:['t-good','Family'],pages:[`"Told you I'd pay you back." ${money(pd.amount)} returned.`]};};
 
+/* ===================== YEARS, AGE, HEALTH, INFLATION, BONDS ===================== */
+const TPY=10; // turns per year
+function ensureTime(s){if(s.age0==null){const old=(s.trips||0)>0;s.age0=old?34:22;s.t0=s.trips||0;}
+ if(s.cpi==null)s.cpi=1;if(s.infl==null)s.infl=.025;if(s.hp==null)s.hp=85;s.bonds=s.bonds||[];s.hcare=s.hcare||{trainer:false,doctor:false};s.inflHist=s.inflHist||[];s.bondSeq=s.bondSeq||1;return s;}
+const turnsIn=()=>Math.max(0,S.trips-S.t0);
+const age=()=>S.age0+Math.floor(turnsIn()/TPY);
+const turnOfYear=()=>turnsIn()%TPY+1;
+const yearNo=()=>Math.floor(turnsIn()/TPY)+1;
+const hpLabel=h=>h>=80?'Excellent':h>=60?'Good':h>=40?'Fair':h>=20?'Poor':'Critical';
+const careCost=k=>Math.round(Math.max(k==='trainer'?300:800,W()*(k==='trainer'?.0004:.0008)));
+/* ---- countries and bonds ---- */
+const BOND_RISK={CA:0,US:0,CH:0,DE:0,GB:0,JP:0,AU:0,SG:0,FR:1,KR:1,AE:1,HK:1,ES:1,IT:1,CN:1,MA:2,MX:2,IN:2,CO:2,BR:2,ZA:2,TR:2,KE:2,NG:2,EG:2,AR:2,RU:2};
+const RISK_LBL=['Very safe','Medium risk','High risk'];
+const bondCountries=()=>[...new Set(CITIES.map(c=>c.c))].filter(c=>BOND_RISK[c]!=null);
+const BOND_TERMS=[1,5,10,30];
+function bondRate(cc,years){const r=BOND_RISK[cc];const base=[.025,.042,.075][r];const country=((cc.charCodeAt(0)*7+cc.charCodeAt(1)*3)%10)/1000;return base+country+Math.log(1+years)*.004+(S.infl-.025)*.6;}
+const bondValue=b=>{const t=Math.min(b.years*TPY,turnsIn()-b.t);const g=Math.pow(1+b.rate,t/TPY);return b.amt*g*(b.linked?S.cpi/b.cpi0:1);};
+const bondsTotal=()=>(S.bonds||[]).reduce((a,b)=>a+bondValue(b),0);
+function buyBond(cc,years,linked,amt){amt=Math.floor(amt);if(amt<1||amt>S.cash)return toast('Not enough cash.');const rate=linked?Math.max(.005,bondRate(cc,years)-.015):bondRate(cc,years);
+ S.cash-=amt;S.bonds.push({id:'bd'+(S.bondSeq++),cc,years,linked,rate,amt,t:turnsIn(),cpi0:S.cpi,age:age()});addLog(S,`Bought a ${years}-year ${CNAME(cc)} ${linked?'inflation-protected ':''}bond for ${money(amt)}.`,'');popCash(`-${money(amt)}`,'var(--loss)');toast(`Bond bought. Pays out in ${years} ${years===1?'year':'years'}.`);after();}
+function sellBondEarly(id){const b=S.bonds.find(x=>x.id===id);if(!b)return;const v=Math.round(bondValue(b)*.9);S.cash+=v;S.bonds=S.bonds.filter(x=>x!==b);addLog(S,`Cashed out a ${CNAME(b.cc)} bond early for ${money(v)} (10% penalty).`,'bad');popCash(`+${money(v)}`,'var(--cash)');after();}
+/* ---- per-turn and per-year ---- */
+function timeTurn(scenes){
+ // inflation creeps every turn
+ S.cpi*=Math.pow(1+S.infl,1/TPY);
+ // health
+ let d=-.12;const load=S.biz.length+S.acq.length+myCos().length;if(load>8)d-=.15;if(load>20)d-=.15;const a=age();if(a>45)d-=(a-45)*.012;
+ if(S.hcare.trainer){d+=.35;payOut(careCost('trainer'));}if(S.hcare.doctor){d+=.25;payOut(careCost('doctor'));}
+ if(S.debt>=BANKRUPT*.6)d-=.3;S.hp=clamp(S.hp+d,0,100);
+ // bonds
+ const due=S.bonds.filter(b=>turnsIn()-b.t>=b.years*TPY);due.forEach(b=>{const v=Math.round(bondValue(b));S.cash+=v;S.bonds=S.bonds.filter(x=>x!==b);addLog(S,`${CNAME(b.cc)} ${b.years}-year bond paid out ${money(v)} (+${money(v-b.amt)}).`,'good');
+  scenes.push({who:'okonkwo',mood:'happy',tag:['t-good','Bond paid out'],pages:[`Your ${b.years}-year ${CNAME(b.cc)} ${b.linked?'inflation-protected ':''}bond just matured.`,`You put in ${money(b.amt)} and got back ${money(v)}. That's ${money(v-b.amt)} profit, now in your cash.`]});});
+ // health warnings
+ if(S.hp<35&&!S.hpWarn){S.hpWarn=true;scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Health'],pages:[`Your doctor called. Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)} out of 100).`,'Too much work and stress. A personal trainer, a doctor, a checkup or a vacation in the Life tab would help. Keep ignoring it and it will catch up with you.']});}
+ if(S.hp>=45)S.hpWarn=false;
+ if(S.hp<=8){S.hp=25;S.cash-=Math.min(S.cash,Math.round(Math.max(5000,W()*.01)));scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Hospital'],pages:['You collapsed and spent weeks in the hospital. You pulled through, barely.','The bills were huge. Next time you might not be so lucky. Take care of yourself.']});}
+ // new year
+ if(turnsIn()>0&&turnsIn()%TPY===0)scenes.push(newYearScene());}
+function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1));if(S.inflHist.length>40)S.inflHist.shift();
+ let r=S.infl*.6+.025*.4+gauss()*.01;if(Math.random()<.05)r+=rnd(.04,.07);S.infl=clamp(r,-.01,.14);
+ // country crises can hurt risky bonds
+ let crisis='';S.bonds.forEach(b=>{const rk=BOND_RISK[b.cc];const p=[0,.004,.02][rk];if(Math.random()<p&&!b.hit){b.hit=true;const cut=rnd(.4,.7);b.amt*=1-cut;crisis+=` ${CNAME(b.cc)} defaulted on its debt and your bond lost ${Math.round(cut*100)}% of its value.`;}});
+ const nw=netWorth(),ch=S.yrNw!=null?nw-S.yrNw:null;S.yrNw=nw;
+ const lines=[`Happy New Year! You're now ${age()}.`,`${ch!=null?`Your net worth ${ch>=0?'grew':'fell'} ${money(Math.abs(ch))} this year. `:''}Inflation was ${(prev*100).toFixed(1)}%, so prices went up about that much. ${S.infl>prev+.01?`Economists expect it to rise to around ${(S.infl*100).toFixed(1)}% next year.`:S.infl<prev-.01?`It should cool to about ${(S.infl*100).toFixed(1)}% next year.`:`Next year looks similar, around ${(S.infl*100).toFixed(1)}%.`}`,
+  `Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)}/100).${crisis}`];
+ return {who:'anchor',mood:crisis?'worried':'happy',tag:[crisis?'t-bad':'t-good',`Year ${yearNo()}`],onShow:confetti,pages:lines};}
+/* ---- health actions ---- */
+function healthClick(d){switch(d.hl){
+ case 'checkup':{const f=Math.round(Math.max(200,W()*.0005));if(S.cash<f)return toast('Not enough cash.');if(S.lastCheck===S.trips)return toast('You already had a checkup this turn.');S.cash-=f;S.lastCheck=S.trips;S.hp=Math.min(100,S.hp+3);
+  return openModal(`<span class="evtag t-info">Checkup</span><h2>Health: ${hpLabel(S.hp)} (${Math.round(S.hp)}/100)</h2><p>${S.hp>=70?'The doctor says you\'re in great shape. Keep it up.':S.hp>=45?'Some wear and tear. Less stress and more rest would help.':'The doctor is worried. Your body is paying for the long hours. Get a trainer or doctor and take a vacation soon.'}</p><div class="ev-btns"><button class="btn" data-close>Close</button></div>`);}
+ case 'trainer':S.hcare.trainer=!S.hcare.trainer;toast(S.hcare.trainer?`Personal trainer hired (${money(careCost('trainer'))} a turn).`:'Trainer let go.');return after();
+ case 'doctor':S.hcare.doctor=!S.hcare.doctor;toast(S.hcare.doctor?`Personal doctor hired (${money(careCost('doctor'))} a turn).`:'Doctor let go.');return after();
+ case 'rest':{const f=Math.round(Math.max(1500,W()*.004));if(S.cash<f)return toast('Not enough cash.');if(S.lastRest===S.trips)return toast('You already took a break this turn.');S.cash-=f;S.lastRest=S.trips;S.hp=Math.min(100,S.hp+8);toast(`Vacation. Health +8.`);return after();}
+}}
+function viewLifeTab(){const h=S.hp;return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Your life</h3><span class="label">Year ${yearNo()} · turn ${turnOfYear()} of ${TPY}</span></div>
+ <div class="kv2"><div><small>Age</small><b>${age()}</b></div><div><small>Health</small><b>${Math.round(h)} · ${hpLabel(h)}</b>${bar(h)}</div><div><small>Inflation this year</small><b>${(S.infl*100).toFixed(1)}%</b></div><div><small>Prices vs when you started</small><b>${S.cpi>=1?'+':''}${Math.round((S.cpi-1)*100)}%</b></div></div>
+ <small class="muted">Every ${TPY} turns is one year. Long hours, lots of companies, heavy debt and getting older wear your health down. Let it get too low and it will catch up with you.</small></div>
+ <div class="card"><h3>Stay healthy</h3><div style="display:grid;gap:8px;margin-top:8px">
+  <button class="btn" data-hl="checkup">Doctor checkup<small>${money(Math.max(200,W()*.0005))} · see how you're really doing · health +3</small></button>
+  <button class="btn" data-hl="rest">Take a vacation<small>${money(Math.max(1500,W()*.004))} · health +8 · once a turn</small></button>
+  <button class="btn ${S.hcare.trainer?'go':''}" data-hl="trainer">${S.hcare.trainer?'Personal trainer: hired':'Hire a personal trainer'}<small>${money(careCost('trainer'))} a turn · slows health loss</small></button>
+  <button class="btn ${S.hcare.doctor?'go':''}" data-hl="doctor">${S.hcare.doctor?'Personal doctor: hired':'Hire a personal doctor'}<small>${money(careCost('doctor'))} a turn · slows health loss</small></button></div></div>
+ <div class="card muted" style="text-align:center">Marriage, kids and passing your empire to an heir are coming in the next updates.</div>`;}
+/* ---- bonds view (Bank tab) ---- */
+function viewBonds(){const cs=bondCountries(),sel=UI.bondCC||cs[0];const bt=bondsTotal();
+ const mine=S.bonds.map(b=>{const v=bondValue(b),left=b.years*TPY-(turnsIn()-b.t);return `<div class="mrow"><span class="flag ${b.cc}">${b.cc}</span><span><b>${CNAME(b.cc)} ${b.years}-year${b.linked?' · inflation-protected':''}</b><small>Put in ${money(b.amt)} · ${(b.rate*100).toFixed(1)}%/yr · pays out in ${Math.ceil(left/TPY)} yr (${left} turns)</small></span><span class="rt">${money(v)}<button class="chip" data-bd="sell" data-id="${b.id}" style="margin-top:4px">Cash out early</button></span></div>`;}).join('');
+ const r=BOND_RISK[sel];
+ return `<div class="card" style="display:grid;gap:10px"><div class="sec-title"><h3>Government bonds</h3><span class="label">${bt>=1?`Yours: ${money(bt)}`:'Lock money away for a guaranteed return'}</span></div>
+  <p class="muted" style="margin:0;font-size:13px">Lend money to a country and get it back with interest when the bond ends. Longer bonds pay more. Riskier countries pay a lot more, but can default in a crisis. Inflation-protected bonds pay less interest but grow with prices. Cashing out early costs 10%.</p>
+  ${mine?`<div class="dgrid">${mine}</div>`:''}
+  <div class="pchips">${cs.map(c=>`<button class="chip ${c===sel?'on':''}" data-bd="cc" data-v="${c}">${c}</button>`).join('')}</div>
+  <div class="between"><b>${CNAME(sel)}</b><span class="badge2 ${r===0?'b-free':r===1?'b-info':'b-rival'}">${RISK_LBL[r]}</span></div>
+  <div class="dgrid">${BOND_TERMS.map(y=>[false,true].map(l=>{const rate=l?Math.max(.005,bondRate(sel,y)-.015):bondRate(sel,y),tot=Math.pow(1+rate,y)-1;return `<button class="mrow" data-bd="pick" data-cc="${sel}" data-y="${y}" data-l="${l?1:0}"><span style="flex:0 0 40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px;background:${l?'#8D63F2':'#1E6A4A'}">${y}y</span><span><b>${y}-year ${l?'inflation-protected':'bond'}</b><small>${(rate*100).toFixed(1)}% a year${l?' + inflation':''} · ${y*TPY} turns</small></span><span class="rt"><b class="up">+${Math.round(tot*100)}%</b><small>${l?'plus inflation':'total'}</small></span></button>`;}).join('')).join('')}</div></div>`;}
+function bondClick(d){switch(d.bd){
+ case 'cc':UI.bondCC=d.v;return renderGame();
+ case 'pick':{const y=+d.y,l=d.l==='1',cc=d.cc,rate=l?Math.max(.005,bondRate(cc,y)-.015):bondRate(cc,y),tot=Math.pow(1+rate,y);
+  return openModal(`<span class="evtag t-choice">${CNAME(cc)} · ${RISK_LBL[BOND_RISK[cc]]}</span><h2>${y}-year ${l?'inflation-protected ':''}bond</h2><p>${(rate*100).toFixed(1)}% a year${l?', plus whatever inflation turns out to be':''}. Pays out in ${y*TPY} turns. ${BOND_RISK[cc]===2?'This country could default in a crisis.':BOND_RISK[cc]===1?'Small chance of trouble.':'As safe as it gets.'}</p>
+   <div class="ev-btns">${[.1,.25,.5,1].map(f=>`<button class="btn go" data-bd="buy" data-cc="${cc}" data-y="${y}" data-l="${l?1:0}" data-a="${Math.floor(S.cash*f)}" ${S.cash<1?'disabled':''}>Put in ${f===1?'all my cash':Math.round(f*100)+'% of cash'} (${money(S.cash*f)})<small>Get back about ${money(S.cash*f*tot)}${l?' plus inflation':''}</small></button>`).join('')}<button class="btn" data-close>Cancel</button></div>`);}
+ case 'buy':closeModal();return buyBond(d.cc,+d.y,d.l==='1',+d.a);
+ case 'sell':{const b=S.bonds.find(x=>x.id===d.id);if(!b)return;return openModal(`<span class="evtag t-bad">Cash out early</span><h2>Cash out this bond?</h2><p>It's worth ${money(bondValue(b))} today. Cashing out early costs 10%, so you'd get ${money(bondValue(b)*.9)}.</p><div class="ev-btns"><button class="btn danger big" data-bd="sellgo" data-id="${b.id}">Cash out for ${money(bondValue(b)*.9)}</button><button class="btn" data-close>Keep it</button></div>`);}
+ case 'sellgo':closeModal();return sellBondEarly(d.id);
+}}
+
 function rollEvents(ctx){
  if(S.trips<=1)return [];
  const n=Math.random()<.15?0:(Math.random()<.4?2:1),out=[],usedIds=new Set();
@@ -3009,20 +3093,19 @@ function renderGame(){
  if(!S)return;
  const nw=netWorth(),t=S.tier,next=TIERS[t+1],pct=next?clamp((nw-TIERS[t].at)/(next.at-TIERS[t].at)*100,0,100):100;
  const loc=C(S.loc),rk=myRank(),low=S.cash+S.savings<liveCost();
- if(UI.tab==='life'&&!LIFE_ON)UI.tab='market';
- const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz,life:viewPersonal};
+  const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz,life:viewLifeTab};
  const changed=UI.lastTab!==UI.tab;UI.lastTab=UI.tab;
  $('#scr-game').innerHTML=`<header class="hud">
    <div class="row"><div class="who">${portrait(S.look,44)}<div style="min-width:0"><b>${esc(S.name)}</b><small>${TIERS[t].name}</small></div></div>
     <div class="cashbox"><div class="v" id="cashVal">${money(shownCash??S.cash)}</div><small>Net worth ${money(nw)}</small>${S.lastNw!=null&&S.trips>0?(()=>{const dd=nw-S.lastNw;return `<button class="nwdelta ${dd>=0?'up':'down'}" data-bz="nw">${dd>=0?'+':''}${money(dd)} this turn</button>`;})():''}</div>
     <button class="iconbtn" data-act="menu" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
-   <div class="chips"><span class="pill">${icon('cal')}Week ${S.week}</span><span class="pill">${icon('pin')}${loc.name}</span><button class="pill" data-tab="bet">${icon('bet')}#${rk} of 9</button>
+   <div class="chips"><span class="pill">${icon('cal')}Age ${age()} · turn ${turnOfYear()}/${TPY}</span><span class="pill">${icon('pin')}${loc.name}</span><button class="pill" data-tab="bet">${icon('bet')}#${rk} of 9</button>
     <span class="pill ${low?'warn':''}">${icon('home')}Living ${money(liveCost())}/wk</span>${S.debt>=1?`<span class="pill ${dueIn()!==null&&dueIn()<=8||S.missed?'warn':''}">${icon('debt')}Loan ${money(S.debt)}${S.due?` · due in ${Math.max(0,dueIn())} wk`:''}</span>`:''}</div>
    <div><div class="track"><i style="width:${pct}%"></i></div><div class="tierline"><span>${TIERS[t].name}</span><span>${next?`${money(next.at-nw)} to ${next.name}`:'Top of the world'}</span></div></div></header>
   <main class="view" ${changed?'':'style="animation:none"'}>${views[UI.tab]()}</main>
-  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr 1fr 1.25fr 1fr 1fr${LIFE_ON?' 1fr':''}">${tabBtn('market','Market')}${tabBtn('deals','Invest')}
+  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr 1fr 1.25fr 1fr 1fr 1fr">${tabBtn('market','Market')}${tabBtn('deals','Invest')}
    <button class="travelbtn ${UI.tab==='travel'?'on':''}" data-tab="travel" aria-label="Travel">${icon('travel')}<b>Travel</b></button>
-   ${tabBtn('biz','Business')}${LIFE_ON?tabBtn('life','Life'):''}${tabBtn('bank','Bank')}</div></nav>`;
+   ${tabBtn('biz','Business')}${tabBtn('life','Life')}${tabBtn('bank','Bank')}</div></nav>`;
  tweenCash(S.cash);
 }
 const tabBtn=(k,label)=>`<button class="tab ${UI.tab===k?'on':''}" data-tab="${k}">${icon(k)}${label}</button>`;
@@ -3283,7 +3366,8 @@ function viewStocks(){
    ${canShort()?'':'<p class="muted" style="margin:0;font-size:13px">Short selling (betting a stock will fall) unlocks at Owner rank.</p>'}</div>
   <div class="dgrid">${rows}</div>`;
 }
-function viewBank(){
+function viewBank(){return viewBank0()+viewBonds();}
+function viewBank0(){
  const lim=creditLimit(),yr=(Math.pow(1+saveRate(),52)-1)*100,lyr=(Math.pow(1+loanRate()*loanMult(),52)-1)*100;
  return `<div class="card bank-hero"><div class="row">${portrait(NPC.okonkwo.look,54,{bg:'#FFFFFF'})}<div><b style="font-size:16px">Beacon Savings &amp; Loan</b><div class="muted" style="font-size:13px;font-weight:700">Ms. Okonkwo, branch manager</div></div></div>
    <div><div class="label">Savings</div><div class="big">${money(S.savings)}</div></div>
@@ -3449,6 +3533,8 @@ document.addEventListener('click',e=>{
  if(d.bz){bizClick(d,t);return;}
  if(d.ma){maClick(d);return;}
  if(d.lf){lifeClick(d);return;}
+ if(d.hl){healthClick(d);return;}
+ if(d.bd){bondClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
  else if(d.act==='continue'){const s=loadSave();if(s)startGame(s);else goCreate();}
