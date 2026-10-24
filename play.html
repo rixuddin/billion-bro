@@ -3015,12 +3015,14 @@ const RE_TYPES=[
  {id:'office',name:'Office building',base:65e6,yld:.068,reno:3,col:'#5E6A91',ic:'OF',big:45,desc:'Twelve floors of companies paying rent every month.'},
  {id:'tower',name:'Apartment tower',base:170e6,yld:.06,reno:4,col:'#2F3A6E',ic:'TW',big:48,desc:'300 apartments in the sky. Only in bigger cities.'},
  {id:'sky',name:'Skyscraper',base:750e6,yld:.055,reno:5,col:'#25283A',ic:'SK',big:55,desc:'Sixty floors and your name on top. Only in the biggest cities.'},
+ {id:'resort',name:'Resort hotel',base:1.6e9,yld:.062,reno:5,col:'#12B076',ic:'RH',big:40,desc:'A five-star resort with 800 rooms. Guests pay rent every night.'},
+ {id:'block',name:'Downtown city block',base:4e9,yld:.058,reno:6,col:'#C9502F',ic:'CB',big:58,desc:'A whole block of towers, shops and offices. Only in the biggest cities.'},
 ];
 const RT=id=>RE_TYPES.find(t=>t.id===id);
 const RTI=id=>RE_TYPES.findIndex(t=>t.id===id);
 const STREETS=['Maple','Harbour','Elm','Water','King','Queen','Duckworth','Gower','Oak','Cedar','Spruce','Birch','Front','Church','Mill','Park','Victoria','Hill','Bay','Lake'];
 const BLDG=['Meridian','Harbourview','Granite','Summit','Lighthouse','Beacon','Northgate','Riverside','Bayfront','Crown','Atlas','Parkside','Kingsway','Pinnacle','Waterfront'];
-function ensureRE(s){s.re=s.re||{};const r=s.re;r.props=r.props||[];r.list=r.list||{};r.mkt=r.mkt||{};r.tr=r.tr||{};r.hist=r.hist||{};if(r.maxTier==null)r.maxTier=-1;r.seq=r.seq||1;r.profit=r.profit||0;r.done=r.done||0;if(r.ins==null)r.ins=false;return s;}
+function ensureRE(s){s.re=s.re||{};const r=s.re;r.props=r.props||[];r.list=r.list||{};r.mkt=r.mkt||{};r.tr=r.tr||{};r.hist=r.hist||{};if(r.maxTier==null)r.maxTier=-1;r.seq=r.seq||1;r.profit=r.profit||0;r.done=r.done||0;if(r.ins==null)r.ins=false;r.boss=r.boss||{on:false,buy:0,log:[]};r.yr=r.yr||{inc:0,buys:0,sells:0,v0:null};return s;}
 /* ---- markets ---- */
 function reMkt(cid){const r=S.re;if(r.mkt[cid]==null){r.mkt[cid]=rnd(.92,1.08);r.tr[cid]=gauss()*.002;r.hist[cid]=[r.mkt[cid]];}return r.mkt[cid];}
 const reCityMul=cid=>Math.pow((C(cid).live||50)/55,1.5);
@@ -3042,30 +3044,34 @@ const reVal=p=>reFair(p.type,p.city,p.cond)*(p.mul||1);
 const reRent=p=>{const t=RT(p.type);return t.base*reCityMul(p.city)*Math.sqrt(reMkt(p.city))*(S.cpi||1)*t.yld*reYieldMul(p.city)/TPY*(.7+.3*p.cond/100)*(p.prem?1.15:1);};
 const reUpkeep=p=>reVal(p)*.011/TPY;
 const reInsCost=p=>reVal(p)*.0035/TPY;
-const reMgrCost=p=>reRent(p)*.08;
-const reNet=p=>(p.rent&&!p.reno?reRent(p)-(p.mgr?reMgrCost(p):0):0)-reUpkeep(p)-(S.re.ins?reInsCost(p):0)-(p.mort?p.mort.pmt:0);
+const reMgrCost=p=>S.re&&S.re.boss&&S.re.boss.on?0:reRent(p)*.08;
+const reBossFee=()=>reValue()*.01/TPY;
+const reNet=p=>(S.re.boss&&S.re.boss.on?-reVal(p)*.01/TPY:0)+(p.rent&&!p.reno?reRent(p)-(p.mgr?reMgrCost(p):0):0)-reUpkeep(p)-(S.re.ins?reInsCost(p):0)-(p.mort?p.mort.pmt:0);
 const reMortBal=()=>S.re.props.reduce((a,p)=>a+(p.mort?p.mort.bal:0),0);
 const reValue=()=>S.re.props.reduce((a,p)=>a+reVal(p),0);
 const reEquity=()=>S.re?reValue()-reMortBal():0;
-const reUnmanaged=()=>S.re?S.re.props.filter(p=>!p.mgr).length:0;
+const reUnmanaged=()=>S.re&&!(S.re.boss&&S.re.boss.on)?S.re.props.filter(p=>!p.mgr).length:0;
 const reRate=low=>clamp(.045+((S.infl||.025)-.025)*.8+(low?.005:0),.02,.12);
 const rePmt=(L,rate)=>{const i=rate/TPY,n=25*TPY;return L*i/(1-Math.pow(1+i,-n));};
 const reMortCap=()=>Math.max(400e3,3*W());
 const reRenoCost=p=>Math.round(RT(p.type).base*reCityMul(p.city)*(S.cpi||1)*.2*(100-p.cond)/100);
 const reStatus=p=>p.reno?`Renovating · ${p.reno.left} ${p.reno.left===1?'turn':'turns'} left`:!p.rent?'Empty':p.vac>0?'Rented · no tenant right now':p.bad>0?'Rented · tenant not paying':'Rented';
-const reUnlocked=i=>i<=S.re.maxTier+2;
+const reCap=()=>Math.max(1.5e6,W()*1.5);
+function reTiers(cid){const ok=RE_TYPES.map((t,i)=>i).filter(i=>RE_TYPES[i].base<=reCap()&&reCanHere(RE_TYPES[i],cid));const fl=ok.filter(i=>RE_TYPES[i].base>=W()*.03);return fl.length>=3?fl:ok.slice(-3);}
+const reUnlocked=i=>RE_TYPES[i].base<=reCap();
 const reCanHere=(t,cid)=>!t.big||(C(cid).live||0)>=t.big;
 /* ---- listings ---- */
-function reNewListing(cid){const ok=RE_TYPES.map((t,i)=>({t,i})).filter(o=>reUnlocked(o.i)&&reCanHere(o.t,cid));const top=Math.max(...ok.map(o=>o.i));
+function reNewListing(cid){const ok=reTiers(cid).map(i=>({t:RE_TYPES[i],i}));const top=Math.max(...ok.map(o=>o.i));
  const have=(S.re.list[cid]?S.re.list[cid].items:[]).map(l=>l.type);const w=ok.map(o=>have.filter(x=>x===o.t.id).length>=2?0:o.t.id==='fixer'?1.4:o.i>=top-1?1.6:1);let x=Math.random()*w.reduce((a,b)=>a+b,0),k=0;while(x>w[k]){x-=w[k];k++;}const t=ok[Math.min(k,ok.length-1)].t;
  const cond=t.id==='fixer'?Math.round(rnd(10,35)):Math.random()<.22?Math.round(rnd(25,55)):Math.round(rnd(60,96));
  const nm=RTI(t.id)<=4||t.id==='mansion'?`${Math.floor(rnd(2,240))} ${pick(STREETS)} ${pick(['St','Ave','Rd','Lane','Drive'])}`:`The ${pick(BLDG)} ${t.id==='plaza'?'Plaza':t.id==='office'?'Centre':t.id==='walkup'?'Apartments':'Tower'}`;
  return {id:'ls'+(S.re.seq++),type:t.id,cond,deal:+rnd(.85,1.07).toFixed(3),name:nm};}
 function reListings(cid){const r=S.re;let L=r.list[cid];if(!L){L=r.list[cid]={t:S.trips,items:[]};}
  if(L.t!==S.trips){L.items=L.items.filter(()=>Math.random()<.55);L.t=S.trips;}
+ {const tz=reTiers(cid);L.items=L.items.filter(l=>tz.includes(RTI(l.type)));}
  // always offer the newest unlocked tier if the city allows it
  while(L.items.length<5)L.items.push(reNewListing(cid));
- const best=RE_TYPES.map((t,i)=>i).filter(i=>reUnlocked(i)&&reCanHere(RE_TYPES[i],cid)).pop();if(!L.items.some(l=>RTI(l.type)===best)){const n=reNewListing(cid);n.type=RE_TYPES[best].id;if(n.cond<30)n.cond=70;L.items[L.items.length-1]=n;}
+ const best=reTiers(cid).pop();if(!L.items.some(l=>RTI(l.type)===best)){const n=reNewListing(cid);n.type=RE_TYPES[best].id;if(n.cond<30)n.cond=70;L.items[L.items.length-1]=n;}
  return L.items;}
 const reListPrice=(l,cid)=>Math.round(reFair(l.type,cid,l.cond)*l.deal);
 /* ---- buying and selling ---- */
@@ -3076,21 +3082,21 @@ function reBuy(lid,down){const cid=S.loc,L=reListings(cid),l=L.find(x=>x.id===li
  if(loan>0)p.mort={bal:loan,rate,pmt:rePmt(loan,rate),missed:0};
  const was=S.re.maxTier;S.re.props.push(p);S.re.list[cid].items=L.filter(x=>x!==l);S.re.maxTier=Math.max(S.re.maxTier,RTI(l.type));
  addLog(S,`Bought ${p.name} in ${C(cid).name} (${RT(p.type).name}) for ${money(price)}${loan?`, ${money(loan)} on a mortgage`:''}.`,'');popCash(`-${money(cashNeed)}`,'var(--loss)');sfx('buy');
- const nu=RE_TYPES.filter((t,i)=>i>was+2&&reUnlocked(i));toast(nu.length?`Yours! You can now buy: ${nu.map(t=>t.name.toLowerCase()).join(', ')}.`:'Yours! Find it under My properties.');after();}
+ toast('Yours! Find it under My properties.');after();}
 const reSaleNet=p=>Math.round(reVal(p)*.95);
 function reSell(id,price,why){const p=S.re.props.find(x=>x.id===id);if(!p)return;const gross=price!=null?price:reSaleNet(p);const bal=p.mort?p.mort.bal:0;let net=gross-bal;
  if(net>=0)S.cash+=net;else payOut(-net);const prof=gross-p.cost;S.re.profit+=prof;S.re.done++;S.re.props=S.re.props.filter(x=>x!==p);
  addLog(S,`${why||'Sold'} ${p.name} in ${C(p.city).name} for ${money(gross)}${bal?` (paid off ${money(bal)} mortgage)`:''}. ${prof>=0?'Profit':'Loss'}: ${money(Math.abs(prof))}.`,prof>=0?'good':'bad');
  if(net>0)popCash(`+${money(net)}`,'var(--cash)');return {gross,net,prof};}
 /* ---- every turn ---- */
-function reTurn(scenes){if(!S.re)return;reMarketsTurn(scenes);let inc=0,cost=0,mort=0;const gone=[];
+function reTurn(scenes){if(!S.re)return;const sc0=scenes.length;if(S.re.boss.on)reBossAct();reMarketsTurn(scenes);let inc=0,cost=0,mort=0;const gone=[];
  S.re.props.forEach(p=>{const t=RT(p.type);
   if(p.reno){p.reno.left--;if(p.reno.left<=0){p.cond=p.reno.to;if(p.reno.prem){p.prem=true;p.mul=(p.mul||1)*1.12;}p.reno=null;addLog(S,`Renovation finished on ${p.name}.`,'good');
     scenes.push({who:'bo',mood:'happy',tag:['t-good','Renovation done'],pages:[`${p.name} in ${C(p.city).name} is finished. Condition is now ${Math.round(p.cond)} out of 100.`,`It's worth about ${money(reVal(p))} now. ${p.rent?'Tenants can move back in.':'Rent it out or sell it, your call.'}`]});}
    else if(!p.reno.hit&&Math.random()<.22){p.reno.hit=true;const extra=Math.round(p.reno.cost*rnd(.25,.5)),pid=p.id;
     scenes.push({who:'bo',mood:'worried',tag:['t-choice','Renovation'],pages:[`Bad news on ${p.name}. We opened up the walls and found ${pick(['mold','rotten beams','old wiring that has to go','a cracked foundation','asbestos'])}.`,`It's another ${money(extra)} to do it right. Or I patch it up and we finish with the condition at 75 instead of 100.`],choices:[
      {label:`Pay ${money(extra)} and do it right`,go:true,run:()=>{const q=S.re.props.find(x=>x.id===pid);if(!q||!q.reno)return;payOut(extra);q.reno.cost+=extra;q.cost+=extra;addLog(S,`Paid ${money(extra)} extra on the ${q.name} renovation.`,'bad');return ok('bo','Smart. It will be done right.');}},
-     {label:'Patch it, finish at 75',run:()=>{const q=S.re.props.find(x=>x.id===pid);if(!q||!q.reno)return;q.reno.to=Math.min(q.reno.to,75);return ok('bo','Fine. It won\'t be perfect, but it\'ll do.','worried');}}]});}}
+     {label:'Patch it, finish at 75',run:()=>{const q=S.re.props.find(x=>x.id===pid);if(!q||!q.reno)return;q.reno.to=Math.min(q.reno.to,75);return ok('bo','Fine. It won\'t be perfect, but it\'ll do.','worried');}}],meta:{extra,nm:p.name}});}}
   else{
    // disasters
    if(Math.random()<.002){const what=pick(['A fire broke out','A pipe burst and flooded','A storm tore the roof off']);if(S.re.ins){const ded=Math.round(reVal(p)*.01);cost+=ded;p.cond=Math.max(5,p.cond-10);
@@ -3103,12 +3109,13 @@ function reTurn(scenes){if(!S.re)return;reMarketsTurn(scenes);let inc=0,cost=0,m
      else if(Math.random()<(p.mgr?.008:.025)){p.bad=Math.ceil(rnd(1,4));const pid=p.id,fee=Math.round(reRent(p)*1.5);
       scenes.push({who:'priya',mood:'worried',tag:['t-choice','Tenant trouble'],pages:[`${t.big?'A big tenant':'Your tenant'} at ${p.name} stopped paying rent and won't answer calls.`,`I can start an eviction for ${money(fee)} in legal fees and have them out by next turn. Or you can wait and hope they catch up. ${p.mgr?'':'A property manager would have screened them better.'}`],choices:[
        {label:`Evict them (${money(fee)})`,go:true,run:()=>{const q=S.re.props.find(x=>x.id===pid);if(!q)return;payOut(fee);q.bad=0;q.vac=1;addLog(S,`Evicted a tenant at ${q.name} (${money(fee)}).`,'bad');return ok('priya','Done. They\'re out. I\'ll find someone new.');}},
-       {label:'Wait it out',run:()=>ok('priya','Your call. Fingers crossed.','worried')}]});}}
+       {label:'Wait it out',run:()=>ok('priya','Your call. Fingers crossed.','worried')}],meta:{nm:p.name}});}}
     p.cond=Math.max(5,p.cond-(p.mgr?.35:.6));}
    else p.cond=Math.max(5,p.cond-.2);
    if(p.mgr&&!p.rent)cost+=0;}
   cost+=reUpkeep(p)+(S.re.ins?reInsCost(p):0);
   });
+ if(S.re.boss.on&&S.re.props.length)cost+=reBossFee();
  S.cash+=inc;payOut(cost);
  S.re.props.filter(p=>p.mort).forEach(p=>{const m=p.mort,i=m.rate/TPY,int=m.bal*i,pr=Math.min(m.bal,m.pmt-int);
    if(S.cash+S.savings>=m.pmt){payOut(m.pmt);mort+=m.pmt;m.bal=Math.max(0,m.bal-pr);m.missed=0;if(m.bal<1){delete p.mort;addLog(S,`Mortgage on ${p.name} is fully paid off!`,'good');}}
@@ -3121,33 +3128,65 @@ function reTurn(scenes){if(!S.re)return;reMarketsTurn(scenes);let inc=0,cost=0,m
  const own=S.re.props.filter(p=>!p.reno);if(own.length&&Math.random()<.035){const p=pick(own),off=Math.round(reVal(p)*rnd(1.08,1.25)),pid=p.id,bal=p.mort?p.mort.bal:0;
   scenes.push({who:'priya',mood:'happy',tag:['t-choice','Offer on your property'],pages:[`A buyer fell in love with ${p.name} in ${C(p.city).name}. They're offering ${money(off)}, no agent fees.`,`It's worth about ${money(reVal(p))} on the market and you've put ${money(p.cost)} into it.${bal?` Your ${money(bal)} mortgage would be paid off from the sale.`:''}`],choices:[
    {label:`Sell for ${money(off)}`,go:true,run:()=>{const r=reSell(pid,off);if(!r)return;return ok('priya',`Sold! ${money(r.net)} landed in your cash. ${r.prof>=0?`That's ${money(r.prof)} profit.`:''}`);}},
-   {label:'Not selling',run:()=>ok('priya','Fair enough. I\'ll tell them no.')}]});}
+   {label:'Not selling',run:()=>ok('priya','Fair enough. I\'ll tell them no.')}],meta:{off,val:reVal(p),nm:p.name}});}
  // rezoning chance on commercial and apartment buildings
  const big=S.re.props.filter(p=>['walkup','plaza','office','tower'].includes(p.type)&&!p.zoned);if(big.length&&Math.random()<.015){const p=pick(big),f=Math.round(reVal(p)*.06),pid=p.id;
   scenes.push({who:'priya',mood:'happy',tag:['t-choice','Rezoning'],pages:[`The city of ${C(p.city).name} is rezoning the area around ${p.name}. You can apply to add more floors.`,`Permits and architects cost ${money(f)}. If it goes through, the building is worth about 18% more for good.`],choices:[
    {label:`Pay ${money(f)}`,go:true,run:()=>{const q=S.re.props.find(x=>x.id===pid);if(!q)return;if(S.cash<f)return ok('priya','You don\'t have the cash for this right now.','worried');S.cash-=f;q.cost+=f;q.zoned=true;q.mul=(q.mul||1)*1.18;addLog(S,`Rezoned ${q.name}: value +18%.`,'good');return ok('priya','Approved! The building is worth a lot more now.');}},
-   {label:'Pass',run:()=>{const q=S.re.props.find(x=>x.id===pid);if(q)q.zoned=true;return ok('priya','Okay. Maybe next time.');}}]});}}
+   {label:'Pass',run:()=>{const q=S.re.props.find(x=>x.id===pid);if(q)q.zoned=true;return ok('priya','Okay. Maybe next time.');}}],meta:{f,nm:p.name}});}
+ if(S.re.boss.on)reBossResolve(scenes,sc0);
+ S.re.yr.inc+=inc;if(turnsIn()>0&&turnsIn()%TPY===0&&S.re.boss.on&&S.re.props.length)scenes.push(reBossReport());}
+
+/* ---- portfolio manager ---- */
+function reBossLog(t){const b=S.re.boss;b.log.unshift(t);b.log=b.log.slice(0,6);addLog(S,'Portfolio manager '+t,'');}
+function reBossAct(){const r=S.re,b=r.boss;r.ins=true;
+ r.props.forEach(p=>{p.mgr=true;
+  if(!p.reno&&p.cond<55){const c=reRenoCost(p);if(S.cash>c*3){S.cash-=c;p.cost+=c;p.reno={left:RT(p.type).reno,to:100,cost:c};reBossLog(`started renovating ${p.name} (${money(c)}).`);return;}}
+  if(!p.reno&&!p.rent&&p.cond>=45){p.rent=true;p.vac=1;reBossLog(`found tenants for ${p.name}.`);}
+  if(p.mort&&p.mort.rate-reRate(false)>=.0075&&S.cash>p.mort.bal*.02){const f=Math.round(p.mort.bal*.01),nr=reRate(false);payOut(f);p.mort.rate=nr;p.mort.pmt=rePmt(p.mort.bal,nr);reBossLog(`refinanced ${p.name} at ${(nr*100).toFixed(1)}%.`);}});
+ if(b.buy>0&&Math.random()<.35)reBossBuy();}
+function reBossBuy(){const b=S.re.boss,budget=S.cash*b.buy;if(budget<1e5)return;
+ const cities=[...new Set([S.loc,...Array.from({length:4},()=>pick(CITIES).id)])];let best=null;
+ cities.forEach(cid=>{const tr=S.re.tr[cid]||0;reListings(cid).forEach(l=>{const pr=reListPrice(l,cid),fv=reFair(l.type,cid,l.cond);if(pr<W()*.01)return;const down=pr*1.02<=budget?1:(pr*.52<=budget&&reMortBal()+pr*.5<=reMortCap()?.5:0);if(!down)return;const score=(fv/pr-1)+tr*15+(l.cond>=50?.02:0);if(score>.04&&(!best||score>best.score))best={l,cid,pr,down,score};});});
+ if(!best)return;const {l,cid,pr,down}=best;const close=Math.round(pr*.02),need=Math.round(pr*down)+close,loan=pr-Math.round(pr*down);const pm=S.re.props.reduce((x,q)=>x+(q.mort?q.mort.pmt:0),0)+(loan?rePmt(loan,reRate(false)):0);if(S.cash-need<Math.max(1e6,pm*4,W()*.02))return;
+ S.cash-=need;const rate=reRate(false);const p={id:'pr'+(S.re.seq++),type:l.type,city:cid,cond:l.cond,name:l.name,cost:pr+close,rent:false,mgr:true,reno:null,vac:0,bad:0,mul:1,t:turnsIn()};if(loan>0)p.mort={bal:loan,rate,pmt:rePmt(loan,rate),missed:0};
+ S.re.props.push(p);S.re.list[cid].items=S.re.list[cid].items.filter(x=>x!==l);S.re.yr.buys++;reBossLog(`bought ${p.name} in ${C(cid).name} (${RT(p.type).name.toLowerCase()}) for ${money(pr)}${loan?` with ${money(loan)} on a mortgage`:''}.`);}
+function reBossResolve(scenes,from){const keep=scenes.slice(0,from),rest=scenes.slice(from),out=[];
+ rest.forEach(sc=>{const t=sc.tag&&sc.tag[1],m=sc.meta||{};let i=-1;
+  if(t==='Tenant trouble')i=0;else if(t==='Renovation')i=S.cash>=m.extra*2?0:1;else if(t==='Offer on your property')i=m.off>=m.val*1.15?0:1;else if(t==='Rezoning')i=S.cash>=m.f*3?0:1;
+  if(i<0||!sc.choices){out.push(sc);return;}const ch=sc.choices[i];try{ch.run();}catch(e){}
+  reBossLog(`handled ${t.toLowerCase()} at ${m.nm||'a property'}: ${ch.label.charAt(0).toLowerCase()+ch.label.slice(1)}.`);});
+ scenes.length=0;keep.concat(out).forEach(x=>scenes.push(x));}
+function reBossReport(){const r=S.re,v=reValue(),y=r.yr,ch=y.v0!=null?v-y.v0:null;const sc={who:'priya',mood:'happy',tag:['t-info','Portfolio report'],pages:[`Here's your real estate year. You own ${r.props.length} ${r.props.length===1?'property':'properties'} worth ${money(v)}${ch!=null?`, ${ch>=0?'up':'down'} ${money(Math.abs(ch))} from last year`:''}.`,`We collected ${money(y.inc)} in rent${y.buys?` and bought ${y.buys} new ${y.buys===1?'property':'properties'} for you`:''}. Mortgages left to pay: ${money(reMortBal())}.`]};r.yr={inc:0,buys:0,sells:0,v0:v};return sc;}
+function viewBoss(){const b=S.re.boss;return `<div class="card"><div class="between"><h3>Portfolio manager</h3><span class="badge2 ${b.on?'b-mine':'b-info'}">${b.on?'Hired':'Not hired'}</span></div>
+ <p class="muted" style="margin:6px 0 10px;font-size:13px">${b.on?`Running everything for 1% of the portfolio's value a year (${money(reBossFee())} a turn): tenants, repairs, renovations, insurance, refinancing, tenant trouble and offers. They only sell if someone offers 15% over value.`:`Hand over the whole portfolio. They find tenants, fix and renovate, keep you insured, refinance when rates drop, and deal with tenant trouble and offers so you don't have to. Costs 1% of the portfolio's value a year and replaces individual property managers.`}</p>
+ <button class="btn ${b.on?'':'go'}" data-re="boss">${b.on?'Let them go':'Hire a portfolio manager'}</button>
+ ${b.on?`<div style="margin-top:10px"><small class="muted" style="font-weight:800">Let them buy property for you</small><div class="seg" style="margin-top:6px">${[[0,'Off'],[.1,'10% of cash'],[.25,'25% of cash'],[.5,'50% of cash']].map(([v,l])=>`<button class="chip ${b.buy===v?'on':''}" data-re="bbuy" data-v="${v}">${l}</button>`).join('')}</div><small class="muted" style="display:block;margin-top:6px">${b.buy?`They look for good deals in a few cities each turn and spend up to ${Math.round(b.buy*100)}% of your cash on one, with a 50% mortgage when it helps.`:'They manage what you own but won\'t buy anything new.'}</small></div>`:''}
+ ${b.on&&b.log.length?`<div class="ddbox" style="margin-top:10px"><b style="font-size:12px">Recently</b>${b.log.slice(0,4).map(x=>`<div style="font-size:13px;margin-top:4px">${esc(x.charAt(0).toUpperCase()+x.slice(1))}</div>`).join('')}</div>`:''}</div>`;}
 /* ---- view ---- */
 const reBadge=t=>`<span class="bzbadge" style="background:${t.col}">${t.ic}</span>`;
 function viewRE(){const r=S.re,cid=S.loc,c=C(cid),[md,mc]=reMood(cid),ych=reYearCh(cid);const L=reListings(cid);const v=reValue(),bal=reMortBal(),last=r.last;
  const net=r.props.reduce((a,p)=>a+reNet(p),0);
  const hot=CITIES.filter(x=>x.id!==cid).map(x=>({x,ch:reYearCh(x.id)})).sort((a,b)=>b.ch-a.ch);
- const nextLock=RE_TYPES.find((t,i)=>!reUnlocked(i));
+ const nextLock=RE_TYPES.find((t,i)=>!reUnlocked(i));const smallest=RE_TYPES[reTiers(cid)[0]];
  return `<div class="card"><div class="between"><h3 style="font-size:20px">Real estate</h3><span class="label">${r.props.length} ${r.props.length===1?'property':'properties'}</span></div>
-  ${r.props.length?`<div class="recap" style="margin-bottom:0"><div><span>What they're worth</span><b>${money(v)}</b></div>${bal>=1?`<div><span>Mortgages you owe</span><b class="down">-${money(bal)}</b></div>`:''}<div><span>Your equity</span><b>${money(v-bal)}</b></div><div><span>Expected cash each turn</span><b class="${net>=0?'up':'down'}">${net>=0?'+':''}${money(net)}</b></div>${r.done?`<div><span>Profit from ${r.done} sold</span><b class="${r.profit>=0?'up':'down'}">${r.profit>=0?'+':''}${money(r.profit)}</b></div>`:''}</div>`:`<p class="muted" style="margin:8px 0 0">Buy property in the city you're in. Flip it, rent it out, or hold it while prices climb. Property values grow with inflation, and mortgages let you buy more than your cash allows. Start small: bigger buildings unlock as you own bigger places.</p>`}
+  ${r.props.length?`<div class="recap" style="margin-bottom:0"><div><span>What they're worth</span><b>${money(v)}</b></div>${bal>=1?`<div><span>Mortgages you owe</span><b class="down">-${money(bal)}</b></div>`:''}<div><span>Your equity</span><b>${money(v-bal)}</b></div><div><span>Expected cash each turn</span><b class="${net>=0?'up':'down'}">${net>=0?'+':''}${money(net)}</b></div>${r.done?`<div><span>Profit from ${r.done} sold</span><b class="${r.profit>=0?'up':'down'}">${r.profit>=0?'+':''}${money(r.profit)}</b></div>`:''}</div>`:`<p class="muted" style="margin:8px 0 0">Buy property in the city you're in. Flip it, rent it out, or hold it while prices climb. Property values grow with inflation, and mortgages let you buy more than your cash allows. What's for sale grows with your net worth. Hire a portfolio manager and they run everything for you.</p>`}
   <button class="btn ${r.ins?'go':''}" data-re="ins" style="margin-top:10px">${r.ins?'Insurance: on':'Turn on property insurance'}<small>${r.props.length?`${money(r.props.reduce((a,p)=>a+reInsCost(p),0))} a turn · `:''}covers fires, floods and storms</small></button></div>
+ ${viewBoss()}
  <div class="card"><div class="between"><h3>${esc(c.name)} property market</h3><span class="badge2 ${mc}">${md}</span></div>
   ${spark(r.hist[cid],320,46,ych>=0?'#12B076':'#F0574A')}
   <div class="kv2"><div><small>Past year</small><b class="${ych>=0?'up':'down'}">${ych>=0?'+':''}${(ych*100).toFixed(1)}%</b></div><div><small>Typical rent</small><b>${(5.5*reYieldMul(cid)).toFixed(1)}% a year</b></div></div>
   <small class="muted">Hottest markets right now: ${hot.slice(0,3).map(h=>`${esc(h.x.name)} ${h.ch>=0?'+':''}${(h.ch*100).toFixed(0)}%`).join(', ')}. Coldest: ${hot.slice(-2).map(h=>`${esc(h.x.name)} ${(h.ch*100).toFixed(0)}%`).join(', ')}. You can only buy where you are.</small></div>
  <div class="card"><div class="between"><h3>For sale in ${esc(c.name)}</h3><span class="label">New listings every turn</span></div><div class="dgrid" style="margin-top:8px">
   ${L.map(l=>{const t=RT(l.type),pr=reListPrice(l,cid),fv=reFair(l.type,cid,l.cond),d=1-pr/fv;return `<button class="bzrow" data-re="list" data-id="${l.id}">${reBadge(t)}<span><b>${esc(l.name)}</b><small>${t.name} · condition ${l.cond}${l.cond<40?' · needs work':''}</small></span><span class="bzright"><b>${money(pr)}</b><small class="${d>.02?'up':d<-.02?'down':''}">${d>.02?`${Math.round(d*100)}% under value`:d<-.02?`${Math.round(-d*100)}% over value`:'fair price'}</small></span></button>`;}).join('')}</div>
-  ${nextLock?`<small class="muted" style="display:block;margin-top:8px">Locked: ${nextLock.name} and up. Buy a ${RE_TYPES[Math.max(0,RTI(nextLock.id)-2)].name.toLowerCase()} or bigger to unlock.</small>`:''}</div>
+  <small class="muted" style="display:block;margin-top:8px">Listings match your net worth, from ${smallest.name.toLowerCase()}s up.${nextLock?` ${nextLock.name}s open up at about ${money(nextLock.base/1.5)} net worth.`:''}</small></div>
  ${r.props.length?`<div class="card"><h3>My properties</h3><div class="dgrid" style="margin-top:8px">${r.props.map(p=>{const t=RT(p.type),val=reVal(p),eq=val-(p.mort?p.mort.bal:0),n=reNet(p);
   return `<button class="bzrow" data-re="open" data-id="${p.id}">${reBadge(t)}<span><b>${esc(p.name)}</b><small>${esc(C(p.city).name)} · ${t.name} · ${reStatus(p)}${p.mort?' · mortgage':''}</small></span><span class="bzright"><b>${money(val)}</b><small class="${n>=0?'up':'down'}">${n>=0?'+':''}${money(n)}/turn</small></span></button>`;}).join('')}</div></div>`:''}`;}
 function reCondBar(c){return `<div style="height:8px;border-radius:9px;background:var(--surface2);overflow:hidden;margin-top:4px"><div style="height:100%;width:${Math.round(c)}%;background:${c>=70?'#12B076':c>=40?'#FFB21F':'#F0574A'}"></div></div>`;}
 function reClick(d){const r=S.re;switch(d.re){
- case 'ins':r.ins=!r.ins;toast(r.ins?'Insurance on. Fires, floods and storms are covered.':'Insurance off. You\'re on your own.');return after();
+ case 'boss':r.boss.on=!r.boss.on;if(r.boss.on){r.ins=true;r.yr.v0=reValue();r.props.forEach(p=>p.mgr=true);toast('Portfolio manager hired. They\'ll handle everything from now on.');}else toast('Portfolio manager let go. You\'re running it yourself again.');return after();
+ case 'bbuy':r.boss.buy=+d.v;return after();
+ case 'ins':if(r.boss.on)return toast('Your portfolio manager keeps insurance on.');r.ins=!r.ins;toast(r.ins?'Insurance on. Fires, floods and storms are covered.':'Insurance off. You\'re on your own.');return after();
  case 'list':{const l=reListings(S.loc).find(x=>x.id===d.id);if(!l)return;const t=RT(l.type),pr=reListPrice(l,S.loc),fv=Math.round(reFair(l.type,S.loc,l.cond)),cl=Math.round(pr*.02);
   const fake={type:l.type,city:S.loc,cond:l.cond,mul:1};const rent=reRent(fake),up=reUpkeep(fake);const cap=reMortCap()-reMortBal();
   const opt=(down,lbl)=>{const need=Math.round(pr*down)+cl,loan=pr-Math.round(pr*down),rate=reRate(down<.3),pm=loan?rePmt(loan,rate):0,okc=S.cash>=need,okl=!loan||loan<=cap;
