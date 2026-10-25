@@ -1375,7 +1375,7 @@ const shortLiab=()=>Object.entries(S.shorts).reduce((a,[k,h])=>a+h.n*ST(k).p,0);
 const commission=()=>({easy:.002,normal:.002,hard:.004,realistic:.006}[S.diff]);
 const canShort=()=>S.tier>=2;
 const shortRoom=()=>Math.max(0,netWorth()*.3-shortLiab());
-const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal()+bizValue()+acqValue()+S.desk.fund+bondsTotal()+reEquity();
+const assetsNoCash=()=>S.savings+cargoValue()+stakesTotal()+cosTotal()+sharesValue()+lifeVal()+bizValue()+acqValue()+S.desk.fund+bondsTotal()+reEquity()+trustsTotal();
 const acqValue=()=>S.acq.reduce((a,c)=>a+maVal(c)*(c.own||1),0);
 const netWorth=()=>S.cash+assetsNoCash()-S.debt-shortLiab();
 function shock(sector,pct){S.sshock[sector]=(S.sshock[sector]||0)+pct;}
@@ -2432,7 +2432,7 @@ const UGE=[
 function ugScene(){if(!S.ug.ops.length||Math.random()>.35)return null;for(let i=0;i<5;i++){const s=pick(UGE).run();if(s)return s;}return null;}
 
 /* ===================== NET WORTH PARTS ===================== */
-function nwItems(){const o={cash:{},cargo:{},stocks:{},invest:{},biz:{},acq:{},desk:{},bonds:{},re:{},life:{},debt:{}};(S.re?S.re.props:[]).forEach(p=>{o.re[p.id]=[`${p.name}, ${C(p.city).name}${p.mort?' (after mortgage)':''}`,reVal(p)-(p.mort?p.mort.bal:0)];});(S.bonds||[]).forEach(b=>{o.bonds[b.id]=[`${CNAME(b.cc)} ${b.years}-year bond`,bondValue(b)];});
+function nwItems(){const o={cash:{},cargo:{},stocks:{},invest:{},biz:{},acq:{},desk:{},bonds:{},re:{},trust:{},life:{},debt:{}};if(S.fam)FP().forEach(p=>{if((p.rel==='kid'||p.rel==='disowned')&&p.trust>=1)o.trust[p.id]=[`${p.name}'s trust fund`,p.trust];});(S.re?S.re.props:[]).forEach(p=>{o.re[p.id]=[`${p.name}, ${C(p.city).name}${p.mort?' (after mortgage)':''}`,reVal(p)-(p.mort?p.mort.bal:0)];});(S.bonds||[]).forEach(b=>{o.bonds[b.id]=[`${CNAME(b.cc)} ${b.years}-year bond`,bondValue(b)];});
  o.cash.c=['Cash',S.cash];if(S.savings>=1)o.cash.s=['Savings',S.savings];
  Object.entries(S.inv).forEach(([p,it])=>{o.cargo[p]=[`${P(p).name} (${it.qty.toLocaleString()})`,it.qty*sellP(p)];});
  Object.entries(S.shares).forEach(([k,h])=>{o.stocks[k]=[`${SD(k)[1]} (${k})`,h.n*ST(k).p];});Object.entries(S.shorts).forEach(([k,h])=>{o.stocks['s_'+k]=[`Short ${k}`,-h.n*ST(k).p];});
@@ -2441,8 +2441,8 @@ function nwItems(){const o={cash:{},cargo:{},stocks:{},invest:{},biz:{},acq:{},d
  S.biz.forEach(b=>{o.biz[b.id]=[b.name,bzVal(b)*b.own];});S.acq.forEach(c=>{o.acq[c.id]=[c.name,maVal(c)*(c.own||1)];});
  if(S.desk.fund>=1)o.desk.d=['Trade desk fund',S.desk.fund];lifeIds().forEach(id=>{o.life[id]=[LF(id).name,S.life[id].val];});if(S.debt>=1)o.debt.l=['Bank loan',-S.debt];
  Object.values(o).forEach(g=>Object.keys(g).forEach(k=>g[k][1]=Math.round(g[k][1])));return o;}
-function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),acq:acqValue(),desk:S.desk.fund,bonds:bondsTotal(),re:reEquity(),life:lifeVal(),debt:-S.debt};}
-const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Old companies and startups',biz:'Your businesses',acq:'Companies you bought',desk:'Trade desk',bonds:'Bonds',re:'Real estate',life:'Lifestyle',debt:'Loans'};
+function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),acq:acqValue(),desk:S.desk.fund,bonds:bondsTotal(),re:reEquity(),trust:trustsTotal(),life:lifeVal(),debt:-S.debt};}
+const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Old companies and startups',biz:'Your businesses',acq:'Companies you bought',desk:'Trade desk',bonds:'Bonds',re:'Real estate',trust:'Kids\' trust funds',life:'Lifestyle',debt:'Loans'};
 function openNw(){const nwI=nwItems(),now=nwParts(),was=S.nwParts||now,d=netWorth()-(S.lastNw??netWorth());
  openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This turn</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since you set off on your last trip, and exactly where the money went.</p><span class="label">By type · tap a line to see each item</span>
   <div class="recap nwcats">${Object.keys(NW_LBL).map(k=>{const ch=now[k]-(was[k]||0);if(Math.abs(ch)<1&&Math.abs(now[k])<1)return '';
@@ -2907,7 +2907,11 @@ function lifeClick(d){if(lifeClick2(d))return;const p=d.id?FPid(d.id):null;const
    p.status='married';p.love=Math.min(100,p.love+sz.pts);F.pb=Math.max(0,F.pb-10);family().forEach(x=>x.bond=Math.min(100,x.bond+5));confetti();addLog(S,`Married ${p.name}.${txt} (${sz.n}, ${money(sz.c)})`,'good');toast(`You married ${p.name.split(' ')[0]}!${txt}`);return after();}
   case 'baby':{if(!useTp(1))return;p.last=S.week;F.spent++;if(Math.random()<.45){S.pending.push({type:'baby',week:S.week+ri(3,6),with:p.id});toast('Good news may be on the way...');}else toast('Not this time. Keep trying.');return after();}
   case 'kidtime':{if(!useTp(1))return;p.bond=Math.min(100,p.bond+10);p.last=S.week;F.stress=Math.max(0,F.stress-6);toast(`Spent the day with ${p.name}.`);return after();}
-  case 'trust':{const f=Math.round(Math.max(1e4,W()*.02));if(S.cash<f)return toast('Not enough cash.');S.cash-=f;p.trust=(p.trust||0)+f;p.bond=Math.min(100,p.bond+5);toast(`${money(f)} added to ${p.name}'s trust fund.`);return after();}
+  case 'trust':{const t=p.trust||0,n=first(p.name);return openModal(`<span class="evtag t-info">Trust fund</span><h2>${esc(n)}'s trust fund: ${money(t)}</h2><p>Money here is invested safely and grows about 4% a year. It still counts toward your net worth, and you can take it back out any time. One day it goes to ${esc(n)} tax-free.</p>
+   <div class="ev-btns">${[.01,.05,.1,.25].map(f=>`<button class="btn go" data-lf="trustadd" data-id="${p.id}" data-a="${Math.floor(S.cash*f)}" ${S.cash<1?'disabled':''}>Add ${Math.round(f*100)}% of your cash (${money(S.cash*f)})</button>`).join('')}
+   ${t>=1?[.25,.5,1].map(f=>`<button class="btn" data-lf="trustout" data-id="${p.id}" data-a="${Math.floor(t*f)}">Take out ${f===1?'all of it':Math.round(f*100)+'%'} (${money(t*f)})</button>`).join(''):''}<button class="btn" data-close>Close</button></div>`);}
+  case 'trustadd':{const f=Math.min(S.cash,+d.a);if(f<1)return toast('Not enough cash.');S.cash-=f;p.trust=(p.trust||0)+f;if(p.trustT!==S.trips){p.bond=Math.min(100,p.bond+4);p.trustT=S.trips;}addLog(S,`Put ${money(f)} into ${p.name}'s trust fund.`,'');closeModal();toast(`${money(f)} added to ${first(p.name)}'s trust fund.`);return after();}
+  case 'trustout':{const f=Math.min(p.trust||0,+d.a);if(f<1)return;p.trust-=f;S.cash+=f;if(p.trust<1)p.trust=0;p.bond=Math.max(0,p.bond-(f>=1e6?5:2));addLog(S,`Took ${money(f)} out of ${p.name}'s trust fund.`,'');closeModal();toast(`${money(f)} back in your cash. ${first(p.name)} noticed.`);popCash(`+${money(f)}`,'var(--cash)');return after();}
   case 'vacation':{const f=Math.round(rp(1500,1e+06));if(S.cash<f)return toast('Not enough cash.');if(!useTp(2))return;payOut(f);F.stress=Math.max(0,F.stress-35);const m=mainP();if(m){m.love=Math.min(100,m.love+10);m.last=S.week;F.spent+=2;}kids().forEach(k=>{k.bond=Math.min(100,k.bond+8);k.last=S.week;});toast(`Vacation! Stress -35.`);return after();}
  }}
 const WED=[{n:'Courthouse wedding',c:500,pts:3},{n:'Classic wedding',c:40000,pts:8},{n:'Luxury wedding',c:1e6,pts:12},{n:'Royal-style wedding, 2,000 guests',c:2.5e7,pts:18}];
@@ -3260,6 +3264,7 @@ const kidStage=a=>a<5?'Baby':a<13?'Kid':a<18?'Teen':a<22?'Young adult':'Adult';
 const heirScore=k=>Math.round(clamp((k.biz*.5+k.smarts*.25+k.drive*.25)*(k.bond>=40?1:.8),0,100));
 const schoolCost=k=>{let c=0;if(k.school&&kidAge(k)<18)c+=k.school==='boarding'?rp(3000,1.5e5):k.school==='private'?rp(800,8e4):0;if(k.uni&&kidAge(k)>=18&&kidAge(k)<22)c+=k.uni==='top'?rp(6000,1.2e5):rp(2000,5e4);return Math.round(c);};
 const disowned=()=>FP().filter(p=>p.rel==='disowned');
+const trustsTotal=()=>S.fam?FP().reduce((a,p)=>a+((p.rel==='kid'||p.rel==='disowned')&&p.trust>0?p.trust:0),0):0;
 const parents=()=>FP().filter(p=>p.rel==='mom'||p.rel==='dad');
 function fixKid(k){if(k.born==null)k.born=turnsIn();if(k.smarts==null)k.smarts=ri(30,60);if(k.biz==null)k.biz=ri(10,30);if(k.drive==null)k.drive=ri(30,60);k.done=k.done||{};if(!KID_TRAITS.includes(k.trait))k.trait=pick(KID_TRAITS);return k;}
 function ensureFam2(s){if(!s.fam)return s;const S0=S;S=s;const F=S.fam;F.due=F.due||[];F.lost=F.lost||[];
@@ -3343,13 +3348,15 @@ function oopsScene(p){const n=first(p.name),who='f_'+p.id,me=p.g==='m';
    if(!me&&Math.random()<(p.trait==='kind'||p.trait==='jealous'?.6:.35)){S.fam.due.push({t:turnsIn()+7,with:p.id});p.love=Math.max(0,p.love-10);if(p.secret)S.fam.sus=Math.min(100,S.fam.sus+30);return ok(who,`You talked for hours. ${n} has decided to have the baby. It's her decision, and she hopes you'll be there. The baby is due in about 7 turns.`,'neutral');}
    p.love=Math.max(0,p.love-3);return ok(who,`You talk it through and decide together not to go ahead. It's a hard conversation, but you both feel it's right for now.`,'neutral');}}]};}
 /* ---- disown and reconcile ---- */
-function disownKid(k){k.rel='disowned';k.role=k.g==='f'?'Disowned daughter':'Disowned son';k.bond=0;k.allow=0;const par=FPid(k.par);if(par&&par.rel==='partner')par.love=Math.max(0,par.love-15);family().forEach(x=>{if(x.rel!=='sib')x.bond=Math.max(0,x.bond-6);});kids().forEach(x=>x.bond=Math.max(0,x.bond-5));addLog(S,`Disowned ${k.name}.`,'bad');}
+function disownKid(k){if(k.trust>0){S.cash+=k.trust;addLog(S,`${money(k.trust)} from ${k.name}'s trust fund came back to you.`,'');k.trust=0;}k.rel='disowned';k.role=k.g==='f'?'Disowned daughter':'Disowned son';k.bond=0;k.allow=0;const par=FPid(k.par);if(par&&par.rel==='partner')par.love=Math.max(0,par.love-15);family().forEach(x=>{if(x.rel!=='sib')x.bond=Math.max(0,x.bond-6);});kids().forEach(x=>x.bond=Math.max(0,x.bond-5));addLog(S,`Disowned ${k.name}.`,'bad');}
 /* ---- every turn ---- */
 function famTurn2(out){const F=S.fam;
  // births
  F.due=F.due.filter(d=>{if(turnsIn()>=d.t){out.push(babyScene(d.with));return false;}return true;});
  // unplanned pregnancy (rare)
  partners().forEach(p=>{if(p.love>=35&&!F.due.some(d=>d.with===p.id)&&Math.random()<.01)out.push(oopsScene(p));});
+ // trust funds grow about 4% a year
+ FP().forEach(p=>{if((p.rel==='kid'||p.rel==='disowned')&&p.trust>0)p.trust*=Math.pow(1.04,1/TPY);});
  // school costs
  const sc=kids().reduce((a,k)=>a+schoolCost(k),0);if(sc>0){payOut(sc);F.lastSchool=sc;}else F.lastSchool=0;
  // milestones, one per turn
@@ -3395,7 +3402,7 @@ function lifeClick2(d){const p=d.id?FPid(d.id):null;switch(d.lf){
  case 'name':return openModal(`<span class="evtag t-good">New baby</span><h2>Name your ${p.g==='f'?'daughter':'son'}</h2><input class="name-in" id="kidname" maxlength="24" placeholder="First name" autocomplete="off"><div class="ev-btns" style="margin-top:10px"><button class="btn go big" data-lf="nameGo" data-id="${p.id}">Save name</button><button class="btn" data-close>Later</button></div>`),setTimeout(()=>{const i=document.getElementById('kidname');if(i)i.focus();},50),true;
  case 'nameGo':{const i=document.getElementById('kidname'),v=(i?i.value:'').trim().replace(/[^\p{L}\p{M}' -]/gu,'').slice(0,24);if(!v){toast('Type a name first.');return true;}const sur=p.parName?p.parName.split(' ').slice(1).join(' '):'';p.name=v.split(' ')[0][0].toUpperCase()+v.slice(1)+(sur&&!v.includes(' ')?' '+sur:'');p.needName=false;regFam(p);closeModal();toast(`Welcome, ${first(p.name)}!`);after();return true;}
  case 'work':{if(!useTp(1))return true;p.biz=Math.min(100,p.biz+3*(p.trait==='curious'?1.3:1));p.bond=Math.min(100,p.bond+3);p.last=S.week;toast(`${first(p.name)} spent the day at work with you. Business +3.`);after();return true;}
- case 'disown':return openModal(`<span class="evtag t-bad">Disown</span><h2>Disown ${esc(first(p.name))}?</h2><p>They're cut off: no allowance, no trust fund payouts, and they can never inherit your empire. ${FPid(p.par)&&FPid(p.par).rel==='partner'?`${esc(first(FPid(p.par).name))} will be hurt. `:''}Your family won't like it either. You can try to reach out later, but they may never forgive you.</p><div class="ev-btns"><button class="btn danger big" data-lf="disowngo" data-id="${p.id}">Disown them</button><button class="btn" data-close>Never mind</button></div>`),true;
+ case 'disown':return openModal(`<span class="evtag t-bad">Disown</span><h2>Disown ${esc(first(p.name))}?</h2><p>They're cut off: no allowance, their trust fund money comes back to you, and they can never inherit your empire. ${FPid(p.par)&&FPid(p.par).rel==='partner'?`${esc(first(FPid(p.par).name))} will be hurt. `:''}Your family won't like it either. You can try to reach out later, but they may never forgive you.</p><div class="ev-btns"><button class="btn danger big" data-lf="disowngo" data-id="${p.id}">Disown them</button><button class="btn" data-close>Never mind</button></div>`),true;
  case 'disowngo':closeModal();disownKid(p);toast(`${first(p.name)} has been disowned.`);after();return true;
  case 'reconcile':{if(!useTp(1))return true;if(Math.random()<(p.trait==='sweet'?.5:p.trait==='stubborn'||p.trait==='rebel'?.15:.3)){p.rel='kid';p.role=p.g==='f'?'Your daughter':'Your son';p.bond=30;toast(`${first(p.name)} agreed to come home.`);}else toast(`${first(p.name)} won't answer your calls.`);after();return true;}
  case 'baby':{if(!p||!useTp(1))return true;p.last=S.week;S.fam.spent++;if(S.fam.due.some(x=>x.with===p.id)){toast('A baby is already on the way.');after();return true;}if(Math.random()<.4){S.fam.due.push({t:turnsIn()+7,with:p.id});toast('You\'re expecting! The baby is due in about 7 turns.');confetti();}else toast('Not this time. Keep trying.');after();return true;}
