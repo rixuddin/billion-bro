@@ -2609,7 +2609,7 @@ const TRAITS_MA={
 };
 function ensureMA(s){s.ind=s.ind||{};IND_KEYS.forEach(k=>{if(!s.ind[k])s.ind[k]={s:1,d:0};});s.listings=s.listings||[];s.acq=s.acq||[];s.desk=s.desk||{fund:0,hist:[],last:0,total:0,re:false};s.maSeq=s.maSeq||1;return s;}
 const indS=k=>(S.ind[k]||{s:1}).s;
-function maVal(c){const I=INDS[c.ind],s=indS(c.ind),earn=c.rev*52*c.margin*I.pe*s*(1+2*Math.max(-.1,c.growth)),fl=c.rev*52*I.rf*.4*(1+Math.max(0,c.growth))*s;
+function maVal(c){const I=INDS[c.ind],s=Math.pow(indS(c.ind),1-.6*(c.damp||0)),earn=c.rev*52*c.margin*I.pe*s*(1+2*Math.max(-.1,c.growth)),fl=c.rev*52*I.rf*.4*(1+Math.max(0,c.growth))*s;
  let ev=Math.max(earn,fl)*(c.ceo||1)+(c.bonus||0);if(c.pub)ev*=c.prem||1;return Math.max(ev*.08,ev-c.debt);}
 const maProfit=c=>c.rev*c.margin-c.debt*.1/52;
 const maName=k=>pick(INDS[k].pre)+' '+pick(INDS[k].suf);
@@ -2620,17 +2620,17 @@ function maStep(c,shock){const I=INDS[c.ind];c.rev=Math.max(10,c.rev*Math.exp(c.
  c.hist.push(Math.round(maVal(c)));if(c.hist.length>16)c.hist.shift();}
 function makeListing(size){const k=pick(IND_KEYS),I=INDS[k],s=indS(k);const margin=rnd(I.m[0],I.m[1]),growth=rnd(I.g[0],I.g[1]),debtShare=Math.random()<.5?rnd(0,.35):0;
  const c={id:'m'+(S.maSeq++),name:maName(k),ind:k,region:pick(Object.keys(REGIONS)),margin,growth,debt:0,ceo:+rnd(.9,1.1).toFixed(2),hist:[],m:Math.random(),exp:S.week+ri(3,7),dd:false,neg:0};
- c.rev=1;const v1=maVal(c);c.rev=size/v1;c.debt=size*debtShare;c.rev*=(1+debtShare);
+ c.damp=clamp((Math.log10(Math.max(1,size))-10)/1.5,0,1);c.rev=1;const v1=maVal(c);c.rev=size/v1;c.debt=size*debtShare;c.rev*=(1+debtShare);
  // build 12 weeks of history by running backwards-ish
  const back=JSON.parse(JSON.stringify(c));back.rev=c.rev*Math.exp(-c.growth*12/52+gauss()*I.vol);back.hist=[];for(let i=0;i<12;i++)maStep(back,0);c.hist=back.hist.slice();c.rev=back.rev;c.margin=back.margin;c.growth=back.growth;
  const v=maVal(c);
  if(Math.random()<.5){const pool=Object.keys(TRAITS_MA),bad=pool.filter(x=>!TRAITS_MA[x].good),good=pool.filter(x=>TRAITS_MA[x].good);c.trait=Math.random()<.62?pick(bad):pick(good);}
- c.ask=Math.round(v*(c.trait&&!TRAITS_MA[c.trait].good?rnd(.78,1.02):rnd(.88,1.15))/100)*100;
+ {const e=clamp((Math.log10(Math.max(1,size))-10)/1.5,0,1),lo=c.trait&&!TRAITS_MA[c.trait].good?.78:.88,hi=c.trait&&!TRAITS_MA[c.trait].good?1.02:1.15;c.ask=Math.round(v*rnd(lo+(.97-lo)*e,hi+(1.08-hi)*e)/100)*100;}
  c.risk=I.vol>.08||c.margin<0||c.debt>v*.4?'High':I.vol>.05||c.debt>0?'Medium':'Low';
  return c;}
 function fillListings(news){const nw=Math.max(5e4,netWorth()),want=7;
  S.listings=S.listings.filter(c=>{if(c.exp<=S.week){return false;}if(Math.random()<.1){const r=pick(S.rivals);if(news)news.heads.push({h:`${r.name} buys ${c.name}`,say:`Your classmate ${r.name} just bought ${c.name} (${INDS[c.ind].n.toLowerCase()}) for about ${money(c.ask)}. That deal is off the table.`});return false;}return true;});
- while(S.listings.length<want){const r=Math.random();const size=r<.3?Math.max(2e4,nw*rnd(.01,.06)):r<.88?Math.max(4e4,nw*rnd(.08,.7)):nw*rnd(1,2.5);S.listings.push(makeListing(size));}
+ while(S.listings.length<want){const r=Math.random();let size=r<.3?Math.max(2e4,nw*rnd(.01,.06)):r<.88?Math.max(4e4,nw*rnd(.08,.7)):nw*rnd(1,2.5);const cap=Math.random()<.06?8e11:2.5e11;if(size>cap)size=cap*rnd(.25,1);S.listings.push(makeListing(size));}
  S.listings.sort((a,b)=>a.ask-b.ask);}
 function maWeek(news){
  // industry cycles
@@ -2670,6 +2670,7 @@ function maScenes(){if(!S.acq.length||Math.random()>.45)return [];const c=pick(S
 const ddCost=c=>Math.round(Math.max(1500,c.ask*.015));
 const maxLoan=c=>Math.round(c.ask*.5);
 function maBuy(id,price,loan){const c=S.listings.find(x=>x.id===id);if(!c)return;const cashNeed=price-loan;if(S.cash<cashNeed)return toast(`You need ${money(cashNeed)} in cash.`);
+ {const same=S.acq.filter(x=>x.ind===c.ind).length,big=price>=5e10;if(big&&(same>=3||acqValue()>1e12)&&Math.random()<.4){S.listings=S.listings.filter(x=>x!==c);const fee=Math.round(price*.004);payOut(fee);addLog(S,`Regulators blocked your takeover of ${c.name}. Legal fees: ${money(fee)}.`,'bad');after();return openModal(`<span class="evtag t-bad">Antitrust</span><h2>Deal blocked</h2><p>Competition regulators blocked your takeover of ${esc(c.name)}. ${same>=3?`You already own ${same} ${INDS[c.ind].n.toLowerCase()} companies, and they say you'd control too much of the industry.`:'They say your empire is already too big.'}</p><p>Lawyers and filings cost ${money(fee)}. The deal is off.</p><div class="ev-btns"><button class="btn" data-close>Okay</button></div>`);}}
  S.cash-=cashNeed;c.debt+=loan;c.paid=price;c.own=1;c.bought=S.week;c.cool=0;if(c.trait&&!c.dd)c.hitWeek=S.week+ri(2,6);
  S.listings=S.listings.filter(x=>x!==c);S.acq.push(c);addLog(S,`Bought ${c.name} for ${money(price)}${loan?` (${money(loan)} borrowed against it)`:''}.`,'good');popCash(`-${money(cashNeed)}`,'var(--loss)');confetti();toast(`${c.name} is yours.`);after();}
 function maSellNow(c,amount){S.cash+=amount;S.acq=S.acq.filter(x=>x!==c);const pl=amount-c.paid;addLog(S,`Sold ${c.name} for ${money(amount)} (${pl>=0?'+':''}${money(pl)}).`,pl>=0?'good':'bad');popCash(`+${money(amount)}`,'var(--cash)');if(pl>0)confetti();}
@@ -2707,7 +2708,7 @@ function openOwnMA(id){const c=S.acq.find(x=>x.id===id);if(!c)return;const I=IND
   ${same.length&&!cool?same.map(o=>`<button class="btn" data-ma="merge" data-id="${c.id}" data-o="${o.id}">Merge with ${esc(o.name)} (costs drop 3 points)</button>`).join(''):''}
   ${!c.pub&&maVal(c)>=5e7?`<button class="btn sun" data-ma="ipo" data-id="${c.id}">Take it public: sell 30% for ${money(maVal(c)*.3*1.15)}</button>`:''}
   <button class="btn go big" data-ma="sell" data-id="${c.id}">Get buyer offers</button><button class="btn" data-close>Close</button></div>`);}
-function maOffers(c){const v=maVal(c)*(c.own||1),hot=indS(c.ind);return [0,1,2].map(()=>Math.round(v*rnd(.86,1.12)*(hot>1.15?1.05:hot<.85?.94:1)));}
+function maOffers(c){const v=maVal(c)*(c.own||1),hot=indS(c.ind),e=clamp((Math.log10(Math.max(1,v))-10)/1.5,0,1);return [0,1,2].map(()=>Math.round(v*rnd(.86+.04*e,1.12-.1*e)*(hot>1.15?1.05:hot<.85?.94:1)));}
 function maClick(d){const c=d.id?(S.listings.find(x=>x.id===d.id)||S.acq.find(x=>x.id===d.id)):null;
  switch(d.ma){
   case 'deal':return openDealMA(d.id);
@@ -3039,9 +3040,11 @@ function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1)
  let r=S.infl*.6+.025*.4+gauss()*.01;if(Math.random()<.05)r+=rnd(.04,.07);S.infl=clamp(r,-.01,.14);
  // country crises can hurt risky bonds
  let crisis='';S.bonds.forEach(b=>{const rk=BOND_RISK[b.cc];const p=[0,.004,.02][rk];if(Math.random()<p&&!b.hit){b.hit=true;const cut=rnd(.4,.7);b.amt*=1-cut;crisis+=` ${CNAME(b.cc)} defaulted on its debt and your bond lost ${Math.round(cut*100)}% of its value.`;}});
+ let big='';if(W()>1e11){const c=Math.round((W()-1e11)*.004);payOut(c);big+=` Security, lawyers and lobbyists for an empire your size cost ${money(c)} this year.`;}
+ if(typeof acqValue==='function'&&acqValue()>1.5e12&&S.acq.length&&Math.random()<.5){const c=S.acq.slice().sort((a,b)=>maVal(b)*(b.own||1)-maVal(a)*(a.own||1))[0],v=Math.round(maVal(c)*(c.own||1)*.9);maSellNow(c,v);big+=` Antitrust regulators forced you to sell ${c.name}, your biggest company, for ${money(v)} (90% of its value).`;}
  const nw=netWorth(),ch=S.yrNw!=null?nw-S.yrNw:null;S.yrNw=nw;
  const lines=[`Happy New Year! You're now ${age()}.`,`${ch!=null?`Your net worth ${ch>=0?'grew':'fell'} ${money(Math.abs(ch))} this year. `:''}Inflation was ${(prev*100).toFixed(1)}%, so prices went up about that much. ${S.infl>prev+.01?`Economists expect it to rise to around ${(S.infl*100).toFixed(1)}% next year.`:S.infl<prev-.01?`It should cool to about ${(S.infl*100).toFixed(1)}% next year.`:`Next year looks similar, around ${(S.infl*100).toFixed(1)}%.`}`,
-  `Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)}/100).${crisis}`];
+  `Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)}/100).${crisis}${big}`];
  return {who:'anchor',mood:crisis?'worried':'happy',tag:[crisis?'t-bad':'t-good',`Year ${yearNo()}`],onShow:confetti,pages:lines};}
 /* ---- health actions ---- */
 function healthClick(d){switch(d.hl){
