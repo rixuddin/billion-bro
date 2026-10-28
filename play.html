@@ -297,6 +297,10 @@ button.rrow:active{transform:scale(.99)}
 .emprow b{font-size:13px;color:#F3EEE3;text-align:right}.empbar{height:6px;border-radius:9px;background:#24252D;overflow:hidden}.empbar i{display:block;height:100%;border-radius:9px}
 .empgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.emptile{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px;text-align:left;display:grid;gap:2px}
 .emptile small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#A8853F;font-weight:900}.emptile b{font-size:18px}.emptile span{font-size:12px;color:var(--muted);font-weight:700}
+.lgbar{height:7px;border-radius:9px;background:var(--surface2);overflow:hidden;margin-top:6px}.lgbar i{display:block;height:100%;border-radius:9px}
+.lgrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;padding:10px 12px;border-radius:14px;background:var(--surface2)}.lgrow .lgbar{grid-column:1/-1}.lgrow span{font-weight:800;color:var(--muted);font-size:13px}
+.lgsteps{display:grid;gap:8px;margin:10px 0}.lgstep{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;opacity:.55}.lgstep.now{opacity:1}.lgstep.done{opacity:.8}
+.lgstep>b{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--surface2);font-size:13px}.lgstep.done>b{background:#C9A45C;color:#14120D}.lgstep.now>b{background:#25283A;color:#fff}.lgstep small{display:block;color:var(--muted);font-size:12px;font-weight:700}
 .luxhero{background:radial-gradient(120% 140% at 0% 0%,#2E2717 0%,#0E0F14 62%);color:#F3EEE3;border-radius:22px;padding:18px 16px 12px}
 .luxbrand{font-family:Georgia,'Times New Roman',serif;letter-spacing:.28em;font-size:19px}.luxbrand span{color:#C9A45C}
 .luxsub{color:#B9B2A3;font-size:12px;margin-top:4px}
@@ -941,7 +945,7 @@ const pick=a=>a[Math.floor(Math.random()*a.length)];
 const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
 function nextF(s,n,wk,c,p){const h=x=>Math.max(1e-4,hash(s.seed+x+wk+c+p)),g=Math.sqrt(-2*Math.log(h('a')))*Math.cos(2*Math.PI*h('b'));return +clamp(n+(1-n)*.18+g*DIFF[s.diff].noise,.55,1.75).toFixed(4);}
 function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
-function money(n){const neg=n<0;n=Math.abs(n);let s;if(n>=1e9)s=(n/1e9).toFixed(2)+'B';else if(n>=1e6)s=(n/1e6).toFixed(2)+'M';else s=Math.round(n).toLocaleString('en-US');return (neg?'-$':'$')+s;}
+function money(n){const neg=n<0;n=Math.abs(n);let s;if(n>=1e12)s=(n/1e12).toFixed(2)+'T';else if(n>=1e9)s=(n/1e9).toFixed(2)+'B';else if(n>=1e6)s=(n/1e6).toFixed(2)+'M';else s=Math.round(n).toLocaleString('en-US');return (neg?'-$':'$')+s;}
 function pr(n){return n<100?'$'+n.toFixed(2):'$'+Math.round(n).toLocaleString('en-US');}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const first=n=>String(n).split(' ')[0];
@@ -1219,7 +1223,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1432,7 +1436,7 @@ const loanRate=()=>dif().loan*(tr().bank?.7:1);
 const LF=id=>LIFE.find(x=>x.id===id);
 const lifeIds=()=>Object.keys(S.life||{});
 const lifeVal=()=>lifeIds().reduce((a,id)=>a+S.life[id].val,0);
-const fame=()=>lifeIds().reduce((a,id)=>a+LF(id).fame,0)+(LIFE_ON&&S&&S.fam?partnerFame():0);
+const fame=()=>lifeIds().reduce((a,id)=>a+LF(id).fame,0)+(LIFE_ON&&S&&S.fam?partnerFame():0)+(S&&S.legacy&&S.legacy.fame||0);
 const homeCut=()=>Math.max(0,...lifeIds().map(id=>LF(id).live||0));
 const fareCut=()=>Math.min(1,...lifeIds().map(id=>LF(id).fare||1));
 const fastJet=()=>lifeIds().some(id=>LF(id).fast);
@@ -1601,7 +1605,7 @@ function travel(dest){
  bizScenes().forEach(x=>scenes.push(x));
  maScenes().forEach(x=>scenes.push(x));
  famTurn().forEach(x=>scenes.push(x));
- timeTurn(scenes);reTurn(scenes);if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;recap.push(['Rent from your properties',L.inc]);recap.push(['Property upkeep and fees',-L.cost]);recap.push(['Mortgage payments',-L.mort]);}
+ timeTurn(scenes);reTurn(scenes);legacyTurn(scenes);if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;recap.push(['Rent from your properties',L.inc]);recap.push(['Property upkeep and fees',-L.cost]);recap.push(['Mortgage payments',-L.mort]);}
  {const u=ugScene();if(u)scenes.push(u);}
  if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
  if(S.trips%2===0)scenes.push(rivalScene());
@@ -2505,9 +2509,10 @@ const bzBadge=t=>`<span class="bzbadge" style="background:${t.col}">${t.name.spl
 function viewBiz(){const mode=UI.bzMode||'legit';
  if(mode==='legit'&&UI.bz&&BZ(UI.bz))return viewOneBiz(BZ(UI.bz));
  const tot=S.biz.reduce((a,b)=>a+b.profit*b.own,0),val=bizValue();
- const top=`<div class="seg">${['legit','re','under'].map(m=>`<button class="chip ${mode===m?'on':''}" data-bz="mode" data-v="${m}">${m==='legit'?'My businesses':m==='re'?'Real estate':'Shady side'}</button>`).join('')}</div>`;
+ const top=`<div class="seg">${['legit','re','under',...(legacyOn()?['legacy']:[])].map(m=>`<button class="chip ${mode===m?'on':''}" data-bz="mode" data-v="${m}">${m==='legit'?'My businesses':m==='re'?'Real estate':m==='legacy'?'Legacy':'Shady side'}</button>`).join('')}</div>`;
  if(mode==='under')return top+viewUnder();
  if(mode==='re')return top+viewRE();
+ if(mode==='legacy')return top+viewLegacy();
  return top+`<div class="card"><div class="between"><h3 style="font-size:20px">Your businesses</h3><span class="label">${S.biz.length} running</span></div>
   ${S.biz.length?`<div class="recap" style="margin-bottom:0"><div><span>Your share of last week's profit</span><b class="${tot>=0?'up':'down'}">${tot>=0?'+':''}${money(tot)}</b></div><div><span>Your share of their value</span><b>${money(val)}</b></div></div>`:`<p class="muted" style="margin:8px 0 0">Start a company, make choices every turn, and watch it grow. Its value counts toward your net worth.</p>`}</div>
   ${S.biz.map(b=>{const t=BZT(b.type);return `<button class="bzrow" data-bz="open" data-id="${b.id}">${bzBadge(t)}<span><b>${bzName(b)}</b><small>${t.name} · ${b.units+b.opening} ${b.units+b.opening===1?t.unit:t.units}${b.auto?' · Auto':''}${b.pub?' · Public':''}</small></span><span class="bzright"><b class="${b.profit>=0?'up':'down'}">${b.hist.length?(b.profit>=0?'+':'')+money(b.profit*b.own)+'/wk':'New'}</b><small>${money(bzVal(b)*b.own)}</small></span></button>`;}).join('')}
@@ -3495,6 +3500,126 @@ EVENTS.push(
 );}
 
 
+/* ===================== LEGACY: END HUNGER, RULE THE WORLD, LEAVE EARTH ===================== */
+const LEGACY_AT=1e11;
+const legacyOn=()=>S.legacy&&S.legacy.open||netWorth()>=LEGACY_AT;
+const HREG=[{id:'af',name:'Africa',pop:1400,h:20},{id:'sa',name:'South Asia',pop:2000,h:15},{id:'me',name:'Middle East',pop:500,h:10},{id:'la',name:'Latin America',pop:650,h:6},{id:'se',name:'Southeast Asia',pop:700,h:8}];
+const NATIONS=[
+ {id:'samara',name:'Samaran Islands',pop:4,gdp:30,def:8},{id:'belmora',name:'Belmora',pop:9,gdp:60,def:12},{id:'qalibar',name:'Qalibar',pop:18,gdp:140,def:20},
+ {id:'corvania',name:'Corvania',pop:25,gdp:300,def:28},{id:'sunda',name:'Sunda Coast',pop:60,gdp:500,def:30},{id:'tashkar',name:'Tashkari Union',pop:80,gdp:900,def:45},
+ {id:'kestrel',name:'Kestrania',pop:45,gdp:1200,def:50},{id:'valdor',name:'Valdoria',pop:120,gdp:2000,def:58},{id:'ostmark',name:'Ostmark Republic',pop:90,gdp:3500,def:65},
+ {id:'zerath',name:'Zerath',pop:300,gdp:6000,def:75},{id:'novat',name:'Novaterra',pop:350,gdp:15000,def:85},{id:'arden',name:'Ardenne Federation',pop:500,gdp:22000,def:92}];
+const SPACE=[
+ {n:'Start a rocket company',c:1e10,d:'Hire engineers, build a launch site and a factory.'},
+ {n:'Reusable rockets',c:3e10,d:'Land the rocket so you can fly it again. Test flights can blow up.',test:true},
+ {n:'Moon base',c:1.5e11,d:'A small base on the moon to learn how to live off-world.',risk:.12},
+ {n:'First Mars landing',c:4e11,d:'Send the first crew of 20 to Mars.',risk:.18},
+ {n:'Grow the colony',c:0,d:'Send colonist ships and build domes, farms, power and factories until the colony can survive on its own.'},
+ {n:'Move to Mars',c:5e10,d:'Leave Earth for good and become the founder of a new world.'}];
+function ensureLegacy(s){const L=s.legacy=s.legacy||{};L.open=L.open||false;L.done=L.done||[];
+ L.hunger=L.hunger||{on:false,reg:HREG.map(r=>({id:r.id,res:0,aid:0,cor:50,shock:0})),spent:0};
+ L.rule=L.rule||{on:false,home:null,pop:30,stab:50,mil:0,op:60,leader:false,title:'',own:[],ally:[],spent:0,sec:0};
+ L.space=L.space||{on:false,stage:0,tries:0,colonists:0,self:0,spent:0,moved:false};return s;}
+/* ---- hunger ---- */
+const hReg=id=>HREG.find(r=>r.id===id);
+const hNow=r=>{const b=hReg(r.id).h;return Math.max(0,b*(1+r.shock)*(1-.97*r.res/100)*(1-r.aid));};
+const worldHunger=()=>{const L=S.legacy.hunger;let t=0,p=0;L.reg.forEach(r=>{const b=hReg(r.id);t+=hNow(r)*b.pop;p+=b.pop;});return t/7900;};
+const hungryPeople=()=>S.legacy.hunger.reg.reduce((a,r)=>a+hNow(r)/100*hReg(r.id).pop*1e6,0);
+const tyrant=()=>S.legacy.rule.leader&&S.legacy.rule.op<30;
+/* ---- rule ---- */
+const NAT=id=>NATIONS.find(n=>n.id===id);
+const ownsN=id=>S.legacy.rule.own.includes(id);
+const natIncome=()=>S.legacy.rule.own.reduce((a,id)=>a+NAT(id).gdp*1e9*.04/TPY,0);
+const milCost=()=>2e10;
+const buyPrice=n=>n.gdp*1e9*1.6*(S.legacy.rule.op>=60?.85:1);
+const warNeed=n=>n.def*1.4;
+/* ---- per turn ---- */
+function legacyTurn(scenes){if(!S.legacy)return;const L=S.legacy;if(!L.open&&netWorth()>=LEGACY_AT){L.open=true;scenes.push({who:'whitlock',mood:'happy',tag:['t-good','Legacy'],pages:['You\'re one of the richest people who has ever lived. Money alone doesn\'t mean much anymore.','Time to decide what you\'ll be remembered for. End world hunger, rule a nation and then the world, or leave Earth and build a home on Mars. Chase one, or all three. You\'ll find them in your Empire and Business tabs, under Legacy.']});}
+ const act=[L.hunger.on,L.rule.on,L.space.on].filter(Boolean).length;if(act>1)S.hp=Math.max(0,S.hp-.15*(act-1));
+ // hunger
+ const H=L.hunger;if(H.on&&!L.done.includes('hunger')){H.reg.forEach(r=>{r.aid*=.7;r.shock=Math.max(0,r.shock*.8-.01);});
+  if(Math.random()<.12){const r=pick(H.reg),b=hReg(r.id),what=pick(['A severe drought','A war','Floods','A locust swarm']);if(what==='A war'||what==='Floods')r.shock+=.35;else{r.res=Math.max(0,r.res-8);r.shock+=.2;}scenes.push({who:'anchor',mood:'worried',tag:['t-bad','Hunger crisis'],pages:[`${what} hit ${b.name}. Millions more people are going hungry there.`,`Emergency food aid works fastest. Farms and water you build keep it from happening again.`]});}
+  if(Math.random()<.06){const cc=H.reg.filter(x=>x.cor>40),r=cc.length?pick(cc):null;if(r){const b=hReg(r.id);r.aid=Math.max(0,r.aid-.1);scenes.push({who:'ruiz',mood:'worried',tag:['t-bad','Aid stolen'],pages:[`Officials in ${b.name} stole part of your food aid and sold it.`,`Work with local partners to cut corruption, or more of your money will keep disappearing.`]});}}
+  if(worldHunger()<1){L.done.push('hunger');scenes.push({who:'anchor',mood:'happy',tag:['t-good','World hunger ended'],onShow:confetti,pages:['It\'s official. For the first time in history, almost nobody on Earth goes to bed hungry.',`You spent ${money(H.spent)} to make it happen. Schools will teach your name for centuries.`]});fameBonus(60);}}
+ // rule
+ const R=L.rule;if(R.on){if(R.leader){const inc=natIncome();if(inc>0){S.cash+=inc;addLog(S,`State revenue from the nations you run: ${money(inc)}.`,'good');}
+   R.pop=clamp(R.pop-.8+(R.op>60?.3:0),0,100);R.stab=clamp(R.stab-.5,0,100);R.op=clamp(R.op+(R.op<50?.3:-.2),0,100);
+   if(R.pop<25&&R.stab<35&&Math.random()<.25){const lost=R.own.length>1?R.own.pop():null;R.stab+=15;scenes.push({who:'anchor',mood:'worried',tag:['t-bad','Revolt'],pages:[lost?`Riots spread across ${NAT(lost).name}. You lost control of it.`:`Huge protests fill the streets of ${NAT(R.home).name}. Your army barely holds the capital.`,'Keep people housed and fed, or they will turn on you.']});}
+   if(R.own.length>=4&&R.op<25&&Math.random()<.2){const f=Math.round(S.cash*.15);S.cash-=f;R.mil=Math.max(0,R.mil-15);scenes.push({who:'anchor',mood:'worried',tag:['t-bad','Coalition'],pages:['The world\'s other powers formed a coalition against you. Sanctions froze part of your money and their forces hit your army.',`You lost ${money(f)} in frozen accounts and a big chunk of your military. Better world opinion would have kept them away.`]});}
+   if(Math.random()<.04){const safe=R.sec>=40;scenes.push({who:'brady',mood:'worried',tag:['t-bad','Assassination attempt'],pages:['Someone tried to kill you during a public speech.',safe?'Your security team stopped them. You weren\'t hurt.':'A guard pushed you clear just in time. You were hurt, and your health took a hit. Spend more on security.']});if(!safe)S.hp=Math.max(5,S.hp-20);}
+   if(R.own.length===NATIONS.length&&!L.done.includes('world')){L.done.push('world');const good=R.op>=50;scenes.push({who:'anchor',mood:good?'happy':'worried',tag:['t-good','Ruler of the World'],onShow:confetti,pages:[`Every nation on Earth now answers to you. You are the ${good?'first President of the World':'Supreme Ruler of Earth'}.`,good?'Most people actually like you. History will remember a fair ruler.':'People fear you more than they love you. History will remember a tyrant.']});fameBonus(80);}}}
+ // space
+ const P=L.space;if(P.on&&P.stage===4){if(Math.random()<.08*(1-P.self/150)){const what=pick(['A dust storm','A dome breach','A power failure']);const loss=Math.min(P.colonists,ri(5,40));P.colonists-=loss;P.self=Math.max(0,P.self-6);scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Mars'],pages:[`${what} hit the colony. ${loss} colonists were lost and some equipment was destroyed.`,'More domes and power make the colony tougher.']});}
+  if(P.colonists>=1000&&P.self>=100){P.stage=5;scenes.push({who:'whitlock',mood:'happy',tag:['t-good','Mars'],onShow:confetti,pages:['The Mars colony can now survive on its own. Over a thousand people call it home.','There\'s one step left: move there yourself.']});}}}
+function fameBonus(n){S.legacy.fame=(S.legacy.fame||0)+n;}
+/* ---- actions ---- */
+function lgPay(c){if(S.cash<c){toast(`You need ${money(c)} in cash.`);return false;}S.cash-=c;popCash(`-${money(c)}`,'var(--loss)');return true;}
+function legacyClick(d){const L=S.legacy;switch(d.lg){
+ case 'path':UI.lgPath=d.v;return renderGame();case 'home':UI.lgPath=null;return renderGame();
+ case 'start':{const k=d.v;if(k==='hunger'){if(!lgPay(5e9))return;L.hunger.on=true;L.hunger.spent+=5e9;addLog(S,'Started your hunger foundation.','good');}
+  if(k==='rule'){L.rule.on=true;}if(k==='space'){L.space.on=true;}UI.lgPath=k;return after();}
+ case 'aid':{const r=L.hunger.reg.find(x=>x.id===d.id),c=4e9;if(!lgPay(c))return;L.hunger.spent+=c;r.aid=Math.min(.6,r.aid+.14*(1-r.cor/160)*(tyrant()?.5:1));addLog(S,`Sent ${money(c)} of food aid to ${hReg(r.id).name}.`,'');return after();}
+ case 'farm':{const r=L.hunger.reg.find(x=>x.id===d.id),c=1e10;if(!lgPay(c))return;L.hunger.spent+=c;r.res=Math.min(100,r.res+10*(1-r.cor/200)*(tyrant()?.6:1));addLog(S,`Built ${money(c)} of farms, wells and roads in ${hReg(r.id).name}.`,'');return after();}
+ case 'cor':{const r=L.hunger.reg.find(x=>x.id===d.id),c=3e9;if(!lgPay(c))return;L.hunger.spent+=c;r.cor=Math.max(0,r.cor-20);toast('Local partners in place. Less aid will go missing.');return after();}
+ case 'homepick':{const n=NAT(d.id);L.rule.home=n.id;L.rule.pop=25;toast(`You set your sights on ${n.name}.`);return after();}
+ case 'media':{const c=Math.max(2e9,NAT(L.rule.home).gdp*1e9*.02);if(!lgPay(c))return;L.rule.spent+=c;L.rule.pop=Math.min(100,L.rule.pop+6);L.rule.op=Math.max(0,L.rule.op-1);return after();}
+ case 'house':{const n=NAT(L.rule.leader?pick(L.rule.own):L.rule.home),c=Math.max(5e9,n.pop*1e6*800);if(!lgPay(c))return;L.rule.spent+=c;L.rule.pop=Math.min(100,L.rule.pop+(L.rule.leader?5:9));L.rule.stab=Math.min(100,L.rule.stab+4);L.rule.op=Math.min(100,L.rule.op+2);toast(`Built homes, hospitals and schools in ${n.name}.`);return after();}
+ case 'elect':{const R=L.rule,n=NAT(R.home),c=Math.max(3e9,n.gdp*1e9*.01);if(!lgPay(c))return;R.spent+=c;if(Math.random()<R.pop/110){R.leader=true;R.title='President';R.own=[n.id];R.op=Math.min(100,R.op+10);scenes1({who:'anchor',mood:'happy',tag:['t-good','Election'],onShow:confetti,pages:[`You won the election in ${n.name}! You are now its President.`,'Your new country pays you a share of its budget every turn. Keep the people happy, build an army, and look beyond your borders.']});}else{R.pop=Math.max(0,R.pop-12);scenes1({who:'anchor',mood:'worried',tag:['t-bad','Election'],pages:[`You lost the election in ${n.name}. People weren't ready to trust a billionaire.`,'Win them over first: housing, hospitals, jobs. Then try again.']});}return after();}
+ case 'coup':{const R=L.rule,n=NAT(R.home);if(R.mil<n.def)return toast(`You need a private force of at least ${n.def} strength.`);if(Math.random()<.55+(R.mil-n.def)/100){R.leader=true;R.title='Supreme Leader';R.own=[n.id];R.op=Math.max(0,R.op-30);R.stab=40;scenes1({who:'anchor',mood:'worried',tag:['t-bad','Coup'],pages:[`Your forces took the capital of ${n.name} overnight. You are its Supreme Leader.`,'The world is not happy. Expect sanctions, protests and a lot of enemies.']});}else{const f=Math.round(S.cash*.2);S.cash-=f;R.mil=Math.max(0,R.mil-20);R.op=Math.max(0,R.op-25);R.pop=Math.max(0,R.pop-20);scenes1({who:'brady',mood:'angry',tag:['t-bad','Coup failed'],pages:[`The coup in ${n.name} failed. Your forces were defeated and the government seized ${money(f)} of your money.`,'You barely got out of the country.']});}return after();}
+ case 'army':{if(!lgPay(milCost()))return;L.rule.spent+=milCost();L.rule.mil=Math.min(200,L.rule.mil+(L.space.stage>=2?6:5));L.rule.op=Math.max(0,L.rule.op-1);return after();}
+ case 'sec':{const c=5e9;if(!lgPay(c))return;L.rule.sec=Math.min(100,L.rule.sec+20);toast('Security upgraded.');return after();}
+ case 'propaganda':{const c=3e9;if(!lgPay(c))return;L.rule.pop=Math.min(100,L.rule.pop+7);L.rule.op=Math.max(0,L.rule.op-4);return after();}
+ case 'crack':{L.rule.stab=Math.min(100,L.rule.stab+15);L.rule.pop=Math.max(0,L.rule.pop-8);L.rule.op=Math.max(0,L.rule.op-8);toast('Crackdown. The streets are quiet, for now.');return after();}
+ case 'aidout':{const c=1e10;if(!lgPay(c))return;L.rule.op=Math.min(100,L.rule.op+6);toast('Foreign aid sent. The world likes you a little more.');return after();}
+ case 'ally':{const n=NAT(d.id),R=L.rule;if(R.op<55)return toast('Your world opinion is too low for them to trust you.');const c=n.gdp*1e9*.2;if(!lgPay(c))return;R.spent+=c;if(Math.random()<.35+R.op/200){R.own.push(n.id);scenes1({who:'anchor',mood:'happy',tag:['t-good','Union'],pages:[`${n.name} voted to join your union. It's now part of your nation.`]});}else{scenes1({who:'anchor',mood:'neutral',tag:['t-bad','Union'],pages:[`${n.name} took the investment but voted against joining. Maybe next time.`]});}return after();}
+ case 'buy':{const n=NAT(d.id),R=L.rule,c=buyPrice(n);if(!lgPay(c))return;R.spent+=c;R.own.push(n.id);R.op=Math.max(0,R.op-3);scenes1({who:'anchor',mood:'neutral',tag:['t-good','Takeover'],pages:[`You bought out ${n.name}'s debts, its leaders and its future for ${money(c)}. It's yours now.`]});return after();}
+ case 'war':{const n=NAT(d.id),R=L.rule,c=n.gdp*1e9*.12;if(R.mil<warNeed(n))return toast(`You need military strength ${Math.ceil(warNeed(n))} to take ${n.name}.`);if(!lgPay(c))return;R.spent+=c;R.op=Math.max(0,R.op-15);R.stab=Math.max(0,R.stab-10);if(Math.random()<.6+(R.mil-warNeed(n))/150){R.own.push(n.id);R.mil=Math.max(0,R.mil-Math.round(n.def*.3));scenes1({who:'anchor',mood:'worried',tag:['t-bad','Annexed'],pages:[`Your forces took control of ${n.name}. It's now part of your nation.`,'The world is watching, and it doesn\'t like what it sees.']});}else{R.mil=Math.max(0,R.mil-Math.round(n.def*.6));scenes1({who:'anchor',mood:'worried',tag:['t-bad','Defeat'],pages:[`The invasion of ${n.name} failed. You lost much of your army and ${money(c)}.`]});}return after();}
+ case 'sp':{const P=L.space,st=SPACE[P.stage];if(P.stage===4)return;if(!lgPay(st.c))return;P.spent+=st.c;
+  if(st.test){P.tries++;if(Math.random()<.35+P.tries*.15){P.stage++;scenes1({who:'whitlock',mood:'happy',tag:['t-good','Launch'],onShow:confetti,pages:['The rocket flew to space, came back and landed upright. Your rockets are reusable now.','Flights just got a lot cheaper. Next: the moon.']});}else scenes1({who:'whitlock',mood:'worried',tag:['t-bad','Launch'],pages:['The test rocket exploded on the landing pad. Nobody was hurt, but the money is gone.','Each failure teaches the engineers something. Try again.']});return after();}
+  if(st.risk&&Math.random()<st.risk){scenes1({who:'whitlock',mood:'worried',tag:['t-bad','Mission failed'],pages:[`The ${st.n.toLowerCase()} mission failed. The crew made it home, but the ships and equipment were lost.`,`${money(st.c)} gone. You can try again.`]});return after();}
+  if(P.stage===5){P.moved=true;L.done.push('space');scenes1({who:'whitlock',mood:'happy',tag:['t-good','Founder of Mars'],onShow:confetti,pages:['You stepped off the ship onto red dust. A thousand people cheered.','You left Earth behind and founded a new world. Your empire back home is still yours to run from here.']});fameBonus(70);return after();}
+  P.stage++;scenes1({who:'whitlock',mood:'happy',tag:['t-good','Space'],onShow:confetti,pages:[`${st.n}: done.`,`Next up: ${SPACE[P.stage].n.toLowerCase()}.`]});return after();}
+ case 'ship':{const c=8e10;if(!lgPay(c))return;const P=L.space;P.spent+=c;if(Math.random()<.08){scenes1({who:'whitlock',mood:'worried',tag:['t-bad','Mars'],pages:['A colonist ship lost contact halfway to Mars. Everyone on board was lost.','The colony mourns. You can send another.']});return after();}P.colonists+=100;toast('100 colonists landed on Mars.');return after();}
+ case 'dome':{const c=4e10;if(!lgPay(c))return;const P=L.space;P.spent+=c;P.self=Math.min(100,P.self+8);toast('New domes, greenhouses and power online.');return after();}
+}}
+function scenes1(sc){playScenes([sc]);}
+/* ---- views ---- */
+const lgBar=(v,col)=>`<div class="lgbar"><i style="width:${clamp(v,0,100)}%;background:${col||'#C9A45C'}"></i></div>`;
+function legacyProgress(k){const L=S.legacy;if(k==='hunger'){if(L.done.includes('hunger'))return 100;return clamp((9-worldHunger())/8*100,0,100);}
+ if(k==='rule')return L.rule.own.length/NATIONS.length*100;
+ const P=L.space;return P.moved?100:P.stage<4?P.stage/6*100:P.stage===4?(4+Math.min(1,(P.colonists/1000+P.self/100)/2))/6*100:5/6*100;}
+function viewLegacyCard(){if(!legacyOn())return '';const L=S.legacy;
+ return `<div class="card"><div class="between"><h3>Legacy</h3><span class="label">${L.done.length} of 3 complete</span></div>
+  <div style="display:grid;gap:8px;margin-top:8px">${[['hunger','End world hunger'],['rule','Rule the world'],['space','Leave Earth']].map(([k,n])=>`<button class="lgrow" data-go="biz:legacy" data-lgp="${k}"><b>${n}</b><span>${L.done.includes(k==='rule'?'world':k)?'Complete':L[k].on?Math.round(legacyProgress(k))+'%':'Not started'}</span>${lgBar(legacyProgress(k))}</button>`).join('')}</div></div>`;}
+function viewLegacy(){const L=S.legacy;if(!legacyOn())return `<div class="card"><h3>Legacy</h3><p class="muted">Reach ${money(LEGACY_AT)} net worth to unlock your legacy: end world hunger, rule the world, or leave Earth.</p></div>`;
+ const p=UI.lgPath;if(p==='hunger')return viewHunger();if(p==='rule')return viewRule();if(p==='space')return viewSpace();
+ const card=(k,n,d,cost)=>{const on=L[k].on,done=L.done.includes(k==='rule'?'world':k);return `<div class="card lgcard"><div class="between"><h3>${n}</h3><span class="badge2 ${done?'b-mine':on?'b-info':'b-free'}">${done?'Complete':on?'In progress':'Not started'}</span></div><p class="muted" style="margin:6px 0 10px;font-size:13px">${d}</p>${on?lgBar(legacyProgress(k)):''}<button class="btn ${on?'':'go'}" data-lg="${on?'path':'start'}" data-v="${k}" style="margin-top:8px">${on?'Open':'Start'}<small>${on?Math.round(legacyProgress(k))+'% done':cost}</small></button></div>`;};
+ return `<div class="luxhero"><div class="luxbrand">YOUR <span>LEGACY</span></div><div class="luxsub">What will history remember you for? Chase one goal or all three at once. Running more than one wears your health down.</div></div>
+  ${card('hunger','End world hunger',`About ${(worldHunger()).toFixed(1)}% of the world (${Math.round(hungryPeople()/1e6)} million people) goes hungry. Fund food aid, farms, water and roads region by region. Real cost: hundreds of billions.`,'$5.00B to start a foundation')}
+  ${card('rule','Rule the world','Win over a country, take power by election or by force, build an army, then take the world one nation at a time. Real cost: tens of trillions, but your nations pay you back.','Free to start')}
+  ${card('space','Leave Earth','Build rockets, a moon base, then a Mars colony that can survive on its own. Then move there. Real cost: over a trillion dollars.','Free to start')}`;}
+function viewHunger(){const H=S.legacy.hunger,back=`<button class="btn" data-lg="home" style="margin-bottom:10px">Back to Legacy</button>`;
+ return back+`<div class="card"><div class="between"><h3>End world hunger</h3><span class="label">Spent ${money(H.spent)}</span></div><div class="kv2"><div><small>World hunger</small><b>${worldHunger().toFixed(2)}%</b></div><div><small>Hungry people</small><b>${Math.round(hungryPeople()/1e6)}M</b></div></div><small class="muted">Goal: under 1%. Food aid works fast but fades. Farms, wells and roads last. Corruption steals aid until you work with local partners.${tyrant()?' Governments distrust a dictator, so your aid works less well.':''}</small></div>
+  ${H.reg.map(r=>{const b=hReg(r.id),h=hNow(r);return `<div class="card"><div class="between"><h3>${b.name}</h3><b class="${h<2?'up':'down'}">${h.toFixed(1)}% hungry</b></div><div class="kidst"><span>Farms and water<b>${Math.round(r.res)}</b></span><span>Aid flowing<b>${Math.round(r.aid*100)}</b></span><span>Corruption<b>${Math.round(r.cor)}</b></span></div>
+   <div class="seg" style="margin-top:8px"><button class="chip" data-lg="aid" data-id="${r.id}">Food aid $4B</button><button class="chip" data-lg="farm" data-id="${r.id}">Farms and water $10B</button><button class="chip" data-lg="cor" data-id="${r.id}">Local partners $3B</button></div></div>`;}).join('')}`;}
+function viewRule(){const R=S.legacy.rule,back=`<button class="btn" data-lg="home" style="margin-bottom:10px">Back to Legacy</button>`;
+ if(!R.home)return back+`<div class="card"><h3>Pick a country</h3><p class="muted" style="font-size:13px">Small countries are cheaper to win over and easier to take, but pay you less. These are fictional nations.</p><div class="dgrid" style="margin-top:8px">${NATIONS.map(n=>`<button class="mrow" data-lg="homepick" data-id="${n.id}"><span><b>${n.name}</b><small>${n.pop}M people · economy ${money(n.gdp*1e9)} · defence ${n.def}</small></span></button>`).join('')}</div></div>`;
+ const h=NAT(R.home),stats=`<div class="kidst"><span>Popularity<b>${Math.round(R.pop)}</b></span><span>Stability<b>${Math.round(R.stab)}</b></span><span>Military<b>${Math.round(R.mil)}</b></span><span>World opinion<b>${Math.round(R.op)}</b></span></div>`;
+ if(!R.leader)return back+`<div class="card"><h3>Win over ${h.name}</h3>${stats}<p class="muted" style="font-size:13px;margin:8px 0">Raise your popularity to 60 or more, then run for president. Or build a private force stronger than their defence (${h.def}) and take it by force. Coups anger the world.</p>
+  <div style="display:grid;gap:8px"><button class="btn" data-lg="media">Buy media and lobbyists<small>${money(Math.max(2e9,h.gdp*1e9*.02))} · popularity +6</small></button><button class="btn" data-lg="house">Build homes, hospitals and jobs<small>${money(Math.max(5e9,h.pop*1e6*800))} · popularity +9 · world opinion up</small></button><button class="btn" data-lg="army">Build a private force<small>${money(milCost())} · military +5</small></button>
+  <button class="btn go" data-lg="elect" ${R.pop<40?'disabled':''}>Run for president<small>${money(Math.max(3e9,h.gdp*1e9*.01))} · about ${Math.round(Math.min(100,R.pop/1.1))}% chance</small></button><button class="btn danger" data-lg="coup" ${R.mil<h.def?'disabled':''}>Take power by force<small>Needs military ${h.def} · world opinion -30</small></button></div></div>`;
+ const others=NATIONS.filter(n=>!ownsN(n.id));
+ return back+`<div class="card lifehead"><div class="between"><h3>${R.title} of ${R.own.length===1?h.name:`${R.own.length} nations`}</h3><span class="label">${R.own.length} of ${NATIONS.length}</span></div>${stats}<small class="muted">Your nations pay you ${money(natIncome())} a turn. Low popularity and stability cause revolts. Low world opinion brings sanctions and coalitions once you're big.</small>
+  <div class="seg" style="margin-top:10px"><button class="chip" data-lg="house">Housing and hospitals</button><button class="chip" data-lg="army">Army ${money(milCost())}</button><button class="chip" data-lg="sec">Security $5B</button><button class="chip" data-lg="propaganda">Propaganda $3B</button><button class="chip" data-lg="crack">Crackdown</button><button class="chip" data-lg="aidout">Foreign aid $10B</button></div></div>
+  ${others.length?`<div class="sec-title"><h3>The rest of the world</h3></div><div class="dgrid">${others.map(n=>`<div class="card" style="margin:0"><div class="between"><b>${n.name}</b><small class="muted">${n.pop}M · ${money(n.gdp*1e9)}</small></div><small class="muted">Defence ${n.def}. Needs military ${Math.ceil(warNeed(n))} to invade.</small><div class="seg" style="margin-top:8px"><button class="chip" data-lg="ally" data-id="${n.id}">Invite to join ${money(n.gdp*1e9*.2)}</button><button class="chip" data-lg="buy" data-id="${n.id}">Buy it ${money(buyPrice(n))}</button><button class="chip" data-lg="war" data-id="${n.id}">Invade</button></div></div>`).join('')}</div>`:'<div class="card"><h3>The whole world is yours.</h3></div>'}`;}
+function viewSpace(){const P=S.legacy.space,back=`<button class="btn" data-lg="home" style="margin-bottom:10px">Back to Legacy</button>`;
+ const steps=SPACE.map((st,i)=>`<div class="lgstep ${i<P.stage||P.moved?'done':i===P.stage?'now':''}"><b>${i<P.stage||P.moved?'✓':i+1}</b><span><b>${st.n}</b><small>${st.d}</small></span></div>`).join('');
+ const st=SPACE[P.stage];let actBtn='';
+ if(P.moved)actBtn='<p class="muted">You live on Mars now. Your empire on Earth keeps running.</p>';
+ else if(P.stage===4)actBtn=`<div class="kidst"><span>Colonists<b>${P.colonists}</b></span><span>Self-sufficient<b>${P.self}%</b></span></div><small class="muted" style="display:block;margin:6px 0">Goal: 1,000 colonists and 100% self-sufficient.</small><div style="display:grid;gap:8px"><button class="btn go" data-lg="ship">Send a colonist ship<small>$80.00B · 100 people</small></button><button class="btn" data-lg="dome">Build domes, farms and power<small>$40.00B · +8% self-sufficient</small></button></div>`;
+ else actBtn=`<button class="btn go big" data-lg="sp">${st.n}<small>${money(st.c)}${st.test?` · test flight ${P.tries+1}`:st.risk?` · ${Math.round(st.risk*100)}% chance the mission fails`:''}</small></button>`;
+ return back+`<div class="card"><div class="between"><h3>Leave Earth</h3><span class="label">Spent ${money(P.spent)}</span></div><div class="lgsteps">${steps}</div>${actBtn}</div>`;}
+
 /* ===================== EMPIRE HOME (replaces the goods market past $200B) ===================== */
 const EMPIRE_AT=2e11;
 const empireOn=()=>{if(S.empire)return true;if(netWorth()>=EMPIRE_AT){S.empire=true;return true;}return false;};
@@ -4150,7 +4275,8 @@ document.addEventListener('click',e=>{
  if(d.lf){lifeClick(d);return;}
  if(d.hl){healthClick(d);return;}
  if(d.bd){bondClick(d);return;}
- if(d.go){goClick(d.go);return;}
+ if(d.go){if(d.lgp)UI.lgPath=d.lgp;goClick(d.go);return;}
+ if(d.lg){legacyClick(d);return;}
  if(d.re){reClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
