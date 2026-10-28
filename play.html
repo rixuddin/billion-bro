@@ -293,6 +293,10 @@ button.rrow:active{transform:scale(.99)}
 .pcard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px}
 .pcard .capbar{margin-top:6px}.pcard .seg .chip{font-size:13px;padding:7px 11px}
 .kv2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.kv2 small{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.kv2 b{font-size:20px}
+.emprows{display:grid;gap:7px;margin-top:14px}.emprow{display:grid;grid-template-columns:minmax(0,1.2fr) 1fr auto;gap:8px;align-items:center;font-size:12px;color:#D8D1C2;font-weight:700}
+.emprow b{font-size:13px;color:#F3EEE3;text-align:right}.empbar{height:6px;border-radius:9px;background:#24252D;overflow:hidden}.empbar i{display:block;height:100%;border-radius:9px}
+.empgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.emptile{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px;text-align:left;display:grid;gap:2px}
+.emptile small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#A8853F;font-weight:900}.emptile b{font-size:18px}.emptile span{font-size:12px;color:var(--muted);font-weight:700}
 .luxhero{background:radial-gradient(120% 140% at 0% 0%,#2E2717 0%,#0E0F14 62%);color:#F3EEE3;border-radius:22px;padding:18px 16px 12px}
 .luxbrand{font-family:Georgia,'Times New Roman',serif;letter-spacing:.28em;font-size:19px}.luxbrand span{color:#C9A45C}
 .luxsub{color:#B9B2A3;font-size:12px;margin-top:4px}
@@ -1613,7 +1617,7 @@ function finishTrip(scenes,trip,recap,from,stay,weeks){
   extra:`<div class="recap">${recap.map(([l,v])=>`<div><span>${esc(l)}</span><span class="${v<0?'down':v>0?'up':'muted'}">${v===null?'':(v>0?'+':'')+money(v)}</span></div>`).join('')}
    <div><span>Cash</span><b>${money(S.cash)}</b></div>${S.savings>=1?`<div><span>Savings</span><b>${money(S.savings)}</b></div>`:''}${S.debt>=1?`<div><span>Loan</span><b class="down">${money(S.debt)}</b></div>`:''}<div><span>Net worth</span><b class="up">${money(nw)}</b></div></div>`}];
  addLog(S,stay?`Stayed in ${dn}.`:`Travelled from ${C(from).name} to ${dn}.`,'');
- save();UI.tab='market';UI.sel=null;UI.filter='all';renderGame();
+ save();UI.tab='market';UI.goods=false;UI.sel=null;UI.filter='all';renderGame();
  playScenes(scenes,()=>{if(!S.over)milestone();});
 }
 function makeDeals(news){
@@ -3487,6 +3491,29 @@ EVENTS.push(
   {label:'Wait it out legally',go:true,run:()=>{S.biz.forEach(b=>b.fx&&b.fx.push({k:'rev',m:.96,w:3}));return ok('hank','Your call. Enjoy the paperwork.','neutral');}}]};}}
 );}
 
+
+/* ===================== EMPIRE HOME (replaces the goods market past $200B) ===================== */
+const EMPIRE_AT=2e11;
+const empireOn=()=>{if(S.empire)return true;if(netWorth()>=EMPIRE_AT){S.empire=true;return true;}return false;};
+function viewMain(){return empireOn()&&!UI.goods?viewEmpire():(empireOn()?`<button class="btn" data-go="goodsback" style="margin-bottom:10px">Back to your empire</button>`:'')+viewMarket();}
+function viewEmpire(){const nw=netWorth(),pr=nwParts(),tot=Object.entries(pr).filter(([k,v])=>k!=='debt'&&v>0).reduce((a,[,v])=>a+v,0)||1;
+ const rows=Object.entries(pr).filter(([k,v])=>Math.abs(v)>=1).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="emprow"><span>${NW_LBL[k]||k}</span><span class="empbar"><i style="width:${Math.max(2,Math.min(100,Math.abs(v)/tot*100))}%;background:${v<0?'var(--loss)':'#C9A45C'}"></i></span><b class="${v<0?'down':''}">${money(v)}</b></div>`).join('');
+ const tile=(go,t,v,sub)=>`<button class="emptile" data-go="${go}"><small>${t}</small><b>${v}</b><span>${sub}</span></button>`;
+ const rich=(S.rich||[]).filter(r=>r.nw>nw).length+1;
+ return `<div class="luxhero"><div class="luxbrand">YOUR <span>EMPIRE</span></div><div class="luxsub">Net worth ${money(nw)}${S.lastNw!=null?` · ${nw-S.lastNw>=0?'+':''}${money(nw-S.lastNw)} this turn`:''} · #${rich} richest on earth</div>
+  <div class="emprows">${rows}</div></div>
+  ${typeof viewLegacyCard==='function'?viewLegacyCard():''}
+  <div class="empgrid">
+   ${tile('deals:cos','Deal Market',money(acqValue()),`${S.acq.length} companies owned`)}
+   ${tile('deals:stocks','Stocks and funds',money(sharesValue()),'Markets and funds')}
+   ${tile('biz:re','Real estate',money(S.re?reEquity():0),`${S.re?S.re.props.length:0} properties`)}
+   ${tile('biz:legit','Your businesses',money(bizValue()),`${S.biz.length} running`)}
+   ${tile('deals:life','Luxe',money(lifeVal()),`${lifeIds().length} items owned`)}
+   ${tile('life:family','Family',S.fam?`${kids().length} kids`:'Family',S.fam&&mainP()?first(mainP().name):'Heirs and family')}
+  </div>
+  <div class="card"><div class="between"><h3>Goods trading</h3><span class="label">Where you started</span></div><p class="muted" style="margin:6px 0 10px;font-size:13px">Buying and selling goods is pocket change at your level, but the market is still here.${cargoValue()>=1?` Cargo on hand: ${money(cargoValue())}.`:''}</p><button class="btn" data-go="goods">Open the goods market</button></div>`;}
+function goClick(v){if(v==='goods'){UI.goods=true;return renderGame();}if(v==='goodsback'){UI.goods=false;return renderGame();}const [t,sub]=v.split(':');UI.tab=t;if(t==='deals')UI.deals=sub;if(t==='biz'){UI.bzMode=sub;UI.bz=null;}if(t==='life')UI.lfMode=sub;renderGame();window.scrollTo(0,0);}
+
 function rollEvents(ctx){
  if(S.trips<=1)return [];
  const n=Math.random()<.05?0:Math.random()<.18?3:Math.random()<.5?2:1,out=[],usedIds=new Set();
@@ -3582,7 +3609,7 @@ function renderGame(){
  if(!S)return;
  const nw=netWorth(),t=S.tier,next=TIERS[t+1],pct=next?clamp((nw-TIERS[t].at)/(next.at-TIERS[t].at)*100,0,100):100;
  const loc=C(S.loc),rk=myRank(),low=S.cash+S.savings<liveCost();
-  const views={market:viewMarket,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz,life:viewLifeTab};
+  const views={market:viewMain,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz,life:viewLifeTab};
  const changed=UI.lastTab!==UI.tab;UI.lastTab=UI.tab;
  $('#scr-game').innerHTML=`<header class="hud">
    <div class="row"><div class="who">${portrait(S.look,44)}<div style="min-width:0"><b>${esc(S.name)}</b><small>${TIERS[t].name}</small></div></div>
@@ -3592,7 +3619,7 @@ function renderGame(){
     <span class="pill ${low?'warn':''}">${icon('home')}Living ${money(liveCost())}/wk</span>${S.debt>=1?`<span class="pill ${dueIn()!==null&&dueIn()<=8||S.missed?'warn':''}">${icon('debt')}Loan ${money(S.debt)}${S.due?` · due in ${Math.max(0,dueIn())} wk`:''}</span>`:''}</div>
    <div><div class="track"><i style="width:${pct}%"></i></div><div class="tierline"><span>${TIERS[t].name}</span><span>${next?`${money(next.at-nw)} to ${next.name}`:'Top of the world'}</span></div></div></header>
   <main class="view" ${changed?'':'style="animation:none"'}>${views[UI.tab]()}</main>
-  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr 1fr 1.25fr 1fr 1fr 1fr">${tabBtn('market','Market')}${tabBtn('deals','Invest')}
+  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr 1fr 1.25fr 1fr 1fr 1fr">${tabBtn('market',empireOn()?'Empire':'Market')}${tabBtn('deals','Invest')}
    <button class="travelbtn ${UI.tab==='travel'?'on':''}" data-tab="travel" aria-label="Travel">${icon('travel')}<b>Travel</b></button>
    ${tabBtn('biz','Business')}${tabBtn('life','Life')}${tabBtn('bank','Bank')}</div></nav>`;
  tweenCash(S.cash);
@@ -4120,6 +4147,7 @@ document.addEventListener('click',e=>{
  if(d.lf){lifeClick(d);return;}
  if(d.hl){healthClick(d);return;}
  if(d.bd){bondClick(d);return;}
+ if(d.go){goClick(d.go);return;}
  if(d.re){reClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
