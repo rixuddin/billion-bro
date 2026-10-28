@@ -293,6 +293,36 @@ button.rrow:active{transform:scale(.99)}
 .pcard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:12px 14px}
 .pcard .capbar{margin-top:6px}.pcard .seg .chip{font-size:13px;padding:7px 11px}
 .kv2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}.kv2 small{display:block;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}.kv2 b{font-size:20px}
+.luxhero{background:radial-gradient(120% 140% at 0% 0%,#2E2717 0%,#0E0F14 62%);color:#F3EEE3;border-radius:22px;padding:18px 16px 12px}
+.luxbrand{font-family:Georgia,'Times New Roman',serif;letter-spacing:.28em;font-size:19px}.luxbrand span{color:#C9A45C}
+.luxsub{color:#B9B2A3;font-size:12px;margin-top:4px}
+.luxstats,.luxsum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.luxstats{margin:14px 0}
+.luxstats small,.luxsum small{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#9C9483;font-weight:800}
+.luxstats b,.luxsum b{font-family:Georgia,serif;font-size:17px;font-weight:400;color:#F3EEE3}
+.luxtabs{display:flex;gap:6px;border-top:1px solid #2E2A22;padding-top:10px}
+.luxtabs button{flex:1;padding:9px;border-radius:12px;color:#B9B2A3;font-weight:800;font-size:13px;background:transparent}
+.luxtabs button.on{background:#C9A45C;color:#14120D}
+.luxchips{display:flex;gap:6px;overflow-x:auto;padding:12px 0 2px;scrollbar-width:none}.luxchips::-webkit-scrollbar{display:none}
+.luxchips button{flex:none;padding:8px 13px;border-radius:99px;background:#16171E;color:#D8D1C2;font-weight:800;font-size:12px;border:1px solid #2E2A22}
+.luxchips button.on{background:#F3EEE3;color:#14120D}.luxchips.small{padding-top:6px}.luxchips.small button{padding:6px 10px;font-size:11px}
+.luxgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px;margin-top:12px}
+.luxcard{position:relative;display:block;width:100%;text-align:left;background:#14151B;border-radius:18px;overflow:hidden;color:#F3EEE3;box-shadow:0 8px 24px rgba(14,15,20,.22);padding:0}
+.luxpic{display:block;width:100%;aspect-ratio:2.45/1;object-fit:cover;background:#1C1D24}
+.luxtile{display:grid;place-content:center;justify-items:center;gap:4px;background:radial-gradient(120% 120% at 0% 0%,var(--c1),#0E0F14 70%);text-align:center}
+.luxtile span{font-family:Georgia,serif;font-size:20px;letter-spacing:.18em;text-transform:uppercase;color:#F3EEE3}.luxtile small{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:rgba(243,238,227,.55);font-weight:800}
+.luxinfo{padding:12px 14px 14px}.luxinfo>small{color:#C9A45C;font-size:10px;letter-spacing:.14em;text-transform:uppercase;font-weight:800}
+.luxinfo b{display:block;font-family:Georgia,serif;font-weight:400;font-size:18px;margin-top:2px;line-height:1.25}
+.luxsp{display:block;color:#9C9483;font-size:12px;margin-top:3px;font-weight:700}
+.luxrow{display:flex;justify-content:space-between;align-items:center;margin-top:8px;gap:8px}.luxprice{font-weight:900;font-size:16px}
+.luxok{font-size:11px;color:#7FD6A8;font-weight:800}
+.luxown{position:absolute;top:10px;left:10px;background:#C9A45C;color:#14120D;font-size:10px;font-weight:900;letter-spacing:.1em;padding:4px 9px;border-radius:99px;text-transform:uppercase}
+.luxsum{background:#14151B;border-radius:18px;padding:14px;margin-top:12px}
+.luxempty{background:#14151B;color:#B9B2A3;border-radius:18px;padding:22px;text-align:center;margin-top:12px}
+.luxbig{display:block;width:100%;aspect-ratio:2.45/1;object-fit:cover;border-radius:16px}
+.luxcat{color:#A8853F;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:800;display:block;margin-top:12px}
+.luxmb h2{font-family:Georgia,serif;font-weight:400;margin:2px 0}.luxmprice{font-size:22px;font-weight:900;margin:2px 0 6px}.luxmprice small{font-size:12px;color:var(--muted)}
+.luxspecs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0}.luxspecs div{background:var(--surface2);border-radius:12px;padding:8px 10px}
+.luxspecs small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);font-weight:800}.luxspecs b{font-size:14px}
 .lifehead{background:linear-gradient(135deg,#FFE6EF,#FFFFFF)}
 .kidst{display:grid;grid-template-columns:repeat(auto-fit,minmax(60px,1fr));gap:6px;margin-top:8px}.kidst span{background:var(--surface2);border-radius:10px;padding:5px 8px;font-size:11px;font-weight:800;color:var(--muted);display:flex;justify-content:space-between;gap:4px}.kidst b{color:var(--ink,#25283A)}
 .btn small{display:block;font-size:12px}
@@ -3791,8 +3821,102 @@ function lifeArt(x){const a=x.art||{};const c=a.c;let inner;
  switch(x.cat){case 'home':inner=artHome(a.k,c);break;case 'car':inner=artCar(a.k,c||'#F0574A');break;case 'yacht':inner=artBoat(a.k,c);break;case 'jet':inner=artAir(a.k,c);break;case 'island':inner=artIsland(a.k);break;case 'art':inner=artArt(a.k,x.id);break;case 'jewel':inner=artJewel(a.k);break;case 'team':inner=artTeam(a.k);break;default:inner=artFun(a.k);}
  return `<svg viewBox="0 0 200 130" class="lifepic" role="img" aria-label="${esc(x.name)}" preserveAspectRatio="xMidYMid slice">${inner}</svg>`;}
 
+
+/* ===================== LUXE STORE (lifestyle) ===================== */
+// photo + name + specs for each item. Several items share a photo (same tier, different city and price).
+const LUXS={
+ condo:{img:'cottage',name:'Country Cottage, Halifax',tag:'A cozy cottage with a big porch on a quiet street.',sp:'Bedrooms:2|Bathrooms:1|Size:1,100 sq ft|Lot:0.3 acres|Extras:Wraparound porch'},
+ loft:{img:'cottage',name:'Country Cottage, Vermont',tag:'Maple trees, a fire pit and fresh air.',sp:'Bedrooms:3|Bathrooms:2|Size:1,600 sq ft|Lot:1 acre|Extras:Fire pit, workshop'},
+ house:{img:'house',name:'Modern Family Home, Toronto',tag:'Clean lines, big windows, a double garage.',sp:'Bedrooms:4|Bathrooms:3|Size:2,800 sq ft|Garage:2 cars|Extras:Home office'},
+ beachhouse:{img:'house',name:'Modern Family Home, San Diego',tag:'Ten minutes from the beach.',sp:'Bedrooms:4|Bathrooms:4|Size:3,200 sq ft|Garage:2 cars|Extras:Rooftop deck'},
+ brownstone:{img:'house',name:'Modern Family Home, Beverly Hills',tag:'Behind gates on the best street in town.',sp:'Bedrooms:5|Bathrooms:5|Size:4,500 sq ft|Garage:3 cars|Extras:Pool, gated drive'},
+ chalet:{img:'lodge',name:'Mountain Lodge, Whistler',tag:'Timber and glass in the forest, a short drive from the slopes.',sp:'Bedrooms:5|Bathrooms:5|Size:5,200 sq ft|Location:Ski-in access|Extras:Hot tub, stone fireplace'},
+ penthouse:{img:'lodge',name:'Mountain Lodge, Aspen',tag:'The best-known lodge in Aspen.',sp:'Bedrooms:6|Bathrooms:6|Size:6,800 sq ft|Location:Private road|Extras:Wine cellar, sauna'},
+ villa:{img:'villa',name:'Mediterranean Villa, Marbella',tag:'Palm trees, warm stone and endless sun.',sp:'Bedrooms:7|Bathrooms:8|Size:9,000 sq ft|Pool:Infinity pool|Extras:Olive grove'},
+ ranch:{img:'villa',name:'Mediterranean Villa, Palm Beach',tag:'Oceanfront, with a lawn down to the sand.',sp:'Bedrooms:9|Bathrooms:11|Size:16,000 sq ft|Pool:Two pools|Extras:Tennis court, beach access'},
+ castle:{img:'villa',name:'Mediterranean Villa, Lake Como',tag:'A lakeside estate with its own boat dock.',sp:'Bedrooms:10|Bathrooms:12|Size:19,000 sq ft|Pool:Lakeside pool|Extras:Boat dock, formal gardens'},
+ mansion:{img:'mansion',name:'Cliffside Mansion, Malibu',tag:'Layers of glass and pools stacked over the Pacific.',sp:'Bedrooms:8|Bathrooms:10|Size:14,000 sq ft|Pools:3|Extras:Home cinema, gym'},
+ estate:{img:'mansion',name:'Cliffside Mansion, Monaco',tag:'Above the harbour where the superyachts park.',sp:'Bedrooms:12|Bathrooms:14|Size:24,000 sq ft|Pools:4|Extras:Helipad, staff wing'},
+ skypalace:{img:'mansion',name:'Cliffside Mansion, Amalfi Coast',tag:'Carved into the cliffs with a private beach below.',sp:'Bedrooms:14|Bathrooms:16|Size:30,000 sq ft|Pools:5|Extras:Private beach, spa'},
+ chateau:{img:'mansion',name:'Cliffside Palace, Santorini',tag:'White cliffs, blue sea and a funicular down to the water.',sp:'Bedrooms:18|Bathrooms:20|Size:42,000 sq ft|Pools:6|Extras:Ballroom, cliff funicular'},
+ palace:{img:'mansion',name:'Cliffside Palace, Dubai',tag:'The most expensive home on earth.',sp:'Bedrooms:30|Bathrooms:35|Size:90,000 sq ft|Pools:8|Extras:Private marina, 40 staff'},
+ compact:{sp:'Horsepower:130|Top speed:190 km/h|0 to 100:8.9 s|Seats:5'},pickup:{sp:'Horsepower:400|Top speed:180 km/h|0 to 100:6.5 s|Seats:5'},evsedan:{sp:'Horsepower:480|Top speed:250 km/h|0 to 100:3.9 s|Range:600 km'},
+ sports:{sp:'Horsepower:500|Top speed:300 km/h|0 to 100:3.6 s|Seats:2'},luxsedan:{sp:'Horsepower:560|Top speed:250 km/h|0 to 100:4.4 s|Seats:5'},luxsuv:{sp:'Horsepower:600|Top speed:280 km/h|0 to 100:4.2 s|Seats:7'},
+ supercar:{sp:'Horsepower:760|Top speed:340 km/h|0 to 100:2.8 s|Seats:2'},roadster:{sp:'Year:1957|Horsepower:240|Top speed:220 km/h|Seats:2'},limo:{sp:'Armour:Bulletproof|Horsepower:450|Length:7 m|Seats:8'},
+ racecar:{sp:'Horsepower:900|Top speed:360 km/h|0 to 100:2.4 s|Seats:1'},hypercar:{sp:'Horsepower:1,600|Top speed:440 km/h|0 to 100:2.3 s|Seats:2'},classics:{sp:'Cars:12|Oldest:1931|Storage:Climate controlled'},garage:{sp:'Cars:10 hypercars|Garage:Underground, glass walls|Extras:Car lift, lounge'},
+ jetski:{sp:'Top speed:110 km/h|Seats:2'},speedboat:{sp:'Length:30 ft|Top speed:80 km/h|Guests:6'},sailboat:{sp:'Length:55 ft|Cabins:3|Guests:8'},catamaran:{sp:'Length:70 ft|Cabins:5|Guests:12'},
+ dayyacht:{img:'yacht1',name:'Day Yacht',tag:'Sleek, fast and perfect for a day out on the water.',sp:'Length:60 ft|Guests:10|Crew:2|Top speed:35 knots'},
+ sportyacht:{img:'yacht2',name:'Sport Yacht',tag:'Three decks of white and glass.',sp:'Length:110 ft|Guests:12|Crew:8|Top speed:28 knots'},
+ explorer:{img:'yacht3',name:'Explorer Yacht',tag:'Built to cross oceans in comfort.',sp:'Length:180 ft|Guests:16|Crew:20|Hull:Ice-class'},
+ superyacht:{img:'yacht3',name:'Superyacht',tag:'A floating mansion that glows at sunset.',sp:'Length:250 ft|Guests:20|Crew:30|Extras:Helipad, pool'},
+ megayacht:{img:'yacht4',name:'Megayacht',tag:'Your helicopter lands on the top deck.',sp:'Length:360 ft|Guests:30|Crew:50|Extras:Helipad, submarine bay'},
+ gigayacht:{img:'yacht5',name:'Gigayacht',tag:'The biggest boat in any harbour. Everyone talks about it.',sp:'Length:500 ft|Guests:50|Crew:90|Extras:2 helipads, beach club'},
+ sub:{img:'sub',sp:'Length:75 ft|Guests:6|Crew:2|Max depth:300 m'},
+ seaplane:{sp:'Range:800 mi|Seats:8|Lands on:Water'},heli:{sp:'Range:400 mi|Seats:6|Top speed:290 km/h'},
+ lightjet:{img:'jet',name:'Light Jet',tag:'Hop between cities without the airport lines.',sp:'Range:2,000 mi|Seats:7|Speed:500 mph'},
+ midjet:{img:'jet',name:'Midsize Jet',tag:'Coast to coast without stopping.',sp:'Range:3,500 mi|Seats:9|Speed:520 mph'},
+ bizjet:{img:'jet',name:'Long-Range Jet',tag:'Anywhere in the world, nonstop.',sp:'Range:7,500 mi|Seats:16|Speed:560 mph'},
+ airliner:{sp:'Range:8,000 mi|Seats:80 in luxury|Extras:Bedroom, dining room'},
+ islet:{img:'islet',name:'Tiny Island, Maldives',tag:'White sand all the way round, a private dock and a hidden villa.',sp:'Size:4 acres|Beaches:1|Homes:1 villa|Extras:Private dock'},
+ island:{img:'island',name:'Private Island, Bahamas',tag:'Your own island with villas, docks and turquoise water.',sp:'Size:20 acres|Beaches:3|Homes:6 villas|Extras:Boat house'},
+ atoll:{img:'atoll',name:'Coral Atoll, Bora Bora',tag:'Overwater bungalows around a turquoise lagoon.',sp:'Size:90 acres|Lagoon:Yes|Homes:30 bungalows|Extras:Coral reef'},
+ resort:{img:'resort',name:'Resort Island, Seychelles',tag:'A green mountain island with its own resort and lagoons.',sp:'Size:400 acres|Beaches:8|Resort:120 rooms|Extras:Mountain peak'},
+ archipelago:{img:'archipelago',name:'Private Archipelago, Fiji',tag:'A chain of jungle islands with an airstrip.',sp:'Islands:12|Beaches:40+|Extras:Airstrip, waterfalls, rainforest'},
+ painting:{img:'painting',name:'Countryside Landscape',tag:'A sunlit meadow in a hand-carved gold frame.',sp:'Painted:1880s|Medium:Oil on canvas|Size:90 × 60 cm'},
+ master:{img:'painting',name:'Old Master Landscape',tag:'From a 17th century master. Museums want it.',sp:'Painted:1660s|Medium:Oil on canvas|Size:120 × 80 cm'},
+ impression:{img:'painting',name:'Impressionist Masterwork',tag:'Soft light and a famous signature.',sp:'Painted:1890s|Medium:Oil on canvas|Size:100 × 70 cm'},
+ masterpiece:{img:'painting',name:'World-Famous Masterpiece',tag:'You have to see it in person.',sp:'Painted:1500s|Medium:Oil on panel|Insured for:Billions'},
+ bronze:{img:'bust',name:'Marble Bust',tag:'A classical portrait bust, almost 2,000 years old.',sp:'Made:2nd century|Material:Carrara marble|Height:70 cm'},
+ dino:{img:'dino',name:'Dinosaur Skeleton',tag:'A real fossil skeleton for your hallway.',sp:'Age:68 million years|Length:12 m|Complete:80%'},
+ steelwatch:{img:'dresswatch',name:'Dress Watch',tag:'Slim, simple and elegant on a leather strap.',sp:'Case:38 mm rose gold|Movement:Automatic|Strap:Leather'},
+ diverwatch:{img:'diverwatch',name:'Dive Watch',tag:'Built for the deep.',sp:'Case:41 mm steel|Water resistance:300 m|Bezel:Ceramic'},
+ goldwatch:{img:'goldwatch',name:'Gold Chronograph',tag:'Solid gold with a deep green dial.',sp:'Case:40 mm yellow gold|Feature:Chronograph|Dial:Green'},
+ icedwatch:{img:'icedwatch',sp:'Diamonds:5 carats|Case:42 mm white gold|Dial:Fully set'},
+ grandwatch:{img:'grandwatch',name:'Skeleton Grand Complication',tag:'You can see every one of its 1,000 parts move.',sp:'Parts:1,000+|Case:44 mm|Strap:Alligator leather'},
+ pendant:{img:'pendant',sp:'Stone:1 carat diamond|Chain:18k gold'},
+ bracelet:{img:'bracelet',sp:'Diamonds:8 carats|Metal:White gold'},
+ ring:{img:'ring',name:'Diamond Ring',tag:'A huge emerald-cut diamond.',sp:'Stone:5 carat emerald cut|Band:Platinum'},
+ necklace:{img:'necklace',name:'Emerald Necklace',tag:'Emeralds and diamonds in a royal collar.',sp:'Emeralds:40 carats|Diamonds:30 carats|Metal:Platinum'},
+ tiara:{img:'tiara',name:'Royal Tiara',tag:'Once worn by a queen.',sp:'Stones:Pink diamonds|Made:1860s|Metal:Rose gold'},
+ pinkdiamond:{img:'pinkdiamond',name:'Pink Diamond',tag:'One of the rarest stones on earth.',sp:'Weight:24 carats|Colour:Fancy vivid pink'},
+ space:{img:'space',sp:'Duration:1 week|Orbit:400 km up|Includes:Spacewalk'},
+ moon:{img:'space',sp:'Duration:8 days|Distance:384,000 km|Includes:Far side of the moon'},
+ balloon:{img:'balloon',sp:'Duration:3 hours|Includes:Champagne breakfast'},
+ mars:{img:'mars',sp:'Trip:7 months each way|Includes:Your own dome'},
+};
+LIFE.push(
+ {id:'icedwatch',cat:'jewel',name:'Iced-Out Watch',price:4e5,up:.0002,dr:.0006,re:.8,fame:2,vol:.012,art:{k:'gold'},desc:'Covered in diamonds. You can see it from across the room.'},
+ {id:'pendant',cat:'jewel',name:'Diamond Pendant',price:3e4,up:.0002,dr:.0005,re:.8,fame:0,vol:.01,art:{k:'ring'},desc:'A single brilliant diamond on a fine gold chain.'},
+ {id:'bracelet',cat:'jewel',name:'Tennis Bracelet',price:1.2e5,up:.0002,dr:.0006,re:.8,fame:1,vol:.012,art:{k:'necklace'},desc:'A full circle of diamonds.'},
+ {id:'sub',cat:'yacht',name:'Private Submarine',price:2.5e7,up:.002,dr:-.001,re:.8,fame:9,art:{k:'explorer'},desc:'Swim with whales from your living room.'},
+ {id:'balloon',cat:'fun',name:'Balloon Ride over Cappadocia',price:2.5e4,up:0,dr:0,re:0,fame:1,once:true,art:{k:'tour'},desc:'Float over fairy chimneys at sunrise.'},
+ {id:'mars',cat:'fun',name:'Seat on the First Mars Trip',price:1.5e9,up:0,dr:0,re:0,fame:40,once:true,art:{k:'moon'},desc:'One of the first people on Mars. Your name in the history books.'});
+LIFE.forEach(x=>{const o=LUXS[x.id];if(!o)return;if(o.name)x.name=o.name;if(o.tag)x.desc=o.tag+(x.live?` Cuts your living costs ${Math.round(x.live*100)}% everywhere.`:x.fare?` Cuts travel costs ${Math.round((1-x.fare)*100)}%${x.fast?' and every flight takes one week':''}.`:'');});
+const luxImg=x=>LUXS[x.id]&&LUXS[x.id].img?`img/lux/${LUXS[x.id].img}.webp`:null;
+const luxSpecs=x=>(LUXS[x.id]&&LUXS[x.id].sp?LUXS[x.id].sp.split('|').map(s=>s.split(':')):[]);
+function luxPic(x,cls){const u=luxImg(x);return u?`<img class="${cls||'luxpic'}" src="${u}" alt="${esc(x.name)}" loading="lazy">`:`<div class="${cls||'luxpic'} luxtile" style="--c1:${LIFE_COL[x.cat]||'#5E6A91'}"><span>${LIFE_CATS[x.cat]}</span><small>Photo coming soon</small></div>`;}
+function viewLife(){const mode=UI.luxMode||'shop',mine=lifeIds().map(LF).filter(Boolean);
+ const paid=mine.reduce((a,x)=>a+(S.life[x.id].paid||0),0),val=lifeVal();
+ const hero=`<div class="luxhero"><div class="luxbrand">BILLION BRO <span>LUXE</span></div><div class="luxsub">Homes, cars, yachts, islands and treasures</div>
+  <div class="luxstats"><div><small>Collection</small><b>${money(val)}</b></div><div><small>Fame</small><b>${fame()}</b></div><div><small>Profit bonus</small><b>+${Math.round(fameBoost()*100)}%</b></div></div>
+  <div class="luxtabs"><button class="${mode==='shop'?'on':''}" data-luxm="shop">Shop</button><button class="${mode==='mine'?'on':''}" data-luxm="mine">My collection${mine.length?` (${mine.length})`:''}</button></div></div>`;
+ if(mode==='mine'){if(!mine.length)return hero+`<div class="luxempty">Nothing here yet. Everything you buy shows up in your collection.</div>`;
+  const ch=val-paid;return hero+`<div class="luxsum"><div><small>Worth now</small><b>${money(val)}</b></div><div><small>You paid</small><b>${money(paid)}</b></div><div><small>${ch>=0?'Gain':'Loss'}</small><b class="${ch>=0?'up':'down'}">${ch>=0?'+':''}${money(ch)}</b></div></div>
+   <div class="luxgrid">${mine.sort((a,b)=>(S.life[b.id].val||b.price)-(S.life[a.id].val||a.price)).map(x=>{const o=S.life[x.id],g=(o.val||0)-(o.paid||0);return `<button class="luxcard" data-life="${x.id}">${luxPic(x)}<div class="luxinfo"><small>${LIFE_CATS[x.cat]}</small><b>${esc(x.name)}</b><div class="luxrow"><span class="luxprice">${x.once?'Done it':money(o.val)}</span>${x.once?'':`<span class="${g>=0?'up':'down'}">${g>=0?'+':''}${money(g)}</span>`}</div></div></button>`;}).join('')}</div>`;}
+ const cat=UI.lifeCat&&LIFE_CATS[UI.lifeCat]?UI.lifeCat:'all',srt=UI.lifeSort||'low';
+ let list=LIFE.filter(x=>cat==='all'||x.cat===cat);list=[...list].sort((a,b)=>srt==='high'?b.price-a.price:srt==='afford'?((S.cash>=b.price)-(S.cash>=a.price))||a.price-b.price:a.price-b.price);
+ const chips=[['all','All'],...Object.entries(LIFE_CATS)].map(([k,n])=>`<button class="${cat===k?'on':''}" data-lifecat="${k}">${n}</button>`).join('');
+ const sorts=[['low','Price: low to high'],['high','Price: high to low'],['afford','What I can afford']].map(([k,n])=>`<button class="${srt===k?'on':''}" data-lifesort="${k}">${n}</button>`).join('');
+ return hero+`<div class="luxchips">${chips}</div><div class="luxchips small">${sorts}</div>
+  <div class="luxgrid">${list.map(x=>{const o=S.life[x.id],sp=luxSpecs(x).slice(0,3).map(s=>s[1]).join(' · ');return `<button class="luxcard${o?' owned':''}" data-life="${x.id}">${luxPic(x)}${o?'<span class="luxown">Yours</span>':''}<div class="luxinfo"><small>${LIFE_CATS[x.cat]}</small><b>${esc(x.name)}</b>${sp?`<span class="luxsp">${esc(sp)}</span>`:''}<div class="luxrow"><span class="luxprice">${o?(x.once?'Done':money(o.val)):money(x.price)}</span>${!o&&S.cash>=x.price?'<span class="luxok">You can afford it</span>':''}</div></div></button>`;}).join('')}</div>`;}
+function openLife(id){const x=LF(id),o=S.life[id],sp=luxSpecs(x);
+ openModal(`<div class="luxm">${luxPic(x,'luxbig')}<div class="luxmb"><small class="luxcat">${LIFE_CATS[x.cat]}</small><h2>${esc(x.name)}</h2><div class="luxmprice">${money(o?o.val:x.price)}${o?' <small>worth now</small>':''}</div><p>${x.desc}</p>
+  ${sp.length?`<div class="luxspecs">${sp.map(([k,v])=>`<div${v.length>16||k==='Extras'||k==='Includes'?' style="grid-column:1/-1"':''}><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('')}</div>`:''}
+  <div class="luxspecs">${o?`<div><small>You paid</small><b>${money(o.paid)}</b></div>`:''}<div><small>Upkeep</small><b>${x.up?money(x.price*x.up)+'/week':'None'}</b></div><div><small>Value over time</small><b>${x.once?'No resale':x.dr>0?'Usually goes up':x.dr<0?'Goes down':'Holds steady'}</b></div><div><small>Fame</small><b>+${x.fame}</b></div></div>
+  <div class="ev-btns">${o?(x.once?'<p style="margin:0">Some things money can only buy once.</p>':`<button class="btn sun big" data-selllife="${id}">Sell for ${money(o.val*x.re)}</button>`):`<button class="btn go big" data-buylife="${id}" ${S.cash<x.price?'disabled':''}>${S.cash<x.price?`Need ${money(x.price)} in cash`:`Buy for ${money(x.price)}`}</button>`}<button class="btn" data-close>Close</button></div></div></div>`);}
+
 const LIFE_COL={home:'#12B076',car:'#F0574A',yacht:'#2BB3C9',jet:'#3D7BFF',island:'#7BC24A',art:'#8D63F2',jewel:'#C9962E',team:'#FFB21F',fun:'#FF7FB0'};
-function viewLife(){
+function viewLifeOld(){
  const head=`<div class="card" style="display:grid;gap:8px"><div class="between"><span class="label">Your lifestyle is worth</span><b style="font-family:var(--display);font-size:26px;font-weight:400">${money(lifeVal())}</b></div>
   <div class="kv"><div><span>Fame</span><b>${fame()} points</b></div><div><span>Business profit bonus</span><b class="up">+${Math.round(fameBoost()*100)}%</b></div><div><span>Living costs</span><b>${homeCut()?`${Math.round(homeCut()*100)}% lower`:'Normal'}</b></div><div><span>Travel costs</span><b>${fareCut()<1?`${Math.round((1-fareCut())*100)}% lower`:'Normal'}</b></div></div>
   <p class="muted" style="margin:0;font-size:13px">Each item costs upkeep every week. Most homes, islands and art gain value; cars, boats and jets lose it. Fame adds up to 30% to your company profits.</p></div>`;
@@ -3804,7 +3928,7 @@ function viewLife(){
  const sorts=[['low','Price: low to high'],['high','Price: high to low'],['afford','What I can afford']].map(([k,n])=>`<button class="chip ${srt===k?'on':''}" data-lifesort="${k}">${n}</button>`).join('');
  return head+own+`<div class="sec-title"><h3>Shop</h3><span class="label">${list.length} items</span></div><div class="mapchips">${chips}</div><div class="mapchips"><span class="label" style="align-self:center;flex:none">Sort</span>${sorts}</div>
   <div class="lgrid">${list.map(x=>{const o=S.life[x.id];return `<button class="lcard${o?' owned':''}" data-life="${x.id}">${lifeArt(x)}<span class="lb"><b>${x.name}</b><span class="lp">${o?(x.once?'Done':money(o.val)):money(x.price)}</span><small>${o?'<span class="badge2 b-mine">Yours</span> ':''}${LIFE_CATS[x.cat]} · Fame +${x.fame}</small></span></button>`;}).join('')}</div>`;}
-function openLife(id){const x=LF(id),o=S.life[id];
+function openLifeOld(id){const x=LF(id),o=S.life[id];
  openModal(`<div class="lifebig">${lifeArt(x)}</div><span class="evtag t-info">${LIFE_CATS[x.cat]}</span><h2>${x.name}</h2><p>${x.desc}</p>
   <div class="recap"><div><span>${o?'Worth now':'Price'}</span><b>${money(o?o.val:x.price)}</b></div>${o?`<div><span>You paid</span><b>${money(o.paid)}</b></div>`:''}<div><span>Upkeep</span><b class="down">${x.up?money(x.price*x.up)+'/week':'None'}</b></div><div><span>Value over time</span><b class="${x.dr>0?'up':x.dr<0?'down':''}">${x.once?'No resale':x.dr>0?'Usually goes up':x.dr<0?'Goes down':'Holds steady'}</b></div><div><span>Fame</span><b>+${x.fame} points</b></div>${o&&!x.once?`<div><span>Sell it for</span><b>${money(o.val*x.re)}</b></div>`:''}</div>
   <div class="ev-btns">${o?(x.once?'<p style="margin:0">Some things money can only buy once.</p>':`<button class="btn sun big" data-selllife="${id}">Sell for ${money(o.val*x.re)}</button>`):`<button class="btn go big" data-buylife="${id}" ${S.cash<x.price?'disabled':''}>${S.cash<x.price?`Need ${money(x.price)} in cash`:`Buy for ${money(x.price)}`}</button>`}<button class="btn" data-close>Close</button></div>`);}
@@ -4013,6 +4137,7 @@ document.addEventListener('click',e=>{
  else if(d.filter){UI.filter=d.filter;renderGame();}
  else if(d.sort){setSort(d.sort);renderGame();}
  else if(d.lifecat){UI.lifeCat=d.lifecat;renderGame();}
+ else if(d.luxm){UI.luxMode=d.luxm;renderGame();}
  else if(d.lifesort){UI.lifeSort=d.lifesort;renderGame();}
  else if(d.deals){UI.deals=d.deals;renderGame();}
  else if(d.prod)openTrade(d.prod,'buy',d.back);
