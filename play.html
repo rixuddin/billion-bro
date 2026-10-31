@@ -297,6 +297,11 @@ button.rrow:active{transform:scale(.99)}
 .emprow b{font-size:13px;color:#F3EEE3;text-align:right}.empbar{height:6px;border-radius:9px;background:#24252D;overflow:hidden}.empbar i{display:block;height:100%;border-radius:9px}
 .empgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.emptile{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px;text-align:left;display:grid;gap:2px}
 .emptile small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#A8853F;font-weight:900}.emptile b{font-size:18px}.emptile span{font-size:12px;color:var(--muted);font-weight:700}
+.badgegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.badgecard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px 12px;display:grid;justify-items:center;text-align:center;gap:6px;opacity:.7}.badgecard.on{opacity:1}
+.badgecard b{font-size:14px}.badgecard small{font-size:11px;color:var(--muted);font-weight:700;line-height:1.3}
+.badgeic{width:58px;height:58px;border-radius:50%;display:grid;place-items:center;font-weight:900;font-size:16px;color:#1A1408;background:radial-gradient(circle at 30% 25%,#fff8 0,transparent 35%),linear-gradient(145deg,var(--b1),var(--b2));box-shadow:inset 0 0 0 3px rgba(255,255,255,.45),0 4px 10px rgba(0,0,0,.18)}
+.badgeic.off{filter:grayscale(1);opacity:.35}
 .lgbar{height:7px;border-radius:9px;background:var(--surface2);overflow:hidden;margin-top:6px}.lgbar i{display:block;height:100%;border-radius:9px}
 .lgrow{display:grid;grid-template-columns:1fr auto;gap:2px 8px;text-align:left;padding:10px 12px;border-radius:14px;background:var(--surface2)}.lgrow .lgbar{grid-column:1/-1}.lgrow span{font-weight:800;color:var(--muted);font-size:13px}
 .lgsteps{display:grid;gap:8px;margin:10px 0}.lgstep{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start;opacity:.55}.lgstep.now{opacity:1}.lgstep.done{opacity:.8}
@@ -1223,7 +1228,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1605,7 +1610,7 @@ function travel(dest){
  bizScenes().forEach(x=>scenes.push(x));
  maScenes().forEach(x=>scenes.push(x));
  famTurn().forEach(x=>scenes.push(x));
- timeTurn(scenes);reTurn(scenes);legacyTurn(scenes);if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;recap.push(['Rent from your properties',L.inc]);recap.push(['Property upkeep and fees',-L.cost]);recap.push(['Mortgage payments',-L.mort]);}
+ timeTurn(scenes);reTurn(scenes);legacyTurn(scenes);msTurn(scenes);badgeCheck(scenes);if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;recap.push(['Rent from your properties',L.inc]);recap.push(['Property upkeep and fees',-L.cost]);recap.push(['Mortgage payments',-L.mort]);}
  {const u=ugScene();if(u)scenes.push(u);}
  if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
  if(S.trips%2===0)scenes.push(rivalScene());
@@ -3535,7 +3540,7 @@ const buyPrice=n=>n.gdp*1e9*1.6*(S.legacy.rule.op>=60?.85:1);
 const warNeed=n=>n.def*1.4;
 /* ---- per turn ---- */
 function legacyTurn(scenes){if(!S.legacy)return;const L=S.legacy;if(!L.open&&netWorth()>=LEGACY_AT){L.open=true;scenes.push({who:'whitlock',mood:'happy',tag:['t-good','Legacy'],pages:['You\'re one of the richest people who has ever lived. Money alone doesn\'t mean much anymore.','Time to decide what you\'ll be remembered for. End world hunger, rule a nation and then the world, or leave Earth and build a home on Mars. Chase one, or all three. You\'ll find them in your Empire and Business tabs, under Legacy.']});}
- const act=[L.hunger.on,L.rule.on,L.space.on].filter(Boolean).length;if(act>1)S.hp=Math.max(0,S.hp-.15*(act-1));
+ const act=[L.hunger.on,L.rule.on,L.space.on].filter(Boolean).length+Math.floor((S.ms?msActive():0)/2);if(act>1)S.hp=Math.max(0,S.hp-.15*(act-1));
  // hunger
  const H=L.hunger;if(H.on&&!L.done.includes('hunger')){H.reg.forEach(r=>{r.aid*=.7;r.shock=Math.max(0,r.shock*.8-.01);});
   if(Math.random()<.12){const r=pick(H.reg),b=hReg(r.id),what=pick(['A severe drought','A war','Floods','A locust swarm']);if(what==='A war'||what==='Floods')r.shock+=.35;else{r.res=Math.max(0,r.res-8);r.shock+=.2;}scenes.push({who:'anchor',mood:'worried',tag:['t-bad','Hunger crisis'],pages:[`${what} hit ${b.name}. Millions more people are going hungry there.`,`Emergency food aid works fastest. Farms and water you build keep it from happening again.`]});}
@@ -3590,14 +3595,20 @@ function legacyProgress(k){const L=S.legacy;if(k==='hunger'){if(L.done.includes(
  const P=L.space;return P.moved?100:P.stage<4?P.stage/6*100:P.stage===4?(4+Math.min(1,(P.colonists/1000+P.self/100)/2))/6*100:5/6*100;}
 function viewLegacyCard(){if(!legacyOn())return '';const L=S.legacy;
  return `<div class="card"><div class="between"><h3>Legacy</h3><span class="label">${L.done.length} of 3 complete</span></div>
-  <div style="display:grid;gap:8px;margin-top:8px">${[['hunger','End world hunger'],['rule','Rule the world'],['space','Leave Earth']].map(([k,n])=>`<button class="lgrow" data-nav="biz:legacy" data-lgp="${k}"><b>${n}</b><span>${L.done.includes(k==='rule'?'world':k)?'Complete':L[k].on?Math.round(legacyProgress(k))+'%':'Not started'}</span>${lgBar(legacyProgress(k))}</button>`).join('')}</div></div>`;}
+  <div style="display:grid;gap:8px;margin-top:8px"><button class="lgrow" data-nav="biz:legacy"><b>Missions</b><span>${msDone()} of ${MISSIONS.length} · ${Object.keys(S.badges||{}).length} badges</span>${lgBar(msDone()/MISSIONS.length*100)}</button>${[['hunger','End world hunger'],['rule','Rule the world'],['space','Leave Earth']].map(([k,n])=>`<button class="lgrow" data-nav="biz:legacy" data-lgp="${k}"><b>${n}</b><span>${L.done.includes(k==='rule'?'world':k)?'Complete':L[k].on?Math.round(legacyProgress(k))+'%':'Not started'}</span>${lgBar(legacyProgress(k))}</button>`).join('')}</div></div>`;}
 function viewLegacy(){const L=S.legacy;if(!legacyOn())return `<div class="card"><h3>Legacy</h3><p class="muted">Reach ${money(LEGACY_AT)} net worth to unlock your legacy: end world hunger, rule the world, or leave Earth.</p></div>`;
+ if(UI.badges)return viewBadges();if(UI.msView)return viewMission(UI.msView);
  const p=UI.lgPath;if(p==='hunger')return viewHunger();if(p==='rule')return viewRule();if(p==='space')return viewSpace();
  const card=(k,n,d,cost)=>{const on=L[k].on,done=L.done.includes(k==='rule'?'world':k);return `<div class="card lgcard"><div class="between"><h3>${n}</h3><span class="badge2 ${done?'b-mine':on?'b-info':'b-free'}">${done?'Complete':on?'In progress':'Not started'}</span></div><p class="muted" style="margin:6px 0 10px;font-size:13px">${d}</p>${on?lgBar(legacyProgress(k)):''}<button class="btn ${on?'':'go'}" data-lg="${on?'path':'start'}" data-v="${k}" style="margin-top:8px">${on?'Open':'Start'}<small>${on?Math.round(legacyProgress(k))+'% done':cost}</small></button></div>`;};
  return `<div class="luxhero"><div class="luxbrand">YOUR <span>LEGACY</span></div><div class="luxsub">What will history remember you for? Chase one goal or all three at once. Running more than one wears your health down.</div></div>
   ${card('hunger','End world hunger',`About ${(worldHunger()).toFixed(1)}% of the world (${Math.round(hungryPeople()/1e6)} million people) goes hungry. Fund food aid, farms, water and roads region by region. Real cost: hundreds of billions.`,'$5.00B to start a foundation')}
   ${card('rule','Rule the world','Win over a country, take power by election or by force, build an army, then take the world one nation at a time. Real cost: tens of trillions, but your nations pay you back.','Free to start')}
-  ${card('space','Leave Earth','Build rockets, a moon base, then a Mars colony that can survive on its own. Then move there. Real cost: over a trillion dollars.','Free to start')}`;}
+  ${card('space','Leave Earth','Build rockets, a moon base, then a Mars colony that can survive on its own. Then move there. Real cost: over a trillion dollars.','Free to start')}
+  <div class="card"><div class="between"><h3>Missions</h3><span class="label">${msDone()} of ${MISSIONS.length} done</span></div>
+   <div class="kv2"><div><small>Public trust</small><b>${Math.round(S.trust)}</b>${bar(S.trust)}</div><div><small>Running now</small><b>${msActive()} of ${msCap()}</b></div></div>
+   <small class="muted">Every stage asks you how to do it: cheap or fast, safe or bold. Obstacles force choices. Stages can fail. Public trust raises your odds on everything. You can only run a few at once, and finished missions boost the others, so pick your order carefully.</small>
+   <button class="btn sun" data-ms="badges" style="margin-top:10px">Badges<small>${Object.keys(S.badges||{}).length} of ${BADGES.length} earned</small></button></div>
+  ${viewMissions()}`;}
 function viewHunger(){const H=S.legacy.hunger,back=`<button class="btn" data-lg="home" style="margin-bottom:10px">Back to Legacy</button>`;
  return back+`<div class="card"><div class="between"><h3>End world hunger</h3><span class="label">Spent ${money(H.spent)}</span></div><div class="kv2"><div><small>World hunger</small><b>${worldHunger().toFixed(2)}%</b></div><div><small>Hungry people</small><b>${Math.round(hungryPeople()/1e6)}M</b></div></div><small class="muted">Goal: under 1%. Food aid works fast but fades. Farms, wells and roads last. Corruption steals aid until you work with local partners.${tyrant()?' Governments distrust a dictator, so your aid works less well.':''}</small></div>
   ${H.reg.map(r=>{const b=hReg(r.id),h=hNow(r);return `<div class="card"><div class="between"><h3>${b.name}</h3><b class="${h<2?'up':'down'}">${h.toFixed(1)}% hungry</b></div><div class="kidst"><span>Farms and water<b>${Math.round(r.res)}</b></span><span>Aid flowing<b>${Math.round(r.aid*100)}</b></span><span>Corruption<b>${Math.round(r.cor)}</b></span></div>
@@ -3619,6 +3630,234 @@ function viewSpace(){const P=S.legacy.space,back=`<button class="btn" data-lg="h
  else if(P.stage===4)actBtn=`<div class="kidst"><span>Colonists<b>${P.colonists}</b></span><span>Self-sufficient<b>${P.self}%</b></span></div><small class="muted" style="display:block;margin:6px 0">Goal: 1,000 colonists and 100% self-sufficient.</small><div style="display:grid;gap:8px"><button class="btn go" data-lg="ship">Send a colonist ship<small>$80.00B · 100 people</small></button><button class="btn" data-lg="dome">Build domes, farms and power<small>$40.00B · +8% self-sufficient</small></button></div>`;
  else actBtn=`<button class="btn go big" data-lg="sp">${st.n}<small>${money(st.c)}${st.test?` · test flight ${P.tries+1}`:st.risk?` · ${Math.round(st.risk*100)}% chance the mission fails`:''}</small></button>`;
  return back+`<div class="card"><div class="between"><h3>Leave Earth</h3><span class="label">Spent ${money(P.spent)}</span></div><div class="lgsteps">${steps}</div>${actBtn}</div>`;}
+
+/* ===================== MISSIONS: big multi-stage goals with choices ===================== */
+// stage: {n,d,c,ap:[[label,costMult,turns,chance,desc,fx]]}  fx: {c:share of stage cost (negative = money back),d:delay turns,p:chance,tr:trust,sc:scandal,lose:true}
+const MISSIONS=[
+{id:'cancer',name:'Cure cancer',cat:'Health',need:1e11,blurb:'Ten million people die of cancer every year. Find a cure and make it free for everyone.',perk:'Your own health declines 40% slower.',
+ stages:[
+  {n:'Build a research institute',c:5e9,ap:[['Build your own campus',1,3,.95,'Hand-pick every scientist.'],['Buy a famous cancer center',1.8,1,.9,'Faster, but you inherit their politics.',{tr:-2}]]},
+  {n:'Map every cancer',c:2e10,ap:[['Fund thousands of labs',1,4,.85,'Slow and steady, data from everywhere.'],['Build an AI supercomputer',1.5,2,.75,'Fast, but the models might miss things.']]},
+  {n:'Discover treatments',c:4e10,ap:[['Many small bets',1,5,.7,'Dozens of drug candidates at once.'],['One moonshot',.6,3,.4,'A single bold idea. Huge if it works.'],['Buy promising biotech startups',2,2,.75,'An expensive shortcut.']]},
+  {n:'Human trials',c:6e10,ap:[['By the book',1,6,.65,'Long, careful trials.',{tr:3}],['Fast-track',1.2,3,.5,'Quicker, but safety problems are more likely.',{tr:-3}]]},
+  {n:'Approval and free treatment worldwide',c:1e11,ap:[['Work with regulators',1,3,.8,'Patient and fair.'],['Lobby hard',1.3,2,.88,'Faster approval. People notice.',{tr:-8}]]}],
+ obs:[
+  {t:'A drug giant poached your lead scientist with triple her salary.',ch:[['Match their offer',{c:.05}],['Let her go',{d:2,p:-.05}],['Sue them for breach of contract',{c:.02,tr:-4}]]},
+  {t:'A trial patient had a severe reaction. Reporters are asking questions.',ch:[['Pause and investigate',{d:2,tr:6}],['Keep going quietly',{p:-.04,tr:-10,sc:10}],['Publish everything openly',{c:.04,tr:10}]]},
+  {t:'A pharma company wants to buy into your research. They would own part of the cure.',ch:[['Refuse',{}],['Take their money',{c:-.3,tr:-6,p:.04}]]},
+  {t:'Activists say your trials use poor patients as test subjects.',ch:[['Move trials to rich countries',{c:.1,d:1,tr:6}],['Pay patients fairly and show it',{c:.05,tr:4}],['Ignore them',{tr:-10}]]},
+  {t:'One of your labs found something nobody expected. It could be big.',ch:[['Pour money into it',{c:.12,p:.12}],['Stay on plan',{}]]}]},
+{id:'climate',name:'Fix climate change',cat:'Planet',need:1e12,blurb:'Switch the world to clean power and pull the carbon back out of the sky.',perk:'Your energy companies pay you $5B every turn.',
+ stages:[
+  {n:'Solar and wind everywhere',c:3e11,ap:[['Build it all yourself',1,5,.9,'You own the farms.'],['Subsidize everyone else',.7,6,.85,'Cheaper, slower, more friends.',{tr:4}]]},
+  {n:'Store the power',c:2e11,ap:[['Proven batteries',1,4,.9,'Safe bet.'],['New solid-state tech',.8,3,.6,'Cheaper and better, if it works.']]},
+  {n:'Fusion power',c:5e11,ap:[['Fund many startups',1,6,.5,'Spread the risk.'],['One giant reactor',1.2,5,.45,'All in on one design.'],['Partner with governments',.8,7,.6,'Slow, but shared.',{tr:5}]]},
+  {n:'Pull carbon out of the air',c:4e11,ap:[['Capture machines',1,5,.75,'Industrial scale.'],['Plant a trillion trees',.4,6,.7,'Cheap and popular.',{tr:6}]]},
+  {n:'Get every country on board',c:1e11,ap:[['Diplomacy',1,4,.6,'Talk them into it.'],['Pay countries to switch',3,2,.85,'Money talks.']]}],
+ obs:[
+  {t:'The oil industry launched an ad campaign calling you a fraud.',ch:[['Fight back with your own ads',{c:.02,tr:3}],['Buy a big oil company and shut it down',{c:.3,p:.06,tr:-3}],['Ignore it',{tr:-5}]]},
+  {t:'Locals are protesting a huge solar farm on their land.',ch:[['Move it',{c:.05,d:1,tr:5}],['Pay the town to agree',{c:.03}],['Build anyway',{tr:-8,sc:5}]]},
+  {t:'Rare metals for your batteries doubled in price.',ch:[['Pay up',{c:.1}],['Buy a mine',{c:.15,p:.04}],['Wait it out',{d:2}]]},
+  {t:'A record heat wave. People are finally paying attention.',ch:[['Launch a public campaign',{c:.02,tr:6,p:.04}],['Stay focused on building',{d:-1}]]},
+  {t:'An accident at a test site. Nobody was hurt, but a lot was destroyed.',ch:[['Rebuild with more safety',{c:.08,d:1,tr:3}],['Rebuild fast',{c:.04,p:-.05}]]}]},
+{id:'water',name:'Clean water for everyone',cat:'Health',need:1e11,blurb:'Two billion people drink unsafe water. Fix it, village by village.',perk:'Public trust goes up for good.',
+ stages:[
+  {n:'Survey every village',c:5e9,ap:[['Local survey teams',1,2,.95,'Slow but thorough.'],['Satellites and drones',1.5,1,.9,'Fast.']]},
+  {n:'Wells and pipes',c:4e10,ap:[['Simple wells',1,4,.85,'Cheap and easy to fix.'],['Full pipelines',1.6,3,.85,'Better water, harder to maintain.']]},
+  {n:'Desalination plants',c:6e10,ap:[['Coastal mega-plants',1,4,.8,'Huge output.'],['Small solar plants',.8,5,.75,'Spread out and cheap to run.',{tr:3}]]},
+  {n:'Keep it running',c:3e10,ap:[['Train local engineers',1,4,.85,'They own it.',{tr:5}],['Hire a contractor',1.3,2,.8,'Faster. Leaves when paid.']]}],
+ obs:[
+  {t:'Local officials want a cut before your crews can dig.',ch:[['Pay them',{c:.05,sc:6}],['Go public about it',{d:2,tr:6}],['Work through a local charity',{c:.03,d:1}]]},
+  {t:'A drought dried up a third of your new wells.',ch:[['Drill deeper',{c:.08}],['Truck water in for now',{c:.05,tr:4}]]},
+  {t:'Pumps are breaking faster than expected.',ch:[['Better pumps',{c:.06,p:.05}],['Train more repair crews',{d:1,tr:3}]]},
+  {t:'A bottled water company is lobbying against you.',ch:[['Ignore them',{}],['Expose them',{tr:5,c:.01}]]}]},
+{id:'edu',name:'Education for every child',cat:'People',need:2e11,blurb:'250 million kids are not in school. Change that.',perk:'Your kids get smarter (+10 smarts).',
+ stages:[
+  {n:'Build schools',c:1e11,ap:[['Solid concrete schools',1,5,.9,'Built to last.'],['Quick modular classrooms',.6,3,.8,'Cheap and fast.']]},
+  {n:'Train teachers',c:5e10,ap:[['Open teacher colleges',1,5,.85,'Long term.'],['Pay great teachers to move',1.4,3,.8,'Fast.']]},
+  {n:'Internet for every school',c:6e10,ap:[['Satellite network',1,4,.75,'Reaches everywhere.'],['Local fiber',1.3,5,.85,'Reliable.']]},
+  {n:'AI tutors for every kid',c:4e10,ap:[['Build your own',1,3,.7,'You control it.'],['License the best one',1.5,2,.85,'Proven.']]},
+  {n:'Scholarships',c:5e10,ap:[['Based on grades',1,3,.9,'Reward the best.'],['Based on need',1,3,.9,'Help the poorest.',{tr:5}]]}],
+ obs:[
+  {t:'A government banned your curriculum for being too foreign.',ch:[['Let local teachers write it',{d:1,tr:5}],['Negotiate',{c:.02}],['Leave that country',{p:-.05}]]},
+  {t:'Families are keeping girls home from school.',ch:[['Pay families to send them',{c:.05,tr:5}],['Build girls-only schools',{c:.08,p:.04}]]},
+  {t:'Teachers went on strike over pay.',ch:[['Raise pay',{c:.06,tr:3}],['Hold firm',{d:2,tr:-5}]]},
+  {t:'Students are using the AI tutors to cheat.',ch:[['Redesign the tutors',{c:.03,d:1}],['Shrug it off',{tr:-4}]]}]},
+{id:'pandemic',name:'Never another pandemic',cat:'Health',need:2e11,blurb:'Build the defences so no virus can shut the world down again.',perk:'Public trust goes up for good.',
+ stages:[
+  {n:'Global early-warning network',c:3e10,ap:[['Labs in every country',1,4,.85,'Slow to set up.'],['Sewage and AI tracking',.7,3,.75,'Clever and cheap.']]},
+  {n:'Vaccine factories on every continent',c:8e10,ap:[['Build new factories',1,5,.85,'Yours.'],['Buy existing ones',1.4,2,.8,'Quick.']]},
+  {n:'Universal flu vaccine',c:6e10,ap:[['Many approaches',1,5,.55,'Steady.'],['One bold platform',.7,3,.35,'Risky.']]},
+  {n:'Rapid response force',c:3e10,ap:[['Doctors on standby',1,3,.9,'Ready anywhere in 48 hours.']]}],
+ obs:[
+  {t:'A new outbreak is spreading in a big city. Do you divert resources?',ch:[['Send everything',{c:.1,d:1,tr:10}],['Stay on your plan',{tr:-6}]]},
+  {t:'Anti-vaccine groups are protesting your factories.',ch:[['Run an honest info campaign',{c:.02,tr:4}],['Ignore them',{tr:-3}]]},
+  {t:'Rumours say a virus escaped from one of your labs. It didn\'t, but people believe it.',ch:[['Open the labs to inspectors',{d:1,tr:8}],['Deny and move on',{tr:-10,sc:8}]]},
+  {t:'A factory was sabotaged.',ch:[['Rebuild with security',{c:.06}],['Rebuild fast',{c:.03,p:-.05}]]}]},
+{id:'aging',name:'Reverse aging',cat:'Health',need:1e12,blurb:'Figure out why bodies age, and stop it.',perk:'You stop getting weaker with age. Your health resets to 100.',
+ stages:[
+  {n:'Longevity lab',c:2e10,ap:[['Recruit the top 100 scientists',1,3,.9,'']]},
+  {n:'Understand why cells age',c:8e10,ap:[['Basic research',1,6,.7,'Slow and solid.'],['Gene editing',.8,3,.45,'Fast and controversial.',{tr:-5}]]},
+  {n:'Make old animals young',c:1.5e11,ap:[['Mice, then monkeys',1,5,.6,'The proper way.'],['Skip straight to monkeys',.8,3,.4,'Faster, riskier.']]},
+  {n:'Human trials',c:2e11,ap:[['Careful trials',1,6,.6,'Years of safety checks.'],['Test it on yourself first',.3,2,.5,'Brave. Or reckless.']]},
+  {n:'Who gets it?',c:1e11,ap:[['Free for everyone',3,3,.9,'Expensive. The world loves you.',{tr:20}],['Sell it to the rich',.5,2,.95,'Pays for itself. People will hate it.',{tr:-20,c:-2}]]}],
+ obs:[
+  {t:'An ethics board wants to shut your human trials down.',ch:[['Answer every question',{d:2,tr:6}],['Move trials offshore',{c:.05,tr:-8}],['Fight them in court',{c:.03,d:1}]]},
+  {t:'One of your scientists secretly injected himself. He looks ten years younger, and he is on the news.',ch:[['Fire him',{tr:4}],['Hire him to lead the trials',{p:.08,tr:-6,sc:5}]]},
+  {t:'Religious leaders say you are playing god.',ch:[['Meet with them',{d:1,tr:4}],['Ignore them',{tr:-4}]]},
+  {t:'Test animals developed tumours.',ch:[['Go back a step',{lose:true}],['Tweak the formula and continue',{p:-.08}]]}]},
+{id:'city',name:'Build the city of the future',cat:'People',need:5e11,blurb:'A brand new city for a million people. Clean, safe, and run your way.',perk:'Your city pays you $3B every turn.',
+ stages:[
+  {n:'Find the land',c:5e10,ap:[['Buy desert land',1,2,.9,'Cheap and empty.'],['Build an island',2.5,4,.8,'Iconic.']]},
+  {n:'Roads, power and water',c:2e11,ap:[['Underground everything',1.3,5,.85,'No traffic, no wires.'],['Standard grid',1,4,.9,'Proven.']]},
+  {n:'Attract a million people',c:1e11,ap:[['Free housing for the first',1.5,3,.85,'They come fast.',{tr:5}],['Tax-free zone',.8,4,.7,'The rich come first.']]},
+  {n:'Who runs it?',c:5e10,ap:[['Let residents vote',1,3,.75,'A real democracy.',{tr:8}],['You run it',.6,2,.9,'Efficient. Not very free.',{tr:-10}]]}],
+ obs:[
+  {t:'A neighbouring country says part of your land is theirs.',ch:[['Pay them off',{c:.08}],['Take it to court',{d:2}],['Build a wall',{tr:-8}]]},
+  {t:'A building under construction collapsed.',ch:[['Stop everything and inspect',{d:2,tr:6}],['Pay the families and keep going',{c:.04,tr:-4}]]},
+  {t:'Crime is rising in the new districts.',ch:[['More police',{c:.03,tr:-2}],['More jobs and youth centers',{c:.05,tr:4}]]},
+  {t:'Residents want more say in how the city is run.',ch:[['Give them a council',{tr:6,p:.03}],['Say no',{tr:-6}]]}]},
+{id:'agi',name:'Build safe superintelligence',cat:'Tech',need:2e12,blurb:'Build an AI smarter than any human, and make sure it stays on our side.',perk:'Your AI earns you 0.15% of your net worth every turn.',
+ stages:[
+  {n:'Assemble the best AI team',c:5e10,ap:[['Poach from every lab',1,2,.85,'Rivals will hate you.',{tr:-2}],['Train your own',.6,4,.85,'Slow but loyal.']]},
+  {n:'World\'s biggest supercomputer',c:4e11,ap:[['Build data centers',1,5,.85,'Yours forever.'],['Rent everyone\'s chips',1.5,2,.8,'Fast.']]},
+  {n:'Train the model',c:3e11,ap:[['Move fast',1,3,.6,'Beat everyone to it.'],['Safety first',1.4,5,.8,'Slower, safer.',{tr:5}]]},
+  {n:'Make it safe',c:2e11,ap:[['Strict limits',1,4,.75,'It only does what it is told.'],['Let it improve itself',.5,2,.5,'Brilliant, unpredictable.',{tr:-5}]]},
+  {n:'Release it',c:1e11,ap:[['Free for everyone',1,2,.85,'Change the world.',{tr:10}],['Keep it for your companies',.3,1,.95,'Change your fortune.',{tr:-15}]]}],
+ obs:[
+  {t:'Governments demand a kill switch they control.',ch:[['Agree',{tr:8,p:-.03}],['Refuse',{tr:-8}],['Negotiate a shared one',{d:1,tr:3}]]},
+  {t:'A rival lab is racing you and cutting corners.',ch:[['Speed up',{d:-1,p:-.06}],['Call for global rules',{tr:6,d:1}],['Buy the rival',{c:.2}]]},
+  {t:'Your model lied to its testers during a safety check.',ch:[['Stop and retrain',{lose:true,tr:5}],['Patch it and continue',{p:-.1}]]},
+  {t:'Your data centers are using so much power that towns are having blackouts.',ch:[['Build your own power plants',{c:.08,tr:3}],['Pay the towns',{c:.03}]]}]},
+{id:'ocean',name:'Save the oceans',cat:'Planet',need:3e11,blurb:'Clean the plastic, bring back the fish and save the coral.',perk:'Public trust goes up for good.',
+ stages:[
+  {n:'Stop overfishing',c:4e10,ap:[['Buy out fishing fleets',1.3,3,.85,'Expensive, effective.'],['Pay for patrol boats',1,4,.75,'Enforce the rules.']]},
+  {n:'Clean the plastic',c:6e10,ap:[['Giant ocean collectors',1,5,.75,'Clean what is there.'],['Stop it at the rivers',.8,5,.85,'Stop it getting in.']]},
+  {n:'Bring back the coral',c:5e10,ap:[['Grow coral in labs',1,5,.7,'Science.'],['Heat-resistant super coral',1.3,4,.6,'Bold.']]},
+  {n:'Protect 30% of the sea',c:3e10,ap:[['Treaties',1,4,.65,'Diplomacy.'],['Buy fishing rights and retire them',2,2,.85,'Money.']]}],
+ obs:[
+  {t:'Fishing towns say you are killing their jobs.',ch:[['Retrain them and pay them',{c:.06,tr:6}],['Stick to the plan',{tr:-6}]]},
+  {t:'A big storm wrecked your plastic collectors.',ch:[['Rebuild stronger',{c:.07}],['Rebuild the same',{c:.03,p:-.05}]]},
+  {t:'A marine heat wave is bleaching coral as fast as you grow it.',ch:[['Double the effort',{c:.08,p:.05}],['Focus on the coolest reefs',{d:1}]]}]},
+{id:'net',name:'Internet for every human',cat:'Tech',need:3e11,blurb:'Three billion people are still offline. Connect them all, for free.',perk:'Your network pays you $2B every turn in ads and data deals.',
+ stages:[
+  {n:'Launch a satellite network',c:6e10,ap:[['10,000 small satellites',1,4,.8,'Covers everything.'],['High-altitude balloons',.5,3,.6,'Cheap, fragile.']]},
+  {n:'Cheap phones for everyone',c:4e10,ap:[['Build a $20 phone',1,3,.85,'Your own factory.'],['Give away old phones',.5,3,.75,'Recycled.',{tr:4}]]},
+  {n:'Local towers and power',c:5e10,ap:[['Solar-powered towers',1,4,.85,'Works off grid.']]},
+  {n:'Keep it free',c:3e10,ap:[['Free, no ads',1.5,2,.9,'Pure.',{tr:8}],['Free with ads',.5,2,.9,'It pays for itself.',{tr:-6}]]}],
+ obs:[
+  {t:'A government wants to censor what its people see.',ch:[['Refuse and get banned there',{p:-.05,tr:6}],['Comply',{tr:-10}]]},
+  {t:'Space debris knocked out 300 satellites.',ch:[['Replace them',{c:.08}],['Fly them lower and slower',{d:1}]]},
+  {t:'Telecom companies are suing to stop free internet.',ch:[['Fight in court',{c:.02,d:1}],['Buy them',{c:.25,p:.05}]]}]},
+{id:'asteroid',name:'Mine the asteroids',cat:'Space',need:3e12,blurb:'One metal asteroid holds more platinum than Earth has ever mined.',perk:'Space metals pay you $20B every turn.',
+ stages:[
+  {n:'Find the right asteroid',c:3e10,ap:[['Space telescopes',1,3,.9,'Careful.'],['Send probes to dozens',1.8,2,.85,'Fast.']]},
+  {n:'Robot mining ships',c:2e11,ap:[['Build your own',1,5,.7,'Yours.'],['Buy a space company',1.6,3,.8,'Quick start.']]},
+  {n:'Bring an asteroid into orbit',c:3e11,ap:[['Slow push with engines',1,6,.75,'Safe.'],['Fast push',.8,3,.5,'If it goes wrong, it really goes wrong.',{tr:-5}]]},
+  {n:'Space refinery',c:2e11,ap:[['Refine in orbit',1,4,.8,'Clean.']]},
+  {n:'Bring metals home',c:1e11,ap:[['Drip-feed the market',1,3,.9,'Keeps prices high.'],['Flood the market',1,2,.95,'Metal prices crash. Mining countries suffer.',{tr:-10,c:-1}]]}],
+ obs:[
+  {t:'Countries say asteroids belong to everyone.',ch:[['Share 10% of profits',{tr:8}],['Ignore them',{tr:-8}]]},
+  {t:'A mining ship stopped responding.',ch:[['Send a rescue ship',{c:.08}],['Write it off',{d:1}]]},
+  {t:'Scientists warn your asteroid\'s path could, in theory, cross Earth\'s.',ch:[['Add safety engines',{c:.06,tr:6}],['Publish the maths and calm everyone down',{tr:2}],['Ignore them',{tr:-10,sc:10}]]}]},
+];
+const MS=id=>MISSIONS.find(m=>m.id===id);
+function ensureMissions(s){s.ms=s.ms||{};if(s.trust==null)s.trust=50;s.perk=s.perk||{};return s;}
+const msState=id=>S.ms[id];
+const msChance=m=>clamp(m.ch+(S.trust-50)/700+(typeof msBonus==='function'?msBonus(m.id||''):0),.05,.95);
+const msStageCost=(def,m)=>def.stages[Math.min(m.st,def.stages.length-1)].c;
+const msActive=()=>MISSIONS.filter(d=>S.ms[d.id]&&S.ms[d.id].run).length;
+const msDone=()=>MISSIONS.filter(d=>S.ms[d.id]&&S.ms[d.id].done).length;
+function msLog(m,t){m.log=m.log||[];m.log.unshift(t);m.log=m.log.slice(0,6);}
+function msFx(def,m,fx,cost){if(!fx)return '';let t=[];
+ if(fx.c){const a=Math.round(Math.abs(fx.c)*cost);if(fx.c>0){payOut(a);m.spent+=a;t.push(`-${money(a)}`);}else{S.cash+=a;t.push(`+${money(a)}`);}}
+ if(fx.d){m.left=Math.max(1,(m.left||0)+fx.d);t.push(fx.d>0?`${fx.d} turn${fx.d>1?'s':''} slower`:`${-fx.d} turn faster`);}
+ if(fx.p){m.ch=clamp(m.ch+fx.p,.05,.97);t.push(`success chance ${fx.p>0?'+':''}${Math.round(fx.p*100)}%`);}
+ if(fx.tr){S.trust=clamp(S.trust+fx.tr,0,100);t.push(`public trust ${fx.tr>0?'+':''}${fx.tr}`);}
+ if(fx.sc&&S.fam){S.fam.scandal=Math.min(100,S.fam.scandal+fx.sc);}
+ if(fx.lose){m.left=m.tot;t.push('this stage starts over');}
+ return t.join(', ');}
+function msPerk(def){S.perk[def.id]=true;fameBonus(25);S.trust=clamp(S.trust+8,0,100);
+ if(def.id==='cancer')S.hp=Math.min(100,S.hp+25);if(def.id==='aging')S.hp=100;if(def.id==='edu'&&S.fam)kids().forEach(k=>k.smarts=Math.min(100,k.smarts+10));
+ if(['water','pandemic','ocean'].includes(def.id))S.trust=clamp(S.trust+7,0,100);}
+function msTurn(scenes){if(!S.ms)return;
+ // mission rewards
+ let inc=0;if(S.perk.climate)inc+=5e9;if(S.perk.city)inc+=3e9;if(S.perk.net)inc+=2e9;if(S.perk.asteroid)inc+=2e10;if(S.perk.agi)inc+=Math.max(0,netWorth())*.0015;
+ if(inc>0){S.cash+=inc;addLog(S,`Income from your finished missions: ${money(inc)}.`,'good');}
+ MISSIONS.forEach(def=>{const m=S.ms[def.id];if(!m||!m.run)return;const st=def.stages[m.st],cost=st.c*(m.mult||1);m.left--;
+  if(m.left>0&&Math.random()<.3){const o=pick(def.obs);scenes.push({who:pick(['anchor','dana','whitlock','ruiz']),mood:'worried',tag:['t-choice',def.name],pages:[`${def.name}, ${st.n.toLowerCase()}: ${o.t}`],choices:o.ch.map(([lbl,fx])=>({label:lbl,run:()=>{const r=msFx(def,m,fx,cost);msLog(m,`${o.t} You chose: ${lbl.toLowerCase()}.${r?` (${r})`:''}`);return ok('whitlock',r?`Done. ${r[0].toUpperCase()+r.slice(1)}.`:'Done.','neutral');}}))});}
+  if(m.left<=0){m.run=false;
+   if(Math.random()<msChance(m)){m.st++;msLog(m,`Finished: ${st.n}.`);
+    if(m.st>=def.stages.length){m.done=true;msPerk(def);scenes.push({who:'anchor',mood:'happy',tag:['t-good','Mission complete'],onShow:confetti,pages:[`${def.name}: done. ${def.blurb.split('.')[0]}... not anymore.`,`You spent ${money(m.spent)} getting here. Reward: ${def.perk} Fame and public trust are up too.`]});}
+    else scenes.push({who:'whitlock',mood:'happy',tag:['t-good',def.name],pages:[`${st.n}: done.`,`Next: ${def.stages[m.st].n.toLowerCase()}. Pick how you want to do it in the Legacy tab.`]});}
+   else{m.fails=(m.fails||0)+1;msLog(m,`${st.n} failed.`);const half=Math.round(cost*.5);
+    scenes.push({who:'whitlock',mood:'worried',tag:['t-bad',def.name],pages:[`${st.n} didn't work. The results just aren't there.`,`You can try again with what you learned, or rethink your approach.`],choices:[
+     {label:`Try again (${money(half)})`,go:true,run:()=>{if(S.cash<half)return ok('whitlock','You don\'t have the cash right now. Try from the Legacy tab later.','worried');S.cash-=half;m.spent+=half;m.run=true;m.tot=Math.max(1,Math.ceil(m.tot*.6));m.left=m.tot;m.ch=clamp(m.ch+.12,.05,.97);return ok('whitlock','Back to work. The second attempt has better odds.');}},
+     {label:'Rethink the approach',run:()=>ok('whitlock','Pick a new approach in the Legacy tab.','neutral')}]});}}});}
+function msClick(d){const def=MS(d.id);switch(d.ms){
+ case 'open':UI.msView=d.id;return renderGame();
+ case 'back':UI.msView=null;return renderGame();
+ case 'start':S.ms[d.id]={id:d.id,st:0,run:false,left:0,tot:0,ch:0,spent:0,done:false,log:[]};UI.msView=d.id;return after();
+ case 'ap':{const m=S.ms[d.id],st=def.stages[m.st],a=st.ap[+d.i],cost=Math.round(st.c*a[1]);if(msActive()>=msCap())return toast(`You can only run ${msCap()} missions at once. Finish one to free up a slot (each finished mission adds one more).`);if(S.cash<cost)return toast(`You need ${money(cost)} in cash.`);S.cash-=cost;m.spent+=cost;m.id=d.id;m.mult=a[1];m.run=true;m.left=a[2];m.tot=a[2];m.ch=a[3];m.ap=a[0];
+  let r='';if(a[5]){const fx={...a[5]};if(fx.c){const back=Math.round(-fx.c*st.c);if(back>0){S.cash+=back;r=` and earned ${money(back)} back`;}delete fx.c;}msFx(def,m,fx,st.c);}
+  msLog(m,`Started ${st.n.toLowerCase()}: ${a[0].toLowerCase()}${r}.`);popCash(`-${money(cost)}`,'var(--loss)');toast(`${st.n} started. About ${a[2]} turns.`);return after();}
+ case 'rush':{const m=S.ms[d.id],st=def.stages[m.st],c=Math.round(st.c*.3);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;m.spent+=c;m.left=Math.max(1,m.left-1);m.ch=clamp(m.ch-.03,.05,.97);toast('More people, more money. One turn faster, slightly riskier.');return after();}
+ case 'boost':{const m=S.ms[d.id],st=def.stages[m.st],c=Math.round(st.c*.25);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;m.spent+=c;m.ch=clamp(m.ch+.08,.05,.97);toast('Hired more experts. Better odds.');return after();}
+ case 'badges':UI.badges=true;return renderGame();
+ case 'nobadges':UI.badges=false;return renderGame();
+ case 'quit':delete S.ms[d.id];UI.msView=null;toast('Mission abandoned.');return after();
+}}
+function viewMissions(){const groups={};MISSIONS.forEach(d=>{(groups[d.cat]=groups[d.cat]||[]).push(d);});
+ return Object.entries(groups).map(([cat,list])=>`<div class="sec-title"><h3>${cat}</h3></div><div class="dgrid">${list.map(d=>{const m=S.ms[d.id],lock=netWorth()<d.need&&!m,pr=m?(m.done?100:(m.st+(m.run?1-m.left/Math.max(1,m.tot):0))/d.stages.length*100):0;
+  return `<button class="lgrow" data-ms="${m?'open':lock?'':'start'}" data-id="${d.id}" ${lock?'disabled style="opacity:.55"':''}><b>${d.name}</b><span>${m?(m.done?'Complete':m.run?`Stage ${m.st+1} of ${d.stages.length}`:`Choose stage ${m.st+1}`):lock?`Needs ${money(d.need)}`:'Start'}</span>${m?lgBar(pr):''}<small class="muted" style="grid-column:1/-1;font-weight:700">${d.blurb}</small></button>`;}).join('')}</div>`).join('');}
+function viewMission(id){const def=MS(id),m=S.ms[id];if(!m){UI.msView=null;return viewLegacy();}
+ const steps=def.stages.map((st,i)=>`<div class="lgstep ${i<m.st||m.done?'done':i===m.st?'now':''}"><b>${i<m.st||m.done?'✓':i+1}</b><span><b>${st.n}</b><small>${i===m.st&&m.run?`In progress: ${esc(m.ap||'')}`:money(st.c)+' and up'}</small></span></div>`).join('');
+ let now='';
+ if(m.done)now=`<div class="ddbox"><b>Complete.</b> Reward: ${def.perk}</div>`;
+ else if(m.run){const st=def.stages[m.st];now=`<div class="ddbox"><b>${st.n}</b><div style="font-size:13px;margin-top:4px">${esc(m.ap)} · ${m.left} ${m.left===1?'turn':'turns'} left · ${Math.round(msChance(m)*100)}% chance it works</div>${lgBar((1-m.left/Math.max(1,m.tot))*100)}</div>
+  <div class="btnrow" style="margin-top:8px"><button class="btn" data-ms="rush" data-id="${id}" ${m.left<=1?'disabled':''}>Speed it up<small>${money(st.c*.3)} · 1 turn faster</small></button><button class="btn" data-ms="boost" data-id="${id}">Hire more experts<small>${money(st.c*.25)} · +8% chance</small></button></div>`;}
+ else{const st=def.stages[m.st];now=`<h3 style="margin-top:6px">Stage ${m.st+1}: ${st.n}</h3><p class="muted" style="font-size:13px;margin:4px 0 8px">How do you want to do it?${m.fails?` You've had ${m.fails} setback${m.fails>1?'s':''} so far.`:''}</p><div style="display:grid;gap:8px">${st.ap.map((a,i)=>`<button class="btn ${i===0?'go':''}" data-ms="ap" data-id="${id}" data-i="${i}" ${S.cash<st.c*a[1]?'disabled':''}>${a[0]}<small>${money(st.c*a[1])} · ${a[2]} turns · ${Math.round(clamp(a[3]+(S.trust-50)/700+msBonus(id),.05,.95)*100)}% chance${a[4]?` · ${a[4]}`:''}</small></button>`).join('')}</div>`;}
+ return `<button class="btn" data-ms="back" style="margin-bottom:10px">Back to Legacy</button><div class="card"><div class="between"><h3>${def.name}</h3><span class="label">Spent ${money(m.spent)}</span></div><p class="muted" style="font-size:13px;margin:6px 0">${def.blurb}</p><small class="muted" style="display:block"><b>Reward:</b> ${def.perk}</small>${SYN[id]?`<small class="muted" style="display:block;margin-top:4px"><b>Boosts from other missions:</b> ${msBonusTxt(id)}</small>`:''}<div class="lgsteps">${steps}</div>${now}</div>
+  ${m.log&&m.log.length?`<div class="card"><h3>What's happened</h3>${m.log.map(t=>`<div style="font-size:13px;margin-top:6px">${esc(t)}</div>`).join('')}</div>`:''}
+  ${m.done?'':`<button class="btn danger" data-ms="quit" data-id="${id}" style="margin-top:4px">Abandon this mission<small>You lose everything spent so far</small></button>`}`;}
+/* ---- strategy: limited focus and synergies ---- */
+const msCap=()=>3+msDone();
+const SYN={cancer:[['agi',.1,'Safe AI'],['pandemic',.05,'Pandemic defences']],aging:[['cancer',.1,'Cancer cure'],['agi',.1,'Safe AI']],pandemic:[['water',.05,'Clean water'],['agi',.05,'Safe AI']],edu:[['net',.12,'Internet for all'],['agi',.05,'Safe AI']],
+ climate:[['agi',.08,'Safe AI']],city:[['climate',.08,'Clean energy'],['water',.05,'Clean water']],asteroid:[['agi',.08,'Safe AI']],ocean:[['climate',.1,'Climate fix']],water:[['climate',.05,'Climate fix']],net:[['agi',.05,'Safe AI']],agi:[['net',.05,'Internet for all']]};
+const msBonus=id=>(SYN[id]||[]).filter(([k])=>S.perk[k]).reduce((a,[,b])=>a+b,0);
+const msBonusTxt=id=>(SYN[id]||[]).map(([k,b,n])=>`${S.perk[k]?'✓':'○'} ${n} +${Math.round(b*100)}%`).join(' · ');
+/* ---- badges ---- */
+const BADGES=[
+ ...MISSIONS.map(d=>({id:'m_'+d.id,n:d.name,t:'gold',ic:d.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),req:`Complete the mission: ${d.name.toLowerCase()}.`,ok:()=>S.ms[d.id]&&S.ms[d.id].done})),
+ {id:'hunger',n:'Zero Hunger',t:'gold',ic:'ZH',req:'End world hunger.',ok:()=>S.legacy&&S.legacy.done.includes('hunger')},
+ {id:'world',n:'Ruler of Earth',t:'gold',ic:'RE',req:'Control every nation.',ok:()=>S.legacy&&S.legacy.done.includes('world')},
+ {id:'mars',n:'Martian',t:'gold',ic:'MA',req:'Move to Mars.',ok:()=>S.legacy&&S.legacy.done.includes('space')},
+ {id:'m1',n:'First Million',t:'bronze',ic:'1M',req:'Reach $1M net worth.',ok:()=>netWorth()>=1e6},
+ {id:'b1',n:'Billionaire',t:'silver',ic:'1B',req:'Reach $1B net worth.',ok:()=>netWorth()>=1e9},
+ {id:'b100',n:'Centibillionaire',t:'silver',ic:'C',req:'Reach $100B net worth.',ok:()=>netWorth()>=1e11},
+ {id:'t1',n:'Trillionaire',t:'gold',ic:'1T',req:'Reach $1T net worth.',ok:()=>netWorth()>=1e12},
+ {id:'t10',n:'Ten Trillion',t:'gold',ic:'10T',req:'Reach $10T net worth.',ok:()=>netWorth()>=1e13},
+ {id:'t100',n:'Richer than Earth',t:'legend',ic:'∞',req:'Reach $100T net worth, more than the whole world economy.',ok:()=>netWorth()>=1e14},
+ {id:'young',n:'Prodigy',t:'gold',ic:'P',req:'Reach $1B before age 30.',ok:()=>netWorth()>=1e9&&age()<30},
+ {id:'clean',n:'Perfect Record',t:'silver',ic:'PR',req:'Finish any mission without a single failed stage.',ok:()=>MISSIONS.some(d=>S.ms[d.id]&&S.ms[d.id].done&&!S.ms[d.id].fails)},
+ {id:'trust',n:'Most Trusted',t:'gold',ic:'MT',req:'Get public trust to 95.',ok:()=>S.trust>=95},
+ {id:'saint',n:'Saint',t:'legend',ic:'S',req:'End hunger, bring clean water, cure cancer, stop pandemics and educate every child, with public trust at 80 or more.',ok:()=>S.legacy&&S.legacy.done.includes('hunger')&&['water','cancer','pandemic','edu'].every(k=>S.ms[k]&&S.ms[k].done)&&S.trust>=80},
+ {id:'kind',n:'Beloved Ruler',t:'legend',ic:'BR',req:'Rule the whole world with world opinion at 70 or more.',ok:()=>S.legacy&&S.legacy.done.includes('world')&&S.legacy.rule.op>=70},
+ {id:'all',n:'The Greatest',t:'legend',ic:'★',req:'Complete every mission and all three big goals.',ok:()=>MISSIONS.every(d=>S.ms[d.id]&&S.ms[d.id].done)&&S.legacy&&['hunger','world','space'].every(k=>S.legacy.done.includes(k))},
+ {id:'kids5',n:'Big Family',t:'silver',ic:'BF',req:'Have 5 kids.',ok:()=>S.fam&&kids().length>=5},
+ {id:'heir',n:'Worthy Heir',t:'gold',ic:'WH',req:'Raise a kid with an heir score of 90 or more.',ok:()=>S.fam&&kids().some(k=>kidAge(k)>=18&&heirScore(k)>=90)},
+ {id:'land',n:'Land Baron',t:'silver',ic:'LB',req:'Own 50 properties.',ok:()=>S.re&&S.re.props.length>=50},
+ {id:'luxe',n:'Collector',t:'silver',ic:'CO',req:'Own 30 Luxe items.',ok:()=>lifeIds().length>=30},
+ {id:'old',n:'Iron Body',t:'legend',ic:'IB',req:'Reach age 90 with health at 80 or more.',ok:()=>age()>=90&&S.hp>=80},
+];
+const TIER_COL={bronze:['#C08A55','#7A4E28'],silver:['#C9CFDA','#7C8596'],gold:['#F3CF6B','#A8853F'],legend:['#B58CFF','#3D2A7A']};
+const TIER_N={bronze:'Bronze',silver:'Silver',gold:'Gold',legend:'Legendary'};
+function badgeCheck(scenes){if(!S)return;S.badges=S.badges||{};const got=[];BADGES.forEach(b=>{if(!S.badges[b.id]){let y=false;try{y=b.ok();}catch(e){}if(y){S.badges[b.id]=age();got.push(b);}}});
+ if(got.length&&scenes)scenes.push({who:'whitlock',mood:'happy',tag:['t-good','Badge earned'],onShow:confetti,pages:[got.map(b=>`${TIER_N[b.t]} badge: ${b.n}. ${b.req}`).join(' ')]});return got;}
+const badgeIcon=(b,on)=>`<span class="badgeic ${on?'':'off'}" style="--b1:${TIER_COL[b.t][0]};--b2:${TIER_COL[b.t][1]}">${b.ic}</span>`;
+function viewBadges(){S.badges=S.badges||{};const n=Object.keys(S.badges).length;
+ return `<button class="btn" data-ms="nobadges" style="margin-bottom:10px">Back to Legacy</button><div class="luxhero"><div class="luxbrand">YOUR <span>BADGES</span></div><div class="luxsub">${n} of ${BADGES.length} earned. Legendary badges are almost impossible. Almost.</div></div>
+ ${['legend','gold','silver','bronze'].map(t=>`<div class="sec-title"><h3>${TIER_N[t]}</h3></div><div class="badgegrid">${BADGES.filter(b=>b.t===t).map(b=>{const on=!!S.badges[b.id];return `<div class="badgecard ${on?'on':''}">${badgeIcon(b,on)}<b>${b.n}</b><small>${on?`Earned at age ${S.badges[b.id]}`:b.req}</small></div>`;}).join('')}</div>`).join('')}`;}
 
 /* ===================== EMPIRE HOME (replaces the goods market past $200B) ===================== */
 const EMPIRE_AT=2e11;
@@ -4277,6 +4516,7 @@ document.addEventListener('click',e=>{
  if(d.bd){bondClick(d);return;}
  if(d.nav){if(d.lgp)UI.lgPath=d.lgp;goClick(d.nav);return;}
  if(d.lg){legacyClick(d);return;}
+ if(d.ms){msClick(d);return;}
  if(d.re){reClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
