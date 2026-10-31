@@ -297,6 +297,8 @@ button.rrow:active{transform:scale(.99)}
 .emprow b{font-size:13px;color:#F3EEE3;text-align:right}.empbar{height:6px;border-radius:9px;background:#24252D;overflow:hidden}.empbar i{display:block;height:100%;border-radius:9px}
 .empgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}.emptile{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px;text-align:left;display:grid;gap:2px}
 .emptile small{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#A8853F;font-weight:900}.emptile b{font-size:18px}.emptile span{font-size:12px;color:var(--muted);font-weight:700}
+.tree{display:grid;justify-items:center;gap:0;margin-top:10px}.treenode{background:var(--surface2);border-radius:14px;padding:8px 12px;text-align:center;min-width:180px}.treenode b{display:block;font-size:14px}.treenode small{font-size:11px;color:var(--muted);font-weight:700}
+.treenode.me{background:#25283A;color:#fff}.treenode.me small{color:#C9CFDA}.treeline{width:2px;height:14px;background:#C9A45C}.treekids{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}.treekids .treenode{min-width:0}
 .badgegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .badgecard{background:var(--surface);border-radius:18px;box-shadow:var(--shadow);padding:14px 12px;display:grid;justify-items:center;text-align:center;gap:6px;opacity:.7}.badgecard.on{opacity:1}
 .badgecard b{font-size:14px}.badgecard small{font-size:11px;color:var(--muted);font-weight:700;line-height:1.3}
@@ -1228,7 +1230,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);ensureMs2(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);ensureMs2(s);ensureDyn(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -2655,7 +2657,7 @@ function maWeek(news){
  // trade desk
  let dp=0;const D=S.desk;if(D.fund>=1){const eff=1/(1+D.fund/3e8);let r=(.0035+gauss()*.004)*eff;if(Math.random()<.015){r=-rnd(.02,.06);news.personal.push({who:'tess',mood:'worried',tag:['t-bad','Trade desk'],pages:[pick(['A storm sank one of the shipments your trade desk was running.','Thieves hit a warehouse your trade desk was using.','Prices crashed on a big load your trade desk was carrying.']),`The desk lost ${money(-r*D.fund)} this week.`]});}
   dp=D.fund*r;if(D.re&&dp>0)D.fund+=dp;else if(dp>=0)S.cash+=dp;else D.fund=Math.max(0,D.fund+dp);D.total+=dp;}
- if(prof>=0)S.cash+=prof;else payOut(-prof);
+ if(prof>=0)S.cash+=prof*(S.heirMod&&turnsIn()<S.heirMod.until?S.heirMod.m:1);else payOut(-prof);
  return {acq:prof,desk:dp};}
 /* trip scenes for companies you own */
 const MAE=[
@@ -3036,14 +3038,14 @@ function timeTurn(scenes){
  // health
  let d=-.12;const load=S.biz.length+S.acq.length+myCos().length+Math.floor(reUnmanaged()/3);if(load>8)d-=.15;if(load>20)d-=.15;const a=age();if(a>45)d-=(a-45)*.012;
  if(S.hcare.trainer){d+=.35;payOut(careCost('trainer'));}if(S.hcare.doctor){d+=.25;payOut(careCost('doctor'));}
- if(S.debt>=BANKRUPT*.6)d-=.3;d*=10/TPY;S.hp=clamp(S.hp+d,0,100);
+ if(S.debt>=BANKRUPT*.6)d-=.3;d*=10/TPY;if(d<0&&S.perk){if(S.perk.aging)d*=.2;else if(S.perk.cancer)d*=.6;}S.hp=clamp(S.hp+d,0,100);
  // bonds
  const due=S.bonds.filter(b=>turnsIn()-b.t>=b.years*TPY);due.forEach(b=>{const v=Math.round(bondValue(b));S.cash+=v;S.bonds=S.bonds.filter(x=>x!==b);addLog(S,`${CNAME(b.cc)} ${b.years}-year bond paid out ${money(v)} (+${money(v-b.amt)}).`,'good');
   scenes.push({who:'okonkwo',mood:'happy',tag:['t-good','Bond paid out'],pages:[`Your ${b.years}-year ${CNAME(b.cc)} ${b.linked?'inflation-protected ':''}bond just matured.`,`You put in ${money(b.amt)} and got back ${money(v)}. That's ${money(v-b.amt)} profit, now in your cash.`]});});
  // health warnings
  if(S.hp<35&&!S.hpWarn){S.hpWarn=true;scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Health'],pages:[`Your doctor called. Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)} out of 100).`,'Too much work and stress. A personal trainer, a doctor, a checkup or a vacation in the Life tab would help. Keep ignoring it and it will catch up with you.']});}
  if(S.hp>=45)S.hpWarn=false;
- if(S.hp<=8){S.hp=25;S.cash-=Math.min(S.cash,Math.round(rp(5000,2e+06)));scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Hospital'],pages:['You collapsed and spent weeks in the hospital. You pulled through, barely.','The bills were huge. Next time you might not be so lucky. Take care of yourself.']});}
+ healthFate(scenes);
  // new year
  if(turnsIn()>0&&turnsIn()%TPY===0)scenes.push(newYearScene());}
 function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1));if(S.inflHist.length>40)S.inflHist.shift();
@@ -3053,7 +3055,7 @@ function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1)
  let big='';if(W()>1e11){const c=Math.round((W()-1e11)*.004);payOut(c);big+=` Security, lawyers and lobbyists for an empire your size cost ${money(c)} this year.`;}
  if(typeof acqValue==='function'&&acqValue()>1.5e12&&S.acq.length&&Math.random()<.5){const c=S.acq.slice().sort((a,b)=>maVal(b)*(b.own||1)-maVal(a)*(a.own||1))[0],v=Math.round(maVal(c)*(c.own||1)*.9);maSellNow(c,v);big+=` Antitrust regulators forced you to sell ${c.name}, your biggest company, for ${money(v)} (90% of its value).`;}
  const nw=netWorth(),ch=S.yrNw!=null?nw-S.yrNw:null;S.yrNw=nw;
- const lines=[`Happy New Year! You're now ${age()}.`,`${ch!=null?`Your net worth ${ch>=0?'grew':'fell'} ${money(Math.abs(ch))} this year. `:''}Inflation was ${(prev*100).toFixed(1)}%, so prices went up about that much. ${S.infl>prev+.01?`Economists expect it to rise to around ${(S.infl*100).toFixed(1)}% next year.`:S.infl<prev-.01?`It should cool to about ${(S.infl*100).toFixed(1)}% next year.`:`Next year looks similar, around ${(S.infl*100).toFixed(1)}%.`}`,
+ const lines=[`Happy New Year! You're now ${age()}.`,`${ch!=null?`Your net worth ${ch>=0?'grew':'fell'} ${money(Math.abs(ch))} this year. `:''}Inflation was ${(prev*100).toFixed(1)}%, so prices ${prev>=0?'went up':'fell'} about that much. ${S.infl>prev+.01?`Economists expect it to rise to around ${(S.infl*100).toFixed(1)}% next year.`:S.infl<prev-.01?`It should cool to about ${(S.infl*100).toFixed(1)}% next year.`:`Next year looks similar, around ${(S.infl*100).toFixed(1)}%.`}`,
   `Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)}/100).${crisis}${big}`];
  return {who:'anchor',mood:crisis?'worried':'happy',tag:[crisis?'t-bad':'t-good',`Year ${yearNo()}`],onShow:confetti,pages:lines};}
 /* ---- health actions ---- */
@@ -3455,6 +3457,7 @@ function viewLifeTab(){const mode=UI.lfMode||'me',F=S.fam,h=happiness(),m=mainP(
   ${ks.length?`<div class="sec-title"><h3>Kids</h3></div>${ks.map(kidCard).join('')}`:''}
   ${F.due.length?`<div class="card muted">A baby is on the way. Due in ${Math.max(1,F.due[0].t-turnsIn())} ${F.due[0].t-turnsIn()===1?'turn':'turns'}.</div>`:''}
   ${ds.length?`<div class="sec-title"><h3>Disowned</h3></div>${ds.map(kidCard).join('')}`:''}
+  ${viewWill()}${viewTree()}
   <div class="sec-title"><h3>Parents and siblings</h3><span class="label">Hometown: Boston</span></div>${family().map(p=>personCard(p)).join('')}
   ${F.lost.length?`<small class="muted" style="display:block;text-align:center;margin-top:8px">In memory: ${F.lost.map(x=>`${esc(x.name)} (${x.age})`).join(', ')}</small>`:''}`;}
 function lifeClick2(d){const p=d.id?FPid(d.id):null;switch(d.lf){
@@ -3850,6 +3853,8 @@ const BADGES=[
  {id:'heir',n:'Worthy Heir',t:'gold',ic:'WH',req:'Raise a kid with an heir score of 90 or more.',ok:()=>S.fam&&kids().some(k=>kidAge(k)>=18&&heirScore(k)>=90)},
  {id:'land',n:'Land Baron',t:'silver',ic:'LB',req:'Own 50 properties.',ok:()=>S.re&&S.re.props.length>=50},
  {id:'luxe',n:'Collector',t:'silver',ic:'CO',req:'Own 30 Luxe items.',ok:()=>lifeIds().length>=30},
+ {id:'gen3',n:'Dynasty',t:'gold',ic:'D3',req:'Reach the third generation of your family.',ok:()=>S.gen>=3},
+ {id:'gen5',n:'Old Money',t:'legend',ic:'OM',req:'Reach five generations, each worth over $1T when they died.',ok:()=>S.gen>=5&&S.dynasty.length>=4&&S.dynasty.every(d=>d.nw>=1e12)},
  {id:'old',n:'Iron Body',t:'legend',ic:'IB',req:'Reach age 90 with health at 80 or more.',ok:()=>age()>=90&&S.hp>=80},
 ];
 const TIER_COL={bronze:['#C08A55','#7A4E28'],silver:['#C9CFDA','#7C8596'],gold:['#F3CF6B','#A8853F'],legend:['#B58CFF','#3D2A7A']};
@@ -3896,6 +3901,76 @@ function rivalNpc(name){const r=S.rivals.find(x=>x.name===name);NPC.rvl={name,ro
 function ms2Start(def,m){const pool=S.rivals.slice().sort((a,b)=>b.nw-a.nw).slice(0,5);const r=pick(pool);m.rv={name:r?r.name:'A rival',pr:0,need:def.stages.length*rnd(5,7.5)};}
 function viewTalent(){const roles=['sci','eng','dip'];return `<div class="card"><div class="between"><h3>Your people</h3><span class="label">${S.talent.filter(t=>t.busy).length} of ${S.talent.length} busy</span></div><small class="muted">Every mission stage needs someone to lead it: ${roles.map(r=>ROLE_P[r]).join(', ')}. Better people raise your odds. When everyone's busy, nothing new starts.</small>
  ${roles.map(r=>`<div class="sec-title" style="margin-top:10px"><h3 style="font-size:15px">${ROLE_N[r]}s</h3><button class="chip" data-ms="hire" data-v="${r}">Hire one ${money(hireCost(r))}</button></div>${S.talent.filter(t=>t.role===r).map(t=>`<div class="emprow" style="color:var(--ink,#25283A)"><span>${esc(t.name)}</span><span class="empbar"><i style="width:${t.skill/.18*100}%;background:#C9A45C"></i></span><b class="muted" style="color:var(--muted)">${t.busy?MS(t.busy).name:'Free'}</b></div>`).join('')}`).join('')}</div>`;}
+
+/* ===================== DYNASTY: death, will, estate tax, heirs, family tree ===================== */
+function ensureDyn(s){s.gen=s.gen||1;s.dynasty=s.dynasty||[];s.will=s.will||{heir:null,share:0,charity:0};if(s.hosp==null)s.hosp=0;return s;}
+const heirsList=()=>S.fam?kids().filter(k=>k.rel==='kid'):[];
+const pickHeir=()=>{const L=heirsList();if(!L.length)return null;const w=S.will.heir&&L.find(k=>k.id===S.will.heir);return w||L.slice().sort((a,b)=>(kidAge(b)>=18)-(kidAge(a)>=18)||heirScore(b)-heirScore(a))[0];};
+/* health, illness and death (called from timeTurn) */
+function healthFate(scenes){
+ // terminal illness: extremely rare, and you choose how to fight it
+ if(!S.terminal&&age()>=40&&Math.random()<.00004*age()/50){if(S.perk&&S.perk.cancer){scenes.push({who:'whitlock',mood:'happy',tag:['t-good','Health scare'],pages:['Doctors found a tumour during a routine scan.','Your own cancer cure wiped it out in a week. Money well spent.']});}
+  else{const ex=rp(5e5,2e9),st=rp(5e4,5e7);S.terminal=true;scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Diagnosis'],pages:['The doctors found a rare, aggressive illness. It\'s serious.','There are options. None of them are certain.'],choices:[
+   {label:`Experimental treatment (${money(ex)})`,go:true,run:()=>{payOut(ex);S.hp=Math.max(5,S.hp-20);if(Math.random()<.55){S.terminal=false;return ok('whitlock','It worked. You\'re in remission. It took a lot out of you, but you\'re going to live.');}return ok('whitlock','The treatment didn\'t stop it. Use the time you have well. Make sure your will is in order.','worried');}},
+   {label:`Standard treatment (${money(st)})`,run:()=>{payOut(st);S.hp=Math.max(5,S.hp-10);if(Math.random()<.35){S.terminal=false;return ok('whitlock','Against the odds, it worked. You\'re in remission.');}return ok('whitlock','It slowed it down, but it\'s still there. Get your affairs in order.','worried');}},
+   {label:'Refuse treatment and live fully',run:()=>{S.fam&&(S.fam.stress=0);return ok('whitlock','Your call. Spend the time with the people who matter.','worried');}}]});}}
+ if(S.terminal)S.hp=Math.max(0,S.hp-6);
+ if(S.hp<=8){const old=age()>=90&&!(S.perk&&S.perk.aging);if(S.terminal||S.hosp>=2||old||S.hp<=0){scenes.push(...succession(S.terminal?'illness':old?'old age':'exhaustion'));return;}
+  S.hosp++;S.hp=25;S.cash-=Math.min(S.cash,rp(5000,2e6));scenes.push({who:'whitlock',mood:'worried',tag:['t-bad','Hospital'],pages:['You collapsed and spent weeks in the hospital. You pulled through, barely.',S.hosp>=2?'This was your second time. The doctors are blunt: one more collapse and you won\'t survive it. Get a doctor, a trainer, slow down, and make sure your will is ready.':'The bills were huge. Next time you might not be so lucky. Take care of yourself.']});}}
+/* taking money out of the estate */
+function estateTake(amt){let need=amt;const take=v=>{const t=Math.min(need,v);need-=t;return t;};
+ S.cash-=take(Math.max(0,S.cash));S.savings-=take(Math.max(0,S.savings));
+ if(need>0){Object.entries(S.shares).forEach(([k,h])=>{if(need<=0)return;const v=h.n*ST(k).p,n=Math.min(h.n,Math.ceil(Math.min(v,need)/ST(k).p));need-=n*ST(k).p;h.n-=n;if(h.n<=0)delete S.shares[k];});}
+ if(need>0)S.acq.slice().sort((a,b)=>maVal(b)-maVal(a)).forEach(c=>{if(need<=0)return;const v=maVal(c)*(c.own||1)*.9;S.acq=S.acq.filter(x=>x!==c);need-=v;if(need<0){S.cash+=-need;need=0;}});
+ if(need>0&&S.re)S.re.props.slice().forEach(p=>{if(need<=0)return;const v=reSaleNet(p)-(p.mort?p.mort.bal:0);S.re.props=S.re.props.filter(x=>x!==p);need-=v;if(need<0){S.cash+=-need;need=0;}});
+ if(need>0){S.cash-=need;need=0;}if(S.cash<0){S.debt+=-S.cash;S.cash=0;}}
+/* the big moment */
+function succession(cause){const was=S.name,a=age(),nw=netWorth(),F=S.fam,heir=pickHeir(),out=[];
+ S.dynasty.push({name:was,gen:S.gen,died:a,cause,nw:Math.round(nw),badges:Object.keys(S.badges||{}).length,missions:S.ms?MISSIONS.filter(d=>S.ms[d.id]&&S.ms[d.id].done).length:0});
+ const causeTxt={illness:'after a long illness','old age':'peacefully in their sleep',exhaustion:'after years of pushing too hard'}[cause]||'';
+ out.push({who:'anchor',mood:'worried',tag:['t-bad','In memoriam'],pages:[`${was} has died at ${a}, ${causeTxt}.`,`They leave behind an empire worth ${money(nw)}. The whole world is talking about who gets it.`]});
+ // who inherits
+ let h=heir,distant=false;
+ if(!h){const sib=F&&family().find(p=>p.rel==='sib');if(!sib){S.over=true;clearSave();out.push({who:'whitlock',mood:'worried',tag:['t-bad','The end'],pages:[`${was} had no children and no family left to take over.`,`The empire was broken up and sold. Your dynasty lasted ${S.gen} generation${S.gen>1?'s':''}.`],choices:[{label:'Start a new dynasty',go:true,run:()=>{goCreate();return 'stop';}},{label:'Back to title',run:()=>{goTitle();return 'stop';}}]});return out;}
+  distant=true;const g=Math.random()<.5?'f':'m';h=newPerson({g,rel:'kid',role:'Nephew',name:pick(g==='f'?F_NAMES:M_NAMES)+' '+sib.name.split(' ').slice(1).join(' '),look:g==='f'?womanLook():manLook(),bond:40});fixKid(h);h.born=turnsIn()-ri(22,35)*TPY;h.biz=ri(20,50);F.people.push(h);}
+ // will: charity, sibling shares, estate tax
+ const W0=S.will,trusts=trustsTotal(),gross=Math.max(0,netWorth());let lines=[];
+ const charity=Math.round(gross*(W0.charity||0));if(charity>0){estateTake(charity);lines.push(`${money(charity)} went to charity, as the will asked.`);S.trust=clamp((S.trust||50)+Math.round(W0.charity*40),0,100);}
+ const others=heirsList().filter(k=>k!==h);const share=others.length?Math.round(Math.max(0,netWorth())*(W0.share||0)):0;if(share>0){estateTake(share);lines.push(`${others.length===1?first(others[0].name):`${others.length} siblings`} received ${money(share)} in total.`);}
+ const taxable=Math.max(0,netWorth()-trusts-1.3e7),tax=Math.round(taxable*(distant?.55:.4));if(tax>0){estateTake(tax);lines.push(`Estate tax took ${money(tax)}${distant?', at the higher rate for distant relatives':''}. Trust funds passed on tax-free.`);}
+ // become the heir
+ const hs=heirScore(h),ha=kidAge(h);S.name=h.name;S.look={...h.look};S.age0=ha-Math.floor(turnsIn()/TPY);S.hp=ha<50?88:75;S.hosp=0;S.terminal=false;S.gen++;S.will={heir:null,share:0,charity:0};
+ if(h.trust>0){S.cash+=h.trust;}
+ S.heirMod={m:clamp(1+(hs-60)/200,.7,1.2),until:turnsIn()+5*TPY};
+ // reshape the family around the new head
+ const spouse=F.people.find(p=>p.rel==='partner'&&p.id===h.par);
+ F.lost.push({name:was,rel:'parent',age:a});
+ F.people=F.people.filter(p=>{if(p===h)return false;if(p.rel==='mom'||p.rel==='dad'||p.rel==='sib')return false;if(p.rel==='partner'){if(p===spouse){p.rel=p.g==='f'?'mom':'dad';p.role=p.g==='f'?'Your mom':'Your dad';p.bond=Math.round(p.love||60);p.trait=pick(['warm','worrier','proud','strict']);return true;}return false;}
+  if(p.rel==='kid'||p.rel==='disowned'){p.rel='sib';p.role=p.g==='f'?'Your sister':'Your brother';p.trait=pick(['jealous ','needy','loyal','reckless','ambitious']);p.job=p.job||'student';return true;}return true;});
+ F.due=[];F.pros=[];F.prosTurn=-1;F.tp=3;F.stress=20;F.sus=0;F.pb=0;F.scandal=Math.round(F.scandal/2);F.people.forEach(regFam);
+ out.push({who:'dana',mood:'neutral',tag:['t-info','The will'],pages:[`The will has been read.${distant?` There were no children, so the empire goes to a nephew: ${h.name}.`:` ${h.name} inherits the empire.`}`,lines.join(' ')||'No taxes or gifts to speak of.']});
+ out.push({who:'whitlock',mood:'happy',tag:['t-good',`Generation ${S.gen}`],onShow:confetti,pages:[`You are now ${h.name}, age ${ha}. Head of the family, generation ${S.gen}.`,`Your business sense (${hs}/100) means the empire runs ${S.heirMod.m>=1?`${Math.round((S.heirMod.m-1)*100)}% better`:`${Math.round((1-S.heirMod.m)*100)}% worse`} for your first five years while you prove yourself.${S.ms&&Object.keys(S.ms).length?' The missions you inherited are yours to finish or drop.':''}`]});
+ // siblings may contest
+ const angry=others.filter(k=>kidAge(k)>=18&&(k.drive>55||k.bond<40));if(angry.length&&(W0.share||0)<.1){const k=pick(angry),pay=Math.round(Math.max(0,netWorth())*.08),fee=Math.round(Math.max(0,netWorth())*.01),lose=Math.round(Math.max(0,netWorth())*.2);
+  out.push({who:'f_'+k.id,mood:'angry',tag:['t-choice','Will contested'],pages:[`${first(k.name)} is challenging the will in court. "Mom and Dad promised me a real share."`,'This could drag on for years and get ugly in public.'],choices:[
+   {label:`Settle (${money(pay)})`,go:true,run:()=>{estateTake(pay);k.bond=Math.min(100,k.bond+20);return ok('dana','Settled. Family dinners will be awkward, but it\'s over.','neutral');}},
+   {label:`Fight it in court (${money(fee)} in fees)`,run:()=>{estateTake(fee);k.bond=0;if(Math.random()<.55)return ok('dana','You won. The will stands.');estateTake(lose);return ok('dana',`You lost. The court gave ${first(k.name)} ${money(lose)}.`,'worried');}}]});}
+ return out;}
+/* will and family tree views */
+function viewWill(){const L=heirsList(),h=pickHeir(),W0=S.will;if(!L.length)return `<div class="card"><h3>Your will</h3><p class="muted" style="font-size:13px;margin:6px 0 0">No children yet. If you die without kids, a nephew or niece inherits and pays a much higher estate tax. With no family at all, your empire is broken up and the game ends.</p></div>`;
+ const tax=Math.max(0,netWorth()*(1-(W0.charity||0))*(1-(W0.share||0))-trustsTotal()-1.3e7)*.4;
+ return `<div class="card"><div class="between"><h3>Your will</h3><span class="label">Generation ${S.gen}</span></div>
+  <small class="muted">When you die, your heir takes over and you keep playing as them. Estate tax is 40% of everything above $13M, except trust funds. Gifts to charity aren't taxed.</small>
+  <div class="sec-title" style="margin-top:10px"><h3 style="font-size:15px">Heir</h3></div><div class="seg">${L.map(k=>`<button class="chip ${h===k?'on':''}" data-wl="heir" data-id="${k.id}">${esc(first(k.name))} · ${kidAge(k)} · ${heirScore(k)}</button>`).join('')}</div>
+  <div class="sec-title" style="margin-top:10px"><h3 style="font-size:15px">Share for the other kids</h3></div><div class="seg">${[0,.1,.25].map(v=>`<button class="chip ${W0.share===v?'on':''}" data-wl="share" data-v="${v}">${v?Math.round(v*100)+'%':'Nothing'}</button>`).join('')}</div>
+  <div class="sec-title" style="margin-top:10px"><h3 style="font-size:15px">To charity</h3></div><div class="seg">${[0,.1,.25,.5].map(v=>`<button class="chip ${W0.charity===v?'on':''}" data-wl="charity" data-v="${v}">${v?Math.round(v*100)+'%':'Nothing'}</button>`).join('')}</div>
+  <div class="ddbox" style="margin-top:10px">If you died today: ${esc(first(h.name))} takes over, estate tax would be about ${money(tax)}.${(W0.share||0)<.1&&L.length>1?' Siblings who get little might fight the will in court.':''}</div></div>`;}
+function viewTree(){const D=S.dynasty||[];const node=(n,sub,me)=>`<div class="treenode ${me?'me':''}"><b>${esc(n)}</b><small>${sub}</small></div>`;
+ return `<div class="card"><div class="between"><h3>Family tree</h3><span class="label">${S.gen} generation${S.gen>1?'s':''}</span></div><div class="tree">
+  ${D.map(d=>node(d.name,`Gen ${d.gen} · died at ${d.died} · ${money(d.nw)}`)+'<div class="treeline"></div>').join('')}
+  ${node(S.name,`Gen ${S.gen} · you · age ${age()} · ${money(netWorth())}`,true)}
+  ${S.fam&&kids().length?`<div class="treeline"></div><div class="treekids">${kids().map(k=>node(first(k.name),`${kidAge(k)} · heir ${heirScore(k)}`)).join('')}</div>`:''}</div></div>`;}
+function willClick(d){switch(d.wl){case 'heir':S.will.heir=d.id;break;case 'share':S.will.share=+d.v;break;case 'charity':S.will.charity=+d.v;break;}after();}
 
 /* ===================== EMPIRE HOME (replaces the goods market past $200B) ===================== */
 const EMPIRE_AT=2e11;
@@ -4555,6 +4630,7 @@ document.addEventListener('click',e=>{
  if(d.nav){if(d.lgp)UI.lgPath=d.lgp;goClick(d.nav);return;}
  if(d.lg){legacyClick(d);return;}
  if(d.ms){msClick(d);return;}
+ if(d.wl){willClick(d);return;}
  if(d.re){reClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
  else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
