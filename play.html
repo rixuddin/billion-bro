@@ -1228,7 +1228,7 @@ let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);ensureMs2(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1610,7 +1610,7 @@ function travel(dest){
  bizScenes().forEach(x=>scenes.push(x));
  maScenes().forEach(x=>scenes.push(x));
  famTurn().forEach(x=>scenes.push(x));
- timeTurn(scenes);reTurn(scenes);legacyTurn(scenes);msTurn(scenes);badgeCheck(scenes);if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;recap.push(['Rent from your properties',L.inc]);recap.push(['Property upkeep and fees',-L.cost]);recap.push(['Mortgage payments',-L.mort]);}
+ timeTurn(scenes);reTurn(scenes);legacyTurn(scenes);msTurn(scenes);ms2Turn(scenes);badgeCheck(scenes);if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;recap.push(['Rent from your properties',L.inc]);recap.push(['Property upkeep and fees',-L.cost]);recap.push(['Mortgage payments',-L.mort]);}
  {const u=ugScene();if(u)scenes.push(u);}
  if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
  if(S.trips%2===0)scenes.push(rivalScene());
@@ -3605,10 +3605,10 @@ function viewLegacy(){const L=S.legacy;if(!legacyOn())return `<div class="card">
   ${card('rule','Rule the world','Win over a country, take power by election or by force, build an army, then take the world one nation at a time. Real cost: tens of trillions, but your nations pay you back.','Free to start')}
   ${card('space','Leave Earth','Build rockets, a moon base, then a Mars colony that can survive on its own. Then move there. Real cost: over a trillion dollars.','Free to start')}
   <div class="card"><div class="between"><h3>Missions</h3><span class="label">${msDone()} of ${MISSIONS.length} done</span></div>
-   <div class="kv2"><div><small>Public trust</small><b>${Math.round(S.trust)}</b>${bar(S.trust)}</div><div><small>Running now</small><b>${msActive()} of ${msCap()}</b></div></div>
-   <small class="muted">Every stage asks you how to do it: cheap or fast, safe or bold. Obstacles force choices. Stages can fail. Public trust raises your odds on everything. You can only run a few at once, and finished missions boost the others, so pick your order carefully.</small>
+   <div class="kv2"><div><small>Public trust</small><b>${Math.round(S.trust)}</b>${bar(S.trust)}</div><div><small>People free</small><b>${S.talent.filter(t=>!t.busy).length} of ${S.talent.length}</b></div></div>${S.wev?`<div class="ddbox"><b>${WEV[S.wev.k].n}</b> · ${WEV[S.wev.k].d} About ${S.wev.t} more turns.</div>`:''}
+   <small class="muted">Every stage asks you how to do it: cheap or fast, safe or bold. Obstacles force choices. Stages can fail. Public trust raises your odds on everything. Every stage needs a free person to lead it, rivals race you to each goal, and finished missions boost the others, so pick your order carefully.</small>
    <button class="btn sun" data-ms="badges" style="margin-top:10px">Badges<small>${Object.keys(S.badges||{}).length} of ${BADGES.length} earned</small></button></div>
-  ${viewMissions()}`;}
+  ${viewTalent()}${viewMissions()}`;}
 function viewHunger(){const H=S.legacy.hunger,back=`<button class="btn" data-lg="home" style="margin-bottom:10px">Back to Legacy</button>`;
  return back+`<div class="card"><div class="between"><h3>End world hunger</h3><span class="label">Spent ${money(H.spent)}</span></div><div class="kv2"><div><small>World hunger</small><b>${worldHunger().toFixed(2)}%</b></div><div><small>Hungry people</small><b>${Math.round(hungryPeople()/1e6)}M</b></div></div><small class="muted">Goal: under 1%. Food aid works fast but fades. Farms, wells and roads last. Corruption steals aid until you work with local partners.${tyrant()?' Governments distrust a dictator, so your aid works less well.':''}</small></div>
   ${H.reg.map(r=>{const b=hReg(r.id),h=hNow(r);return `<div class="card"><div class="between"><h3>${b.name}</h3><b class="${h<2?'up':'down'}">${h.toFixed(1)}% hungry</b></div><div class="kidst"><span>Farms and water<b>${Math.round(r.res)}</b></span><span>Aid flowing<b>${Math.round(r.aid*100)}</b></span><span>Corruption<b>${Math.round(r.cor)}</b></span></div>
@@ -3764,7 +3764,7 @@ const MISSIONS=[
 const MS=id=>MISSIONS.find(m=>m.id===id);
 function ensureMissions(s){s.ms=s.ms||{};if(s.trust==null)s.trust=50;s.perk=s.perk||{};return s;}
 const msState=id=>S.ms[id];
-const msChance=m=>clamp(m.ch+(S.trust-50)/700+(typeof msBonus==='function'?msBonus(m.id||''):0),.05,.95);
+const msChance=m=>{const ld=S.talent&&S.talent.find(t=>t.busy===m.id);return clamp(m.ch+(S.trust-50)/700+(typeof msBonus==='function'?msBonus(m.id||''):0)+(ld?ld.skill:0)+(m.id&&typeof wevP==='function'?wevP(MS(m.id)):0),.05,.95);};
 const msStageCost=(def,m)=>def.stages[Math.min(m.st,def.stages.length-1)].c;
 const msActive=()=>MISSIONS.filter(d=>S.ms[d.id]&&S.ms[d.id].run).length;
 const msDone=()=>MISSIONS.filter(d=>S.ms[d.id]&&S.ms[d.id].done).length;
@@ -3786,26 +3786,27 @@ function msTurn(scenes){if(!S.ms)return;
  if(inc>0){S.cash+=inc;addLog(S,`Income from your finished missions: ${money(inc)}.`,'good');}
  MISSIONS.forEach(def=>{const m=S.ms[def.id];if(!m||!m.run)return;const st=def.stages[m.st],cost=st.c*(m.mult||1);m.left--;
   if(m.left>0&&Math.random()<.3){const o=pick(def.obs);scenes.push({who:pick(['anchor','dana','whitlock','ruiz']),mood:'worried',tag:['t-choice',def.name],pages:[`${def.name}, ${st.n.toLowerCase()}: ${o.t}`],choices:o.ch.map(([lbl,fx])=>({label:lbl,run:()=>{const r=msFx(def,m,fx,cost);msLog(m,`${o.t} You chose: ${lbl.toLowerCase()}.${r?` (${r})`:''}`);return ok('whitlock',r?`Done. ${r[0].toUpperCase()+r.slice(1)}.`:'Done.','neutral');}}))});}
-  if(m.left<=0){m.run=false;
+  if(m.left<=0){m.run=false;releaseLead(def.id);
    if(Math.random()<msChance(m)){m.st++;msLog(m,`Finished: ${st.n}.`);
     if(m.st>=def.stages.length){m.done=true;msPerk(def);scenes.push({who:'anchor',mood:'happy',tag:['t-good','Mission complete'],onShow:confetti,pages:[`${def.name}: done. ${def.blurb.split('.')[0]}... not anymore.`,`You spent ${money(m.spent)} getting here. Reward: ${def.perk} Fame and public trust are up too.`]});}
     else scenes.push({who:'whitlock',mood:'happy',tag:['t-good',def.name],pages:[`${st.n}: done.`,`Next: ${def.stages[m.st].n.toLowerCase()}. Pick how you want to do it in the Legacy tab.`]});}
    else{m.fails=(m.fails||0)+1;msLog(m,`${st.n} failed.`);const half=Math.round(cost*.5);
     scenes.push({who:'whitlock',mood:'worried',tag:['t-bad',def.name],pages:[`${st.n} didn't work. The results just aren't there.`,`You can try again with what you learned, or rethink your approach.`],choices:[
-     {label:`Try again (${money(half)})`,go:true,run:()=>{if(S.cash<half)return ok('whitlock','You don\'t have the cash right now. Try from the Legacy tab later.','worried');S.cash-=half;m.spent+=half;m.run=true;m.tot=Math.max(1,Math.ceil(m.tot*.6));m.left=m.tot;m.ch=clamp(m.ch+.12,.05,.97);return ok('whitlock','Back to work. The second attempt has better odds.');}},
+     {label:`Try again (${money(half)})`,go:true,run:()=>{if(S.cash<half)return ok('whitlock','You don\'t have the cash right now. Try from the Legacy tab later.','worried');S.cash-=half;m.spent+=half;m.run=true;{const ld=freeTalent(MS_ROLE[def.id]);if(ld)ld.busy=def.id;}m.tot=Math.max(1,Math.ceil(m.tot*.6));m.left=m.tot;m.ch=clamp(m.ch+.12,.05,.97);return ok('whitlock','Back to work. The second attempt has better odds.');}},
      {label:'Rethink the approach',run:()=>ok('whitlock','Pick a new approach in the Legacy tab.','neutral')}]});}}});}
 function msClick(d){const def=MS(d.id);switch(d.ms){
  case 'open':UI.msView=d.id;return renderGame();
  case 'back':UI.msView=null;return renderGame();
- case 'start':S.ms[d.id]={id:d.id,st:0,run:false,left:0,tot:0,ch:0,spent:0,done:false,log:[]};UI.msView=d.id;return after();
- case 'ap':{const m=S.ms[d.id],st=def.stages[m.st],a=st.ap[+d.i],cost=Math.round(st.c*a[1]);if(msActive()>=msCap())return toast(`You can only run ${msCap()} missions at once. Finish one to free up a slot (each finished mission adds one more).`);if(S.cash<cost)return toast(`You need ${money(cost)} in cash.`);S.cash-=cost;m.spent+=cost;m.id=d.id;m.mult=a[1];m.run=true;m.left=a[2];m.tot=a[2];m.ch=a[3];m.ap=a[0];
+ case 'start':S.ms[d.id]={id:d.id,st:0,run:false,left:0,tot:0,ch:0,spent:0,done:false,log:[]};ms2Start(def,S.ms[d.id]);msLog(S.ms[d.id],`${S.ms[d.id].rv.name} heard about it and started racing you.`);UI.msView=d.id;return after();
+ case 'ap':{const m=S.ms[d.id],st=def.stages[m.st],a=st.ap[+d.i],cost=Math.round(st.c*a[1]*wevCost()),role=MS_ROLE[d.id],lead=freeTalent(role);if(!lead)return toast(`All your ${ROLE_P[role]} are busy. Hire another one, or wait for a mission stage to finish.`);if(S.cash<cost)return toast(`You need ${money(cost)} in cash.`);S.cash-=cost;m.spent+=cost;m.id=d.id;m.mult=a[1];m.run=true;lead.busy=d.id;m.left=a[2];m.tot=a[2];m.ch=a[3];m.ap=a[0];
   let r='';if(a[5]){const fx={...a[5]};if(fx.c){const back=Math.round(-fx.c*st.c);if(back>0){S.cash+=back;r=` and earned ${money(back)} back`;}delete fx.c;}msFx(def,m,fx,st.c);}
-  msLog(m,`Started ${st.n.toLowerCase()}: ${a[0].toLowerCase()}${r}.`);popCash(`-${money(cost)}`,'var(--loss)');toast(`${st.n} started. About ${a[2]} turns.`);return after();}
+  msLog(m,`Started ${st.n.toLowerCase()}: ${a[0].toLowerCase()}, led by ${lead.name}${r}.`);popCash(`-${money(cost)}`,'var(--loss)');toast(`${st.n} started. About ${a[2]} turns.`);return after();}
  case 'rush':{const m=S.ms[d.id],st=def.stages[m.st],c=Math.round(st.c*.3);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;m.spent+=c;m.left=Math.max(1,m.left-1);m.ch=clamp(m.ch-.03,.05,.97);toast('More people, more money. One turn faster, slightly riskier.');return after();}
  case 'boost':{const m=S.ms[d.id],st=def.stages[m.st],c=Math.round(st.c*.25);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;m.spent+=c;m.ch=clamp(m.ch+.08,.05,.97);toast('Hired more experts. Better odds.');return after();}
  case 'badges':UI.badges=true;return renderGame();
  case 'nobadges':UI.badges=false;return renderGame();
- case 'quit':delete S.ms[d.id];UI.msView=null;toast('Mission abandoned.');return after();
+ case 'hire':{const c=hireCost(d.v);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;const t=newTalent(d.v,Math.random()<.15);S.talent.push(t);toast(`Hired ${t.name}${t.skill>=.12?', a star':''}.`);return after();}
+ case 'quit':releaseLead(d.id);delete S.ms[d.id];UI.msView=null;toast('Mission abandoned.');return after();
 }}
 function viewMissions(){const groups={};MISSIONS.forEach(d=>{(groups[d.cat]=groups[d.cat]||[]).push(d);});
  return Object.entries(groups).map(([cat,list])=>`<div class="sec-title"><h3>${cat}</h3></div><div class="dgrid">${list.map(d=>{const m=S.ms[d.id],lock=netWorth()<d.need&&!m,pr=m?(m.done?100:(m.st+(m.run?1-m.left/Math.max(1,m.tot):0))/d.stages.length*100):0;
@@ -3814,10 +3815,11 @@ function viewMission(id){const def=MS(id),m=S.ms[id];if(!m){UI.msView=null;retur
  const steps=def.stages.map((st,i)=>`<div class="lgstep ${i<m.st||m.done?'done':i===m.st?'now':''}"><b>${i<m.st||m.done?'✓':i+1}</b><span><b>${st.n}</b><small>${i===m.st&&m.run?`In progress: ${esc(m.ap||'')}`:money(st.c)+' and up'}</small></span></div>`).join('');
  let now='';
  if(m.done)now=`<div class="ddbox"><b>Complete.</b> Reward: ${def.perk}</div>`;
- else if(m.run){const st=def.stages[m.st];now=`<div class="ddbox"><b>${st.n}</b><div style="font-size:13px;margin-top:4px">${esc(m.ap)} · ${m.left} ${m.left===1?'turn':'turns'} left · ${Math.round(msChance(m)*100)}% chance it works</div>${lgBar((1-m.left/Math.max(1,m.tot))*100)}</div>
+ else if(m.run){const st=def.stages[m.st],ld=leadOf(id);now=`<div class="ddbox"><b>${st.n}</b><div style="font-size:13px;margin-top:4px">${esc(m.ap)}${ld?` · led by ${esc(ld.name)}`:''} · ${m.left} ${m.left===1?'turn':'turns'} left · ${Math.round(msChance(m)*100)}% chance it works</div>${lgBar((1-m.left/Math.max(1,m.tot))*100)}</div>
   <div class="btnrow" style="margin-top:8px"><button class="btn" data-ms="rush" data-id="${id}" ${m.left<=1?'disabled':''}>Speed it up<small>${money(st.c*.3)} · 1 turn faster</small></button><button class="btn" data-ms="boost" data-id="${id}">Hire more experts<small>${money(st.c*.25)} · +8% chance</small></button></div>`;}
- else{const st=def.stages[m.st];now=`<h3 style="margin-top:6px">Stage ${m.st+1}: ${st.n}</h3><p class="muted" style="font-size:13px;margin:4px 0 8px">How do you want to do it?${m.fails?` You've had ${m.fails} setback${m.fails>1?'s':''} so far.`:''}</p><div style="display:grid;gap:8px">${st.ap.map((a,i)=>`<button class="btn ${i===0?'go':''}" data-ms="ap" data-id="${id}" data-i="${i}" ${S.cash<st.c*a[1]?'disabled':''}>${a[0]}<small>${money(st.c*a[1])} · ${a[2]} turns · ${Math.round(clamp(a[3]+(S.trust-50)/700+msBonus(id),.05,.95)*100)}% chance${a[4]?` · ${a[4]}`:''}</small></button>`).join('')}</div>`;}
- return `<button class="btn" data-ms="back" style="margin-bottom:10px">Back to Legacy</button><div class="card"><div class="between"><h3>${def.name}</h3><span class="label">Spent ${money(m.spent)}</span></div><p class="muted" style="font-size:13px;margin:6px 0">${def.blurb}</p><small class="muted" style="display:block"><b>Reward:</b> ${def.perk}</small>${SYN[id]?`<small class="muted" style="display:block;margin-top:4px"><b>Boosts from other missions:</b> ${msBonusTxt(id)}</small>`:''}<div class="lgsteps">${steps}</div>${now}</div>
+ else{const st=def.stages[m.st];now=`<h3 style="margin-top:6px">Stage ${m.st+1}: ${st.n}</h3><p class="muted" style="font-size:13px;margin:4px 0 8px">How do you want to do it?${m.fails?` You've had ${m.fails} setback${m.fails>1?'s':''} so far.`:''}</p><div style="display:grid;gap:8px">${(()=>{const fl=freeTalent(MS_ROLE[id]);return fl?`<small class="muted" style="display:block;margin-bottom:8px">Led by ${esc(fl.name)} (+${Math.round(fl.skill*100)}% chance)${S.wev&&wevCost()!==1?` · ${WEV[S.wev.k].n}: costs ${wevCost()>1?'+30%':'-15%'}`:''}</small>`:`<div class="ddbox" style="margin-bottom:8px">All your ${ROLE_P[MS_ROLE[id]]} are busy. Hire one below in Legacy, or wait for a stage to finish.</div>`;})()}${st.ap.map((a,i)=>{const fl=freeTalent(MS_ROLE[id]);return `<button class="btn ${i===0?'go':''}" data-ms="ap" data-id="${id}" data-i="${i}" ${S.cash<st.c*a[1]*wevCost()||!fl?'disabled':''}>${a[0]}<small>${money(st.c*a[1]*wevCost())} · ${a[2]} turns · ${Math.round(clamp(a[3]+(S.trust-50)/700+msBonus(id)+(fl?fl.skill:0)+wevP(def),.05,.95)*100)}% chance${a[4]?` · ${a[4]}`:''}</small></button>`;}).join('')}</div>`;}
+ const rv=m.rv,race=rv?`<div class="ddbox" style="margin-top:8px"><b>${m.lost?`${esc(rv.name)} finished first`:rv.out?`${esc(rv.name)} dropped out`:`Race: ${esc(rv.name)} is ${Math.round(rv.pr*100)}% done`}</b>${rv.out||m.lost?'':lgBar(rv.pr*100,'#F0574A')}<div style="font-size:12px;margin-top:4px">You: ${Math.round((m.done?1:(m.st+(m.run?1-m.left/Math.max(1,m.tot):0))/def.stages.length)*100)}% done${m.lost?'. The badge is gone, but you still get the reward.':''}</div></div>`:'';
+ return `<button class="btn" data-ms="back" style="margin-bottom:10px">Back to Legacy</button><div class="card"><div class="between"><h3>${def.name}</h3><span class="label">Spent ${money(m.spent)}</span></div><p class="muted" style="font-size:13px;margin:6px 0">${def.blurb}</p><small class="muted" style="display:block"><b>Reward:</b> ${def.perk}</small>${SYN[id]?`<small class="muted" style="display:block;margin-top:4px"><b>Boosts from other missions:</b> ${msBonusTxt(id)}</small>`:''}${race}<div class="lgsteps">${steps}</div>${now}</div>
   ${m.log&&m.log.length?`<div class="card"><h3>What's happened</h3>${m.log.map(t=>`<div style="font-size:13px;margin-top:6px">${esc(t)}</div>`).join('')}</div>`:''}
   ${m.done?'':`<button class="btn danger" data-ms="quit" data-id="${id}" style="margin-top:4px">Abandon this mission<small>You lose everything spent so far</small></button>`}`;}
 /* ---- strategy: limited focus and synergies ---- */
@@ -3828,7 +3830,7 @@ const msBonus=id=>(SYN[id]||[]).filter(([k])=>S.perk[k]).reduce((a,[,b])=>a+b,0)
 const msBonusTxt=id=>(SYN[id]||[]).map(([k,b,n])=>`${S.perk[k]?'✓':'○'} ${n} +${Math.round(b*100)}%`).join(' · ');
 /* ---- badges ---- */
 const BADGES=[
- ...MISSIONS.map(d=>({id:'m_'+d.id,n:d.name,t:'gold',ic:d.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),req:`Complete the mission: ${d.name.toLowerCase()}.`,ok:()=>S.ms[d.id]&&S.ms[d.id].done})),
+ ...MISSIONS.map(d=>({id:'m_'+d.id,n:d.name,t:'gold',ic:d.name.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase(),req:`Complete ${d.name.toLowerCase()} before any rival does.`,ok:()=>S.ms[d.id]&&S.ms[d.id].done&&!S.ms[d.id].lost})),
  {id:'hunger',n:'Zero Hunger',t:'gold',ic:'ZH',req:'End world hunger.',ok:()=>S.legacy&&S.legacy.done.includes('hunger')},
  {id:'world',n:'Ruler of Earth',t:'gold',ic:'RE',req:'Control every nation.',ok:()=>S.legacy&&S.legacy.done.includes('world')},
  {id:'mars',n:'Martian',t:'gold',ic:'MA',req:'Move to Mars.',ok:()=>S.legacy&&S.legacy.done.includes('space')},
@@ -3858,6 +3860,42 @@ const badgeIcon=(b,on)=>`<span class="badgeic ${on?'':'off'}" style="--b1:${TIER
 function viewBadges(){S.badges=S.badges||{};const n=Object.keys(S.badges).length;
  return `<button class="btn" data-ms="nobadges" style="margin-bottom:10px">Back to Legacy</button><div class="luxhero"><div class="luxbrand">YOUR <span>BADGES</span></div><div class="luxsub">${n} of ${BADGES.length} earned. Legendary badges are almost impossible. Almost.</div></div>
  ${['legend','gold','silver','bronze'].map(t=>`<div class="sec-title"><h3>${TIER_N[t]}</h3></div><div class="badgegrid">${BADGES.filter(b=>b.t===t).map(b=>{const on=!!S.badges[b.id];return `<div class="badgecard ${on?'on':''}">${badgeIcon(b,on)}<b>${b.n}</b><small>${on?`Earned at age ${S.badges[b.id]}`:b.req}</small></div>`;}).join('')}</div>`).join('')}`;}
+
+/* ===================== MISSIONS 2: talent, rivals, world events ===================== */
+const MS_ROLE={cancer:'sci',aging:'sci',pandemic:'sci',ocean:'sci',climate:'eng',agi:'eng',asteroid:'eng',net:'eng',water:'dip',edu:'dip',city:'dip'};
+const ROLE_N={sci:'Scientist',eng:'Engineer',dip:'Diplomat'},ROLE_P={sci:'scientists',eng:'engineers',dip:'diplomats'};
+function newTalent(role,star){const g=Math.random()<.5?'f':'m',n=pick(g==='f'?F_NAMES:M_NAMES)+' '+pick(SURN);return {id:'t'+(S.tSeq=(S.tSeq||1)+1),role,name:(role==='sci'?'Dr. ':'')+n,skill:+(star?rnd(.12,.18):rnd(.02,.11)).toFixed(2),busy:null};}
+function ensureMs2(s){const S0=S;S=s;if(!S.talent){S.talent=[];['sci','eng','dip'].forEach(r=>{S.talent.push(newTalent(r),newTalent(r));});}S.wev=S.wev||null;if(S.ms)MISSIONS.forEach(def=>{const m=S.ms[def.id];if(!m)return;m.id=def.id;if(!m.done&&!m.rv)ms2Start(def,m);if(m.run&&!S.talent.some(t=>t.busy===def.id)){const ld=freeTalent(MS_ROLE[def.id]);if(ld)ld.busy=def.id;}});S=S0;return s;}
+const hireCost=r=>Math.round(2e9*Math.pow(1.7,S.talent.filter(t=>t.role===r).length));
+const freeTalent=r=>S.talent.filter(t=>t.role===r&&!t.busy).sort((a,b)=>b.skill-a.skill)[0];
+const leadOf=id=>S.talent.find(t=>t.busy===id);
+const releaseLead=id=>S.talent.forEach(t=>{if(t.busy===id)t.busy=null;});
+/* world events */
+const WEV={recession:{n:'Global recession',d:'Everything costs 30% more.',cost:1.3},golden:{n:'Golden age',d:'Economies are booming. Missions cost 15% less.',cost:.85},war:{n:'Wars break out',d:'People and Planet missions are 10% less likely to succeed.',cats:['People','Planet'],p:-.1},techboom:{n:'Tech boom',d:'Tech and Space missions are 10% more likely to succeed.',cats:['Tech','Space'],p:.1},health:{n:'Health crisis',d:'Health missions are 8% less likely to succeed, but the world is watching: public trust gains doubled.',cats:['Health'],p:-.08}};
+const wevCost=()=>S.wev&&WEV[S.wev.k].cost||1;
+const wevP=def=>S.wev&&WEV[S.wev.k].cats&&WEV[S.wev.k].cats.includes(def.cat)?WEV[S.wev.k].p:0;
+function ms2Turn(scenes){if(!S.ms)return;
+ // world events
+ if(S.wev){S.wev.t--;if(S.wev.t<=0){scenes.push({who:'anchor',mood:'happy',tag:['t-info','World news'],pages:[`The ${WEV[S.wev.k].n.toLowerCase()} is over. Things are back to normal.`]});S.wev=null;}}
+ else if(MISSIONS.some(d=>S.ms[d.id]&&!S.ms[d.id].done)&&Math.random()<.05){const k=pick(Object.keys(WEV));S.wev={k,t:ri(4,9)};scenes.push({who:'anchor',mood:k==='golden'||k==='techboom'?'happy':'worried',tag:['t-info','World news'],pages:[`${WEV[k].n}. ${WEV[k].d}`,`This should last about ${S.wev.t} turns. Plan your missions around it.`]});}
+ // talent drama
+ const busy=S.talent.filter(t=>t.busy);if(busy.length&&Math.random()<.06){const t=pick(busy),def=MS(t.busy),offer=Math.round(5e8*(1+t.skill*20));
+  scenes.push({who:'dana',mood:'worried',tag:['t-choice','Talent'],pages:[`A rival is trying to hire ${t.name}, who leads your ${def.name.toLowerCase()} mission.`,`Keeping ${t.name.split(' ').slice(-2).join(' ')} will take a ${money(offer)} retention bonus.`],choices:[
+   {label:`Pay ${money(offer)} to keep them`,go:true,run:()=>{payOut(offer);t.skill=+(t.skill+.01).toFixed(2);return ok('dana','They\'re staying. And a bit more motivated.');}},
+   {label:'Let them go',run:()=>{const id=t.busy;S.talent=S.talent.filter(x=>x!==t);const m=S.ms[id];if(m&&m.run){m.left+=2;const nx=freeTalent(MS_ROLE[id]);if(nx)nx.busy=id;}return ok('dana',`They\'re gone. The mission slows down while someone else takes over.`,'worried');}}]});}
+ // rivals racing your missions
+ MISSIONS.forEach(def=>{const m=S.ms[def.id];if(!m||m.done||!m.rv||m.rv.out||m.lost)return;const rv=m.rv;rv.pr+=rnd(.6,1.4)/rv.need;
+  if(rv.pr>=1){m.lost=true;rivalNpc(rv.name);scenes.push({who:'rvl',mood:'smug',tag:['t-bad',def.name],pages:[`${rv.name} got there first. ${def.name} is theirs in the history books.`,'You can still finish your own version and keep the reward, but that badge is gone for good.']});return;}
+  if(rv.pr>.35&&Math.random()<.1){const buy=Math.round(def.stages[Math.min(m.st,def.stages.length-1)].c*.6);rivalNpc(rv.name);
+   scenes.push({who:'rvl',mood:'smug',tag:['t-choice',def.name],pages:[`Your old classmate ${rv.name} is ${Math.round(rv.pr*100)}% of the way to finishing ${def.name.toLowerCase()} first.`,'How do you want to handle it?'],choices:[
+    {label:`Buy out their project (${money(buy)})`,run:()=>{if(S.cash<buy)return ok('dana','Not enough cash for that.','worried');S.cash-=buy;m.spent+=buy;rv.out=true;return ok('dana',`${rv.name} sold. They're out of the race.`);}},
+    {label:'Poach their best people',run:()=>{rv.pr=Math.max(0,rv.pr-.25);S.trust=clamp(S.trust-5,0,100);return ok('dana','They lost months. People think it was a dirty move.','neutral');}},
+    {label:'Offer to work together',run:()=>{if(Math.random()<.5){rv.out=true;m.ch=clamp(m.ch+.06,.05,.95);S.trust=clamp(S.trust+4,0,100);return ok('dana','They agreed. Two teams, one goal. Odds up, and people love it.');}return ok('dana','They laughed and hung up.','neutral');}},
+    {label:'Ignore them',go:true,run:()=>ok('dana','Fine. Just move faster.','neutral')}]});}});}
+function rivalNpc(name){const r=S.rivals.find(x=>x.name===name);NPC.rvl={name,role:'Your old classmate',bg:'office',look:r?r.look:randLook()};}
+function ms2Start(def,m){const pool=S.rivals.slice().sort((a,b)=>b.nw-a.nw).slice(0,5);const r=pick(pool);m.rv={name:r?r.name:'A rival',pr:0,need:def.stages.length*rnd(5,7.5)};}
+function viewTalent(){const roles=['sci','eng','dip'];return `<div class="card"><div class="between"><h3>Your people</h3><span class="label">${S.talent.filter(t=>t.busy).length} of ${S.talent.length} busy</span></div><small class="muted">Every mission stage needs someone to lead it: ${roles.map(r=>ROLE_P[r]).join(', ')}. Better people raise your odds. When everyone's busy, nothing new starts.</small>
+ ${roles.map(r=>`<div class="sec-title" style="margin-top:10px"><h3 style="font-size:15px">${ROLE_N[r]}s</h3><button class="chip" data-ms="hire" data-v="${r}">Hire one ${money(hireCost(r))}</button></div>${S.talent.filter(t=>t.role===r).map(t=>`<div class="emprow" style="color:var(--ink,#25283A)"><span>${esc(t.name)}</span><span class="empbar"><i style="width:${t.skill/.18*100}%;background:#C9A45C"></i></span><b class="muted" style="color:var(--muted)">${t.busy?MS(t.busy).name:'Free'}</b></div>`).join('')}`).join('')}</div>`;}
 
 /* ===================== EMPIRE HOME (replaces the goods market past $200B) ===================== */
 const EMPIRE_AT=2e11;
