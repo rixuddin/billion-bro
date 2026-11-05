@@ -33,9 +33,17 @@ async function api(req,env,p){
  if(p==='load'){const s=await db.prepare('SELECT data,updated FROM saves WHERE user_id=?').bind(me.id).first();return J(s||{data:null});}
  if(p==='save'){if(typeof b.data!=='string'||b.data.length>1800000)return J({error:'Save is too big.'},413);
   await db.prepare('INSERT INTO saves(user_id,data,week,nw,updated) VALUES(?,?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data,week=excluded.week,nw=excluded.nw,updated=excluded.updated').bind(me.id,b.data,+b.week||0,+b.nw||0,now).run();return J({ok:true,updated:now});}
+ if(p.startsWith('slot')){await db.prepare('CREATE TABLE IF NOT EXISTS slots(user_id INTEGER NOT NULL,sid TEXT NOT NULL,data TEXT NOT NULL,meta TEXT,updated INTEGER,PRIMARY KEY(user_id,sid))').run();
+  if(p==='slots'){const r=await db.prepare('SELECT sid,meta,updated FROM slots WHERE user_id=? ORDER BY updated DESC').bind(me.id).all();return J({slots:r.results||[]});}
+  const sid=String(b.sid||'').replace(/[^a-z0-9]/gi,'').slice(0,40);if(!sid)return J({error:'Missing game id.'},400);
+  if(p==='slotput'){if(typeof b.data!=='string'||b.data.length>1800000)return J({error:'Save is too big.'},413);const n=await db.prepare('SELECT COUNT(*) c FROM slots WHERE user_id=? AND sid<>?').bind(me.id,sid).first();if(n&&n.c>=8)return J({error:'You can keep up to 8 saved games.'},400);
+   await db.prepare('INSERT INTO slots(user_id,sid,data,meta,updated) VALUES(?,?,?,?,?) ON CONFLICT(user_id,sid) DO UPDATE SET data=excluded.data,meta=excluded.meta,updated=excluded.updated').bind(me.id,sid,b.data,String(b.meta||'').slice(0,500),now).run();return J({ok:true});}
+  if(p==='slotget'){const r=await db.prepare('SELECT data FROM slots WHERE user_id=? AND sid=?').bind(me.id,sid).first();return J(r||{data:null});}
+  if(p==='slotdel'){await db.prepare('DELETE FROM slots WHERE user_id=? AND sid=?').bind(me.id,sid).run();return J({ok:true});}
+  return J({error:'Not found.'},404);}
  if(p==='logout'){const t=(req.headers.get('authorization')||'').slice(7);await db.prepare('DELETE FROM sessions WHERE token=?').bind(await sha(t)).run();return J({ok:true});}
  if(p==='delete'){const x=await db.prepare('SELECT pw FROM users WHERE id=?').bind(me.id).first();if(!okPw(b.p)||!await check(b.p,x.pw))return J({error:'Wrong password.'},401);
-  await db.batch([db.prepare('DELETE FROM saves WHERE user_id=?').bind(me.id),db.prepare('DELETE FROM sessions WHERE user_id=?').bind(me.id),db.prepare('DELETE FROM users WHERE id=?').bind(me.id)]);return J({ok:true});}
+  await db.batch([db.prepare('DELETE FROM saves WHERE user_id=?').bind(me.id),db.prepare('CREATE TABLE IF NOT EXISTS slots(user_id INTEGER NOT NULL,sid TEXT NOT NULL,data TEXT NOT NULL,meta TEXT,updated INTEGER,PRIMARY KEY(user_id,sid))'),db.prepare('DELETE FROM slots WHERE user_id=?').bind(me.id),db.prepare('DELETE FROM sessions WHERE user_id=?').bind(me.id),db.prepare('DELETE FROM users WHERE id=?').bind(me.id)]);return J({ok:true});}
  return J({error:'Not found.'},404);}
 export default{async fetch(req,env){const u=new URL(req.url);
  if(u.pathname.startsWith('/api/')){try{return await api(req,env,u.pathname.slice(5));}catch(e){return J({error:'Server error. Try again.'},500);}}

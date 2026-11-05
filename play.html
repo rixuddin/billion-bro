@@ -1229,7 +1229,7 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261102001400';
+const BUILD='20261105215237';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
@@ -1281,6 +1281,27 @@ async function cloudPush(st){st=st||S;if(!AUTH||!st)return;if(cloudBusy){cloudAg
  if(r.ok){setSync({server:r.updated,local:st.savedAt||0,user:AUTH.user});cloudState='saved';}else cloudState='failed';
  if(cloudAgain){cloudAgain=false;cloudPush();}}
 async function cloudPull(){const r=await apiCall('load');if(!r.data)return null;try{const s=JSON.parse(r.data);if(s&&s.v===2){setSync({server:r.updated,local:s.savedAt||0,user:AUTH.user});return s;}}catch(e){}return null;}
+
+/* ---- saved game slots: start a new game without losing the old one ---- */
+const SLOT_IDX='billionbro_slots',SLOT_KEY=id=>'billionbro_slot_'+id;
+const slotList=()=>{try{return JSON.parse(localStorage.getItem(SLOT_IDX))||[];}catch(e){return [];}};
+const setSlotList=l=>{try{localStorage.setItem(SLOT_IDX,JSON.stringify(l));}catch(e){}};
+const gidOf=st=>{if(!st.gid)st.gid='g'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);return st.gid;};
+function slotMeta(st){const k=S;S=st;let m={};try{m={name:st.name,week:st.week,nw:Math.round(netWorth()),age:typeof age==='function'?age():null,gen:st.gen||1,at:Date.now()};}catch(e){m={name:st.name,week:st.week,at:Date.now()};}S=k;return m;}
+function shelveActive(){const cur=loadSave();if(!cur)return;const id=gidOf(cur),meta=slotMeta(cur),data=JSON.stringify(cur);let ok=true;try{localStorage.setItem(SLOT_KEY(id),data);}catch(e){ok=false;}
+ setSlotList([{id,...meta,local:ok},...slotList().filter(x=>x.id!==id)].slice(0,8));if(AUTH)apiCall('slotput',{sid:id,data,meta:JSON.stringify(meta)});clearSave();}
+async function slotData(id){let d=null;try{d=localStorage.getItem(SLOT_KEY(id));}catch(e){}if(!d&&AUTH){const r=await apiCall('slotget',{sid:id});d=r.data||null;}return d;}
+async function playSlot(id){const d=await slotData(id);if(!d)return toast('Could not load that game.');let st=null;try{st=JSON.parse(d);}catch(e){}if(!st)return toast('That save is damaged.');
+ const cur=loadSave();if(cur&&gidOf(cur)!==id)shelveActive();
+ try{localStorage.removeItem(SLOT_KEY(id));}catch(e){}setSlotList(slotList().filter(x=>x.id!==id));if(AUTH)apiCall('slotdel',{sid:id});
+ st=ensureStocks(st);try{localStorage.setItem(SAVE_KEY,JSON.stringify(st));}catch(e){}resetHist();startGame(st);cloudPush(st);toast(`Switched to ${st.name}'s game.`);}
+async function delSlot(id){try{localStorage.removeItem(SLOT_KEY(id));}catch(e){}setSlotList(slotList().filter(x=>x.id!==id));if(AUTH)await apiCall('slotdel',{sid:id});openSlots();}
+async function syncSlots(){if(!AUTH)return;const r=await apiCall('slots');if(!r.slots)return;const loc=slotList();const merged=r.slots.map(x=>{let m={};try{m=JSON.parse(x.meta||'{}');}catch(e){}return {id:x.sid,...m,...(loc.find(l=>l.id===x.sid)||{})};});
+ loc.forEach(l=>{if(!merged.some(m=>m.id===l.id))merged.push(l);});setSlotList(merged);}
+function openSlots(){const L=slotList(),cur=loadSave();
+ openModal(`<span class="evtag t-info">Saved games</span><h2>Your games</h2>${cur?`<div class="rep"><div class="rrow"><span><b>${esc(cur.name)} (playing now)</b><small>Week ${cur.week} · ${money(slotMeta(cur).nw||0)}</small></span></div></div>`:''}
+  ${L.length?`<div class="rep">${L.map(x=>`<div class="rrow"><span><b>${esc(x.name||'Game')}</b><small>${x.gen>1?`Generation ${x.gen} · `:''}${x.age?`Age ${x.age} · `:''}Week ${x.week||0} · ${money(x.nw||0)} · saved ${ago(x.at)}</small></span><span style="display:flex;gap:6px"><button class="btn go" data-slotplay="${x.id}">Play</button><button class="btn" data-slotdel="${x.id}">Delete</button></span></div>`).join('')}</div>`:'<p class="muted">No other saved games yet. Starting a new game keeps your current one here.</p>'}
+  <div class="ev-btns">${L.length<8?'<button class="btn go" data-act="newKeep">Start a new game</button>':''}<button class="btn" data-close>Close</button></div>`);}
 /* After signing in (or on the title screen), line up this device with the account */
 async function reconcile(quiet){if(!ACC_ON||!AUTH)return;const me=await apiCall('me');if(me.error)return;
  const local=loadSave(),sy=syncInfo(),cloud=me.save;
@@ -4069,7 +4090,7 @@ function renderTitle(){const has=!!loadSave();
  $('#scr-title').innerHTML=`<div class="title-box"><div class="logo">Billion <span class="b">Bro</span><span class="coin"></span></div>
   <div class="tagline">Nine classmates. Zero dollars. First to a billion wins.</div>
   <div class="lineup">${titleLooks.map((l,i)=>`<span style="animation-delay:${i*.07}s">${figure(l,{w:i===3?104:80,mood:['happy','smug','happy','happy','neutral','smug','happy'][i]})}</span>`).join('')}</div>
-  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">${has?`<button class="btn go big" data-act="continue">Continue</button><button class="btn big" data-act="new">New game</button>`:`<button class="btn go big" data-act="new">Take the bet</button>`}</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">${has?`<button class="btn go big" data-act="continue">Continue</button><button class="btn big" data-act="new">New game</button>`:`<button class="btn go big" data-act="new">Take the bet</button>`}${slotList().length?`<button class="btn big" data-act="slots">Saved games (${slotList().length})</button>`:''}</div>
   <div class="stage-note">Start on the East Coast, then fly your cargo to 40 cities on six continents.</div>${accountLine()}</div>`;}
 function renderCreate(){const c=cfg;
  const sw=(arr,key)=>arr.map((col,i)=>`<button class="sw ${c.look[key]===i?'on':''}" style="background:${col}" data-look="${key}" data-i="${i}" aria-label="Colour ${i+1}"></button>`).join('');
@@ -4618,11 +4639,11 @@ function showMenu(){openModal(`<span class="evtag t-week">Menu</span><h2>${esc(S
   <p class="muted" style="margin:0;font-size:13px">Made a bad call? Undo the last few turns. The game keeps your last 10.</p>
   <div class="btnrow" style="grid-template-columns:repeat(3,1fr);display:grid">${[1,2,10].map(n=>`<button class="btn" style="background:var(--surface);box-shadow:var(--shadow)" data-rewind="${n}" ${HIST.length<n?'disabled':''}>${n} turn${n>1?'s':''}</button>`).join('')}</div>${S.rewinds?`<span class="label">Times you've gone back: ${S.rewinds}</span>`:''}</div>
  <div class="ev-btns"><button class="btn go" data-close>Back to the game</button><button class="btn" data-act="sound">${sndOn?'Sound: on':'Sound: off'}</button>${ACC_ON&&AUTH?'<button class="btn" data-act="account">Account</button>':''}<button class="btn" data-act="replayIntro">Replay the tutorial</button><button class="btn" data-act="home">Title screen</button><button class="btn" data-act="askNew" style="color:var(--loss)">Start a new game</button></div>`);}
-function askNew(){openModal(`<span class="evtag t-bad">Careful</span><h2>Start over?</h2><p>This deletes your current game for good.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Yes, start over</button><button class="btn" data-close>Keep playing</button></div>`);}
+function askNew(){openModal(`<span class="evtag t-choice">New game</span><h2>Start a new game?</h2><p>This game is kept in Saved games, so you can come back to it any time.</p><div class="ev-btns"><button class="btn go" data-act="newKeep">Start a new game</button><button class="btn" data-act="slots">See saved games</button><button class="btn" data-close>Keep playing</button></div>`);}
 
 /* ===================== NAV / INPUT ===================== */
 function show(id){['title','create','game'].forEach(s=>$('#scr-'+s).hidden=s!==id);window.scrollTo(0,0);}
-function goTitle(){closeModal();titleLooks=Array.from({length:7},randLook);renderTitle();show('title');reconcile(true);}
+function goTitle(){closeModal();titleLooks=Array.from({length:7},randLook);renderTitle();show('title');reconcile(true);syncSlots().then(()=>{if(!$('#scr-title').hidden)renderTitle();});}
 function goCreate(){closeModal();cfg={name:'',look:{...randLook(),acc:[]},trait:'street',diff:'normal'};renderCreate();show('create');}
 function startGame(s){S=s;if(S.effects&&!S.effects.some(e=>e.deal)){makeDeals();save();}shownCash=null;UI.tab='market';UI.lastTab=null;closeModal();show('game');renderGame();if(!S.intro){S.intro=true;save();playScenes(introScene());}}
 document.addEventListener('click',e=>{
@@ -4641,7 +4662,12 @@ document.addEventListener('click',e=>{
  if(d.wl){willClick(d);return;}
  if(d.re){reClick(d);return;}
  if(d.close!==undefined){closeModal();if(UI.sel){UI.sel=null;renderGame();}}
- else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-bad">Careful</span><h2>Start a new game?</h2><p>You already have a game in progress. Starting over deletes it.</p><div class="ev-btns"><button class="btn danger" data-act="confirmNew">Start over</button><button class="btn go" data-act="continue">Continue my game</button></div>`);else goCreate();}
+ else if(d.act==='new'){if(loadSave())openModal(`<span class="evtag t-choice">New game</span><h2>Start a new game?</h2><p>Your current game is kept in Saved games. You can switch back to it any time from the title screen.</p><div class="ev-btns"><button class="btn go" data-act="newKeep">Start a new game</button><button class="btn" data-act="continue">Continue my game</button></div>`);else goCreate();}
+ else if(d.act==='newKeep'){if(slotList().length>=8)return toast('You can keep up to 8 saved games. Delete one first.');shelveActive();goCreate();}
+ else if(d.act==='slots')openSlots();
+ else if(d.slotplay){closeModal();playSlot(d.slotplay);}
+ else if(d.slotdel){const id=d.slotdel;openModal(`<span class="evtag t-bad">Delete</span><h2>Delete this game for good?</h2><div class="ev-btns"><button class="btn danger" data-slotdelgo="${id}">Delete it</button><button class="btn" data-act="slots">Back</button></div>`);}
+ else if(d.slotdelgo){delSlot(d.slotdelgo);}
  else if(d.act==='continue'){const s=loadSave();if(s)startGame(s);else goCreate();}
  else if(d.act==='start'){if(!cfg.name)cfg.name='The Kid';resetHist();startGame(newGame(cfg));save();}
  else if(d.rewind){const n=+d.rewind,w=histWeek(n);openModal(`<span class="evtag t-choice">Go back in time</span><h2>Back to week ${w}?</h2><p>This undoes your last ${n===1?'turn':n+' turns'}. Every trade, trip and event since week ${w} is wiped, and you pick up from there.</p><div class="ev-btns"><button class="btn go big" data-rewindgo="${n}">Yes, go back</button><button class="btn" data-close>Keep playing</button></div>`);}
