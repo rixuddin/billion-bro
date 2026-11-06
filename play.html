@@ -1229,7 +1229,7 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261105220419';
+const BUILD='20261106003013';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
@@ -2707,7 +2707,7 @@ function maScenes(){if(!S.acq.length||Math.random()>.45)return [];const c=pick(S
 const ddCost=c=>Math.round(Math.max(1500,c.ask*.015));
 const maxLoan=c=>Math.round(c.ask*.5);
 function maBuy(id,price,loan){const c=S.listings.find(x=>x.id===id);if(!c)return;const cashNeed=price-loan;if(S.cash<cashNeed)return toast(`You need ${money(cashNeed)} in cash.`);
- {const same=S.acq.filter(x=>x.ind===c.ind).length,big=price>=5e10;if(big&&(same>=3||acqValue()>1e12)&&Math.random()<.4){S.listings=S.listings.filter(x=>x!==c);const fee=Math.round(price*.004);payOut(fee);addLog(S,`Regulators blocked your takeover of ${c.name}. Legal fees: ${money(fee)}.`,'bad');after();return openModal(`<span class="evtag t-bad">Antitrust</span><h2>Deal blocked</h2><p>Competition regulators blocked your takeover of ${esc(c.name)}. ${same>=3?`You already own ${same} ${INDS[c.ind].n.toLowerCase()} companies, and they say you'd control too much of the industry.`:'They say your empire is already too big.'}</p><p>Lawyers and filings cost ${money(fee)}. The deal is off.</p><div class="ev-btns"><button class="btn" data-close>Okay</button></div>`);}}
+
  S.cash-=cashNeed;c.debt+=loan;c.paid=price;c.own=1;c.bought=S.week;c.cool=0;if(c.trait&&!c.dd)c.hitWeek=S.week+ri(2,6);
  S.listings=S.listings.filter(x=>x!==c);S.acq.push(c);addLog(S,`Bought ${c.name} for ${money(price)}${loan?` (${money(loan)} borrowed against it)`:''}.`,'good');popCash(`-${money(cashNeed)}`,'var(--loss)');confetti();toast(`${c.name} is yours.`);after();}
 function maSellNow(c,amount){S.cash+=amount;S.acq=S.acq.filter(x=>x!==c);const pl=amount-c.paid;addLog(S,`Sold ${c.name} for ${money(amount)} (${pl>=0?'+':''}${money(pl)}).`,pl>=0?'good':'bad');popCash(`+${money(amount)}`,'var(--cash)');if(pl>0)confetti();}
