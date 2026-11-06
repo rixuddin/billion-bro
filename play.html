@@ -1229,12 +1229,12 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261106003204';
+const BUILD='20261106003804';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);ensureMs2(s);ensureDyn(s);ensureCast(s);return s;}
+function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);ensureMs2(s);ensureDyn(s);ensureCast(s);ensureTax(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1542,7 +1542,7 @@ function etfBuy(id,amt){const f=etfFunds().find(x=>x.id===id);if(!f)return;amt=M
  if(!spent)return toast('Not enough cash to buy a share of each stock.');addLog(S,`Put ${money(spent)} into the ${f.name} fund (${c} stocks).`,'');popCash(`-${money(spent)}`,'var(--loss)');toast(`Bought into ${c} stocks for ${money(spent)}.`);after();}
 function stockTrade(sym,mode,n){n=Math.floor(n);if(n<1)return;const st=ST(sym),p=st.p,f=commission();
  if(mode==='buy'){const cost=n*p*(1+f);if(cost>S.cash+.01)return toast('Not enough cash.');S.cash-=cost;const h=S.shares[sym]||{n:0,avg:0};h.avg=(h.avg*h.n+cost)/(h.n+n);h.n+=n;S.shares[sym]=h;addLog(S,`Bought ${n.toLocaleString()} ${sym} shares for ${money(cost)}.`,'');popCash(`-${money(cost)}`,'var(--loss)');}
- if(mode==='sell'){const h=S.shares[sym];if(!h)return;n=Math.min(n,h.n);const got=n*p*(1-f),pf=got-n*h.avg;S.cash+=got;h.n-=n;if(!h.n)delete S.shares[sym];addLog(S,`Sold ${n.toLocaleString()} ${sym} shares for ${money(got)} (${pf>=0?'+':''}${money(pf)}).`,pf>=0?'good':'bad');popCash(`+${money(got)}`,'var(--cash)');}
+ if(mode==='sell'){const h=S.shares[sym];if(!h)return;n=Math.min(n,h.n);const got0=n*p*(1-f),gt=gainTax(got0-n*h.avg),got=got0-gt,pf=got-n*h.avg;S.cash+=got;h.n-=n;if(!h.n)delete S.shares[sym];addLog(S,`Sold ${n.toLocaleString()} ${sym} shares for ${money(got)} (${pf>=0?'+':''}${money(pf)}).`,pf>=0?'good':'bad');popCash(`+${money(got)}`,'var(--cash)');}
  if(mode==='short'){if(!canShort())return;n=Math.min(n,Math.floor(shortRoom()/p));if(n<1)return toast('You can\'t short more right now.');const got=n*p*(1-f);S.cash+=got;const h=S.shorts[sym]||{n:0,entry:0};h.entry=(h.entry*h.n+n*p)/(h.n+n);h.n+=n;S.shorts[sym]=h;addLog(S,`Shorted ${n.toLocaleString()} ${sym} shares at ${pr(p)}.`,'');popCash(`+${money(got)}`,'var(--cash)');}
  if(mode==='cover'){const h=S.shorts[sym];if(!h)return;n=Math.min(n,h.n,Math.floor(S.cash/(p*(1+f))));if(n<1)return toast('Not enough cash to buy the shares back.');const cost=n*p*(1+f),pf=n*(h.entry-p);S.cash-=cost;h.n-=n;if(!h.n)delete S.shorts[sym];addLog(S,`Covered ${n.toLocaleString()} ${sym} shorts (${pf>=0?'+':''}${money(pf)}).`,pf>=0?'good':'bad');popCash(`-${money(cost)}`,'var(--loss)');}
  after();}
@@ -1676,7 +1676,7 @@ function tick(arrive,news){
   else if(!co.listed&&Math.random()<.008){co.owner=null;co.free=S.week-3;}
  });
  S.cash+=income;
- let bizp=0;S.biz.forEach(b=>{bizp+=bizWeekOne(b,news);});if(bizp>=0)S.cash+=bizp;else payOut(-bizp);
+ let bizp=0;S.biz.forEach(b=>{bizp+=bizWeekOne(b,news);});if(bizp>=0)S.cash+=bizp-corpTax(bizp);else payOut(-bizp);
  const ugr=ugWeek(news);const mar=maWeek(news);const famc=famWeek();
  // stock market
  let divs=0;{const r0=Math.random();let mf=gauss()*.02+.0005,big=0;if(r0<.008)big=-rnd(.12,.22);else if(r0<.016)big=rnd(.06,.12);mf+=big;
@@ -2682,7 +2682,7 @@ function maWeek(news){
  // trade desk
  let dp=0;const D=S.desk;if(D.fund>=1){const eff=1/(1+D.fund/3e8);let r=(.0035+gauss()*.004)*eff;if(Math.random()<.015){r=-rnd(.02,.06);news.personal.push({who:'tess',mood:'worried',tag:['t-bad','Trade desk'],pages:[pick(['A storm sank one of the shipments your trade desk was running.','Thieves hit a warehouse your trade desk was using.','Prices crashed on a big load your trade desk was carrying.']),`The desk lost ${money(-r*D.fund)} this week.`]});}
   dp=D.fund*r;if(D.re&&dp>0)D.fund+=dp;else if(dp>=0)S.cash+=dp;else D.fund=Math.max(0,D.fund+dp);D.total+=dp;}
- if(prof>=0)S.cash+=prof*(S.heirMod&&turnsIn()<S.heirMod.until?S.heirMod.m:1);else payOut(-prof);
+ if(prof>=0){const pp=prof*(S.heirMod&&turnsIn()<S.heirMod.until?S.heirMod.m:1);S.cash+=pp-corpTax(pp);}else payOut(-prof);
  return {acq:prof,desk:dp};}
 /* trip scenes for companies you own */
 const MAE=[
@@ -2710,7 +2710,7 @@ function maBuy(id,price,loan){const c=S.listings.find(x=>x.id===id);if(!c)return
 
  S.cash-=cashNeed;c.debt+=loan;c.paid=price;c.own=1;c.bought=S.week;c.cool=0;if(c.trait&&!c.dd)c.hitWeek=S.week+ri(2,6);
  S.listings=S.listings.filter(x=>x!==c);S.acq.push(c);addLog(S,`Bought ${c.name} for ${money(price)}${loan?` (${money(loan)} borrowed against it)`:''}.`,'good');popCash(`-${money(cashNeed)}`,'var(--loss)');confetti();toast(`${c.name} is yours.`);after();}
-function maSellNow(c,amount){S.cash+=amount;S.acq=S.acq.filter(x=>x!==c);const pl=amount-c.paid;addLog(S,`Sold ${c.name} for ${money(amount)} (${pl>=0?'+':''}${money(pl)}).`,pl>=0?'good':'bad');popCash(`+${money(amount)}`,'var(--cash)');if(pl>0)confetti();}
+function maSellNow(c,amount){const gt=gainTax(amount-c.paid);S.cash+=amount-gt;S.acq=S.acq.filter(x=>x!==c);const pl=amount-gt-c.paid;addLog(S,`Sold ${c.name} for ${money(amount)} (${pl>=0?'+':''}${money(pl)}).`,pl>=0?'good':'bad');popCash(`+${money(amount)}`,'var(--cash)');if(pl>0)confetti();}
 function maChart(h,w=320,hh=110){if(h.length<2)return '';const mn=Math.min(...h),mx=Math.max(...h),sp=mx-mn||1;const P=h.map((v,i)=>[i/(h.length-1)*w,hh-8-(v-mn)/sp*(hh-16)]);const up=h[h.length-1]>=h[0];const col=up?'var(--cash)':'var(--loss)';const id='mc'+Math.floor(Math.random()*1e9);
  return `<svg viewBox="0 0 ${w} ${hh}" class="machart"><defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${up?'#12B076':'#F0574A'}" stop-opacity=".25"/><stop offset="1" stop-color="${up?'#12B076':'#F0574A'}" stop-opacity="0"/></linearGradient></defs><path d="M0 ${hh}L${P.map(p=>p.map(n=>n.toFixed(1)).join(' ')).join('L')}L${w} ${hh}Z" fill="url(#${id})"/><polyline points="${P.map(p=>p.map(n=>n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2.6" stroke-linejoin="round"/><text x="4" y="12" font-size="10" fill="#8A93A8" font-weight="800">${money(mx)}</text><text x="4" y="${hh-2}" font-size="10" fill="#8A93A8" font-weight="800">${money(mn)}</text></svg>`;}
 const indArrow=k=>{const d=S.ind[k].d,s=S.ind[k].s,v=Math.round((s-1)*100);return `<span><span class="${d>.006?'up':d<-.006?'down':'muted'}">${d>.006?'▲':d<-.006?'▼':'▸'}</span> <span class="${v>=0?'up':'down'}">${v>=0?'+':''}${v}%</span></span>`;};
@@ -2772,12 +2772,12 @@ function maClick(d){const c=d.id?(S.listings.find(x=>x.id===d.id)||S.acq.find(x=
   case 'sell':{const of=maOffers(c);return openModal(`<span class="evtag t-choice">Buyer offers</span><h2>Sell ${esc(c.name)}?</h2><p>You paid ${money(c.paid)}. ${indS(c.ind)>1.15?'Its industry is hot right now, so buyers are paying up.':indS(c.ind)<.85?'Its industry is down right now, so offers are low.':''}</p><div class="ev-btns">${of.map((o,i)=>`<button class="btn ${o>=c.paid?'go':'danger'}" data-ma="sellgo" data-id="${c.id}" data-p="${o}">${['A rival company','A private equity firm','A foreign buyer'][i]}: ${money(o)} (${o>=c.paid?'+':''}${money(o-c.paid)})</button>`).join('')}<button class="btn" data-close>Keep it</button></div>`);}
   case 'sellgo':closeModal();maSellNow(c,+d.p);return after();
   case 'sellpick':{const sv=sharesValue()*(1-commission());return openModal(`<span class="evtag t-choice">Sell stocks</span><h2>How much do you want to sell?</h2><p>Sells the same share of every stock you own, at today's prices after the ${(commission()*100).toFixed(1)}% fee. Short positions aren't touched.</p><div class="ev-btns"><div class="btnrow">${[['.25','25%'],['.5','50%']].map(([f,l])=>`<button class="btn" data-ma="sellstocks" data-f="${f}">${l}<small>about ${money(sv*+f)}</small></button>`).join('')}</div><div class="btnrow">${[['.75','75%'],['1','All of it']].map(([f,l])=>`<button class="btn ${f==='1'?'danger':''}" data-ma="sellstocks" data-f="${f}">${l}<small>about ${money(sv*+f)}</small></button>`).join('')}</div><button class="btn" data-close>Cancel</button></div>`);}
-  case 'sellstocks':{const f=+d.f,hs=Object.entries(S.shares);let got=0,pf=0;hs.forEach(([k,h])=>{const n=f>=1?h.n:Math.floor(h.n*f);if(n<1)return;const g=n*ST(k).p*(1-commission());got+=g;pf+=g-n*h.avg;});
+  case 'sellstocks':{const f=+d.f,hs=Object.entries(S.shares);let got=0,pf=0;hs.forEach(([k,h])=>{const n=f>=1?h.n:Math.floor(h.n*f);if(n<1)return;const g0=n*ST(k).p*(1-commission()),gn=g0-n*h.avg,g=g0-(gn>0?gn*cgRate():0);got+=g;pf+=g-n*h.avg;});
    return openModal(`<span class="evtag t-bad">Sell stocks</span><h2>${f>=1?'Sell all your stocks?':`Sell ${Math.round(f*100)}% of every stock?`}</h2><p>${hs.length} ${hs.length===1?'stock':'different stocks'} at today's prices, after the ${(commission()*100).toFixed(1)}% fee.</p><div class="recap"><div><span>You get</span><b class="up">${money(got)}</b></div><div><span>Profit or loss vs what you paid</span><b class="${pf>=0?'up':'down'}">${pf>=0?'+':''}${money(pf)}</b></div></div><p class="muted" style="font-size:13px">Short positions aren't touched.</p><div class="ev-btns"><button class="btn danger big" data-ma="sellstocksgo" data-f="${f}">Sell for ${money(got)}</button><button class="btn" data-close>Cancel</button></div>`);}
   case 'etfpick':return openModal(`<span class="evtag t-choice">Funds</span><h2>Invest in a fund</h2><p>A fund spreads your money evenly across a group of stocks in one go. Less risky than betting on one company. Each stock shows up in your list, so you can sell them like normal.</p><div class="dgrid" style="max-height:52vh;overflow:auto">${etfFunds().map(f=>{const pf=etfPerf(f);return `<button class="mrow" data-ma="etf" data-v="${f.id}"><span class="logo2" style="background:${f.sec?SECTOR_COL[f.sec]||'#5E6A91':f.id==='all'?'#25283A':f.id==='div'?'#12B076':'#2BB3C9'};font-size:11px;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;color:#fff;font-weight:800">${f.syms.length}</span><span><b>${f.name}</b><small>${f.desc} · ${f.syms.length} stocks</small></span><span class="rt"><b class="${pf>=0?'up':'down'}">${pf>=0?'+':''}${(pf*100).toFixed(1)}%</b><small>last 10 weeks</small></span></button>`;}).join('')}</div><div class="ev-btns"><button class="btn" data-close>Close</button></div>`);
   case 'etf':{const f=etfFunds().find(x=>x.id===d.v);if(!f)return;return openModal(`<span class="evtag t-choice">${f.syms.length} stocks</span><h2>${f.name} fund</h2><p>${f.desc}: ${f.syms.join(', ')}. Your money is split evenly, with the normal ${(commission()*100).toFixed(1)}% trading fee.</p><div class="ev-btns">${[.1,.25,.5,1].map(x=>`<button class="btn ${x===1?'':'go'}" data-ma="etfgo" data-v="${f.id}" data-a="${Math.floor(S.cash*x)}" ${S.cash<100?'disabled':''}>Invest ${x===1?'all my cash':Math.round(x*100)+'% of my cash'} (${money(S.cash*x)})</button>`).join('')}<button class="btn" data-ma="etfpick">Back</button></div>`);}
   case 'etfgo':closeModal();return etfBuy(d.v,+d.a);
-  case 'sellstocksgo':{closeModal();const f=+d.f;let got=0,pf=0,c=0;Object.entries(S.shares).forEach(([k,h])=>{const n=f>=1?h.n:Math.floor(h.n*f);if(n<1)return;const g=n*ST(k).p*(1-commission());got+=g;pf+=g-n*h.avg;h.n-=n;if(!h.n)delete S.shares[k];c++;});
+  case 'sellstocksgo':{closeModal();const f=+d.f;let got=0,pf=0,c=0;Object.entries(S.shares).forEach(([k,h])=>{const n=f>=1?h.n:Math.floor(h.n*f);if(n<1)return;const g0=n*ST(k).p*(1-commission()),g=g0-gainTax(g0-n*h.avg);got+=g;pf+=g-n*h.avg;h.n-=n;if(!h.n)delete S.shares[k];c++;});
    S.cash+=got;addLog(S,`Sold ${f>=1?'all':Math.round(f*100)+'% of'} your stocks (${c}) for ${money(got)} (${pf>=0?'+':''}${money(pf)}).`,pf>=0?'good':'bad');popCash(`+${money(got)}`,'var(--cash)');return after();}
   case 'desk':return openDesk();
   case 'deskin':{const a=Math.min(S.cash,S.cash*+d.f);S.cash-=a;S.desk.fund+=a;toast(`${money(a)} handed to your trade desk.`);save();renderGame();return openDesk();}
@@ -3084,7 +3084,7 @@ function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1)
  let big='';if(W()>1e11){const c=Math.round((W()-1e11)*.004);payOut(c);big+=` Security, lawyers and lobbyists for an empire your size cost ${money(c)} this year.`;}
  const nw=netWorth(),ch=S.yrNw!=null?nw-S.yrNw:null;S.yrNw=nw;
  const lines=[`Happy New Year! You're now ${age()}.`,`${ch!=null?`Your net worth ${ch>=0?'grew':'fell'} ${money(Math.abs(ch))} this year. `:''}Inflation was ${(prev*100).toFixed(1)}%, so prices ${prev>=0?'went up':'fell'} about that much. ${S.infl>prev+.01?`Economists expect it to rise to around ${(S.infl*100).toFixed(1)}% next year.`:S.infl<prev-.01?`It should cool to about ${(S.infl*100).toFixed(1)}% next year.`:`Next year looks similar, around ${(S.infl*100).toFixed(1)}%.`}`,
-  `Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)}/100).${crisis}${big}`];
+  `Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)}/100).${crisis}${big}${taxYear()}`];
  return {who:'anchor',mood:crisis?'worried':'happy',tag:[crisis?'t-bad':'t-good',`Year ${yearNo()}`],onShow:confetti,pages:lines};}
 /* ---- health actions ---- */
 function healthClick(d){switch(d.hl){
@@ -3206,7 +3206,7 @@ function reBuy(lid,down){const cid=S.loc,L=reListings(cid),l=L.find(x=>x.id===li
  addLog(S,`Bought ${p.name} in ${C(cid).name} (${RT(p.type).name}) for ${money(price)}${loan?`, ${money(loan)} on a mortgage`:''}.`,'');popCash(`-${money(cashNeed)}`,'var(--loss)');sfx('buy');
  toast('Yours! Find it under My properties.');after();}
 const reSaleNet=p=>Math.round(reVal(p)*.95);
-function reSell(id,price,why){const p=S.re.props.find(x=>x.id===id);if(!p)return;const gross=price!=null?price:reSaleNet(p);const bal=p.mort?p.mort.bal:0;let net=gross-bal;
+function reSell(id,price,why){const p=S.re.props.find(x=>x.id===id);if(!p)return;const gross0=price!=null?price:reSaleNet(p),gross=gross0-gainTax(gross0-p.cost);const bal=p.mort?p.mort.bal:0;let net=gross-bal;
  if(net>=0)S.cash+=net;else payOut(-net);const prof=gross-p.cost;S.re.profit+=prof;S.re.done++;S.re.props=S.re.props.filter(x=>x!==p);
  addLog(S,`${why||'Sold'} ${p.name} in ${C(p.city).name} for ${money(gross)}${bal?` (paid off ${money(bal)} mortgage)`:''}. ${prof>=0?'Profit':'Loss'}: ${money(Math.abs(prof))}.`,prof>=0?'good':'bad');
  if(net>0)popCash(`+${money(net)}`,'var(--cash)');return {gross,net,prof};}
@@ -3238,7 +3238,7 @@ function reTurn(scenes){if(!S.re)return;const sc0=scenes.length;if(S.re.boss.on)
   cost+=reUpkeep(p)+(S.re.ins?reInsCost(p):0);
   });
  if(S.re.boss.on&&S.re.props.length)cost+=reBossFee();
- S.cash+=inc;payOut(cost);
+ S.cash+=inc;payOut(cost);if(inc-cost>0)payOut(corpTax(inc-cost));
  S.re.props.filter(p=>p.mort).forEach(p=>{const m=p.mort,i=m.rate/TPY,int=m.bal*i,pr=Math.min(m.bal,m.pmt-int);
    if(S.cash+S.savings>=m.pmt){payOut(m.pmt);mort+=m.pmt;m.bal=Math.max(0,m.bal-pr);m.missed=0;if(m.bal<1){delete p.mort;addLog(S,`Mortgage on ${p.name} is fully paid off!`,'good');}}
    else{m.missed++;m.bal+=m.pmt*.05;
@@ -4301,6 +4301,39 @@ function viewContacts(){const met=CAST.filter(d=>cast(d.id).met),nw=netWorth();c
  ${CTIER.map((t,i)=>{const L=met.filter(d=>d.t===t);return L.length?`<div class="sec-title"><h3>${CTIER_N[i]}</h3></div>${L.map(d=>{const c=cast(d.id);return `<div class="pcard"><div class="row">${portrait(d.look,46,{mood:c.rel>=20?'happy':c.rel<=-20?'angry':'neutral'})}<div style="min-width:0;flex:1"><div class="between"><b>${esc(d.name)}</b><small class="muted">${c.rel>=20?'Friend':c.rel<=-20?'Enemy':'Neutral'}</small></div><small class="muted">${esc(d.role)}</small>${bar(50+c.rel/2)}</div></div></div>`;}).join('')}`:'';}).join('')}
  ${locked.length?`<small class="muted" style="display:block;text-align:center;margin-top:10px">${locked.length} more people you haven't met yet.</small>`:''}`;}
 
+/* ===================== TAXES: corporate tax, capital gains, and legal ways to cut them ===================== */
+const TAXC={US:[.21,'United States'],CA:[.265,'Canada'],GB:[.25,'United Kingdom'],DE:[.30,'Germany'],FR:[.25,'France'],JP:[.30,'Japan'],AU:[.30,'Australia'],SG:[.17,'Singapore'],HK:[.165,'Hong Kong'],CH:[.15,'Switzerland'],AE:[.09,'United Arab Emirates']};
+function ensureTax(s){s.tax=s.tax||{hq:'US',team:false,off:false,haven:false,ytd:0,total:0,last:0,ded:0,moved:-99};return s;}
+const ruledHome=()=>S.legacy&&S.legacy.rule&&S.legacy.rule.leader&&S.legacy.rule.home;
+function corpRate(){const T=S.tax;if(T.haven&&ruledHome())return 0;let r=(TAXC[T.hq]||TAXC.US)[0];if(T.team)r-=.03;if(T.off)r-=.06;return Math.max(.02,r);}
+function cgRate(){const T=S.tax;if(T.haven&&ruledHome())return 0;let r=.2;if(T.team)r-=.03;if(T.off)r-=.08;return Math.max(.02,r);}
+function taxPay(amt){if(!S.tax||amt<=0)return 0;let t=amt;if(S.tax.ded>0){const u=Math.min(S.tax.ded,t);S.tax.ded-=u;t-=u;}S.tax.ytd+=t;S.tax.total+=t;return t;}
+const corpTax=prof=>prof>0&&S.tax?taxPay(prof*corpRate()):0;
+const gainTax=gain=>gain>0&&S.tax?taxPay(gain*cgRate()):0;
+function taxYear(){if(!S.tax)return '';const T=S.tax,y=T.ytd;T.last=y;T.ytd=0;let extra='';
+ if(T.team){const f=rp(2e4,5e7);payOut(f);extra+=` Your tax team cost ${money(f)}.`;}
+ if(T.off){myDirt(1);if(Math.random()<.08){const back=Math.round(y*1.5);payOut(back);if(S.fam)S.fam.scandal=Math.min(100,S.fam.scandal+15);S.trust=clamp((S.trust||50)-6,0,100);extra+=` A leak exposed your offshore accounts. You paid ${money(back)} in back taxes and penalties.`;}}
+ if(T.haven&&ruledHome()){S.legacy.rule.pop=Math.max(0,S.legacy.rule.pop-4);}
+ return y>0?` You paid ${money(y)} in taxes this year${T.haven&&ruledHome()?'':` (${Math.round(corpRate()*100)}% on profits, ${Math.round(cgRate()*100)}% on gains)`}.${extra}`:extra;}
+function viewTax(){const T=S.tax,hq=TAXC[T.hq]||TAXC.US,home=ruledHome();
+ return `<div class="card"><div class="between"><h3>Taxes</h3><span class="label">Paid all time ${money(T.total)}</span></div>
+  <div class="kv2"><div><small>On profits</small><b>${Math.round(corpRate()*100)}%</b></div><div><small>On gains when you sell</small><b>${Math.round(cgRate()*100)}%</b></div><div><small>Paid this year</small><b>${money(T.ytd)}</b></div><div><small>Last year</small><b>${money(T.last)}</b></div></div>
+  <small class="muted">Profits from companies, businesses and rent are taxed as they come in. Selling companies, stocks or property for more than you paid is taxed on the gain. Shady side income isn't taxed, because nobody knows about it.${T.ded>0?` You have ${money(T.ded)} in charity write-offs waiting.`:''}</small>
+  <div class="sec-title" style="margin-top:10px"><h3 style="font-size:15px">Headquarters: ${T.haven&&home?`${NAT(home).name} (your own tax haven)`:hq[1]}</h3></div>
+  <div class="seg">${Object.entries(TAXC).map(([k,[r,n]])=>`<button class="chip ${T.hq===k&&!T.haven?'on':''}" data-tx="hq" data-v="${k}">${n} ${Math.round(r*100)}%</button>`).join('')}${home?`<button class="chip ${T.haven?'on':''}" data-tx="haven">${NAT(home).name} 0%</button>`:''}</div>
+  <small class="muted" style="display:block;margin-top:6px">Moving costs ${money(Math.max(1e5,W()*.003))}. Moving somewhere under 15% makes you look like a tax dodger. ${home?'Your own nation can charge you nothing, but its people will notice.':''}</small>
+  <div style="display:grid;gap:8px;margin-top:10px">
+   <button class="btn ${T.team?'go':''}" data-tx="team">${T.team?'Tax team: hired':'Hire a tax team'}<small>${money(rp(2e4,5e7))} a year · 3 points off both rates</small></button>
+   <button class="btn ${T.off?'danger':''}" data-tx="off">${T.off?'Offshore structures: on':'Set up offshore structures'}<small>6 points off profits, 8 off gains · adds to your secrets every year · can leak</small></button>
+   <button class="btn" data-tx="give">Donate to charity for write-offs<small>Give 5% of your cash (${money(S.cash*.05)}) · cuts your next tax bills by 40% of that · trust up</small></button></div></div>`;}
+function taxClick(d){const T=S.tax;switch(d.tx){
+ case 'hq':{if(T.hq===d.v&&!T.haven)return;if(turnsIn()-T.moved<TPY)return toast('You moved recently. Wait a year before moving again.');const c=Math.max(1e5,W()*.003);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;T.hq=d.v;T.haven=false;T.moved=turnsIn();if(TAXC[d.v][0]<.15){S.trust=clamp((S.trust||50)-4,0,100);toast(`Moved to ${TAXC[d.v][1]}. Lower taxes, but people noticed.`);}else toast(`Headquarters moved to ${TAXC[d.v][1]}.`);return after();}
+ case 'haven':{if(!ruledHome())return;T.haven=!T.haven;if(T.haven){S.legacy.rule.pop=Math.max(0,S.legacy.rule.pop-10);S.legacy.rule.op=Math.max(0,S.legacy.rule.op-8);toast('You pay no tax now. Your people and the world are not impressed.');}else toast('Back to normal taxes.');return after();}
+ case 'team':T.team=!T.team;toast(T.team?'Tax team hired.':'Tax team let go.');return after();
+ case 'off':T.off=!T.off;if(T.off){myDirt(2);toast('Offshore structures set up. Lower taxes, more secrets.');}else toast('Offshore accounts closed.');return after();
+ case 'give':{const g=Math.round(S.cash*.05);if(g<1)return;S.cash-=g;T.ded+=g*.4;S.trust=clamp((S.trust||50)+2,0,100);addLog(S,`Donated ${money(g)} to charity.`,'good');toast(`Donated ${money(g)}. ${money(g*.4)} off your next taxes.`);return after();}
+}}
+
 /* ===================== EMPIRE HOME (replaces the goods market past $200B) ===================== */
 const EMPIRE_AT=2e11;
 const empireOn=()=>{if(S.empire)return true;if(netWorth()>=EMPIRE_AT){S.empire=true;return true;}return false;};
@@ -4786,7 +4819,7 @@ function viewStocks(){
    ${canShort()?'':'<p class="muted" style="margin:0;font-size:13px">Short selling (betting a stock will fall) unlocks at Owner rank.</p>'}</div>
   <div class="dgrid">${rows}</div>`;
 }
-function viewBank(){return viewBank0()+(S.bonds&&S.bonds.length?viewMyBonds():'');}
+function viewBank(){return viewBank0()+viewTax()+(S.bonds&&S.bonds.length?viewMyBonds():'');}
 function viewMyBonds(){return `<div class="card" style="display:grid;gap:10px"><div class="sec-title"><h3>Your bonds</h3><span class="label">${money(bondsTotal())}</span></div><p class="muted" style="margin:0;font-size:13px">Bonds are no longer sold. The ones you own still pay out when they end, or you can cash out early for a 10% penalty.</p><div class="dgrid">${S.bonds.map(b=>{const v=bondValue(b),left=b.years*TPY-(turnsIn()-b.t);return `<div class="mrow"><span class="flag ${b.cc}">${b.cc}</span><span><b>${CNAME(b.cc)} ${b.years}-year</b><small>Pays out in ${Math.max(0,left)} turns</small></span><span class="rt">${money(v)}<button class="chip" data-bd="sell" data-id="${b.id}" style="margin-top:4px">Cash out early</button></span></div>`;}).join('')}</div></div>`;}
 function viewBank0(){
  const lim=creditLimit(),yr=(Math.pow(1+saveRate(),52)-1)*100,lyr=(Math.pow(1+loanRate()*loanMult(),52)-1)*100;
@@ -4960,6 +4993,7 @@ document.addEventListener('click',e=>{
  if(d.lg){legacyClick(d);return;}
  if(d.ms){msClick(d);return;}
  if(d.wl){willClick(d);return;}
+ if(d.tx){taxClick(d);return;}
  if(d.cf!==undefined){callFavor(+d.cf);return;}
  if(d.pd!==undefined){pressDirt(+d.pd);return;}
  if(d.re){reClick(d);return;}
