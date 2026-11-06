@@ -1229,7 +1229,7 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261106003013';
+const BUILD='20261106003204';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
@@ -3082,7 +3082,6 @@ function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1)
  // country crises can hurt risky bonds
  let crisis='';S.bonds.forEach(b=>{const rk=BOND_RISK[b.cc];const p=[0,.004,.02][rk];if(Math.random()<p&&!b.hit){b.hit=true;const cut=rnd(.4,.7);b.amt*=1-cut;crisis+=` ${CNAME(b.cc)} defaulted on its debt and your bond lost ${Math.round(cut*100)}% of its value.`;}});
  let big='';if(W()>1e11){const c=Math.round((W()-1e11)*.004);payOut(c);big+=` Security, lawyers and lobbyists for an empire your size cost ${money(c)} this year.`;}
- if(typeof acqValue==='function'&&acqValue()>1.5e12&&S.acq.length&&Math.random()<.5){const c=S.acq.slice().sort((a,b)=>maVal(b)*(b.own||1)-maVal(a)*(a.own||1))[0],v=Math.round(maVal(c)*(c.own||1)*.9);maSellNow(c,v);big+=` Antitrust regulators forced you to sell ${c.name}, your biggest company, for ${money(v)} (90% of its value).`;}
  const nw=netWorth(),ch=S.yrNw!=null?nw-S.yrNw:null;S.yrNw=nw;
  const lines=[`Happy New Year! You're now ${age()}.`,`${ch!=null?`Your net worth ${ch>=0?'grew':'fell'} ${money(Math.abs(ch))} this year. `:''}Inflation was ${(prev*100).toFixed(1)}%, so prices ${prev>=0?'went up':'fell'} about that much. ${S.infl>prev+.01?`Economists expect it to rise to around ${(S.infl*100).toFixed(1)}% next year.`:S.infl<prev-.01?`It should cool to about ${(S.infl*100).toFixed(1)}% next year.`:`Next year looks similar, around ${(S.infl*100).toFixed(1)}%.`}`,
   `Your health is ${hpLabel(S.hp).toLowerCase()} (${Math.round(S.hp)}/100).${crisis}${big}`];
