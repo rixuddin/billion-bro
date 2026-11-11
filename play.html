@@ -1232,7 +1232,7 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261111165957';
+const BUILD='20261111170357';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
@@ -1508,7 +1508,9 @@ const tripWeeks0=(a,b)=>{if(a===b)return 1;const d=km(a,b);if(hasPlane()||airlif
 const tripWeeks=(a,b)=>{const w=tripWeeks0(a,b);return nxOn(a,b)?Math.max(1,w+(S.nx.slow||0)-(S.nx.fast||0)):w;};
 const modeName=(a,b)=>a&&b&&airlift(a,b)?'flight':({bus:'bus',van:'van',truck:'truck',plane:'cargo plane'})[ride().mode];
 function report(c,p){const real=sellAt(c,p);const a=dif().acc;if(!a)return real;return real*(1+(hash(S.week+c+p)*2-1)*a);}
-function tripReserve(){let best=Infinity;CITIES.forEach(c=>{if(c.id===S.loc||!canReach(S.loc,c.id))return;const v=fareNow(S.loc,c.id)+liveCost(c.id)*tripWeeks(S.loc,c.id);if(v<best)best=v;});return best===Infinity?0:Math.ceil(best);}
+function tripReserve(){const v=[];CITIES.forEach(c=>{if(c.id===S.loc||!canReach(S.loc,c.id))return;v.push(fareNow(S.loc,c.id)+liveCost(c.id)*tripWeeks(S.loc,c.id));});if(!v.length)return 0;v.sort((a,b)=>a-b);const ok=v.filter(x=>x<=S.cash*.6);return Math.ceil(ok.length?ok[ok.length-1]:v[0]);}
+const tripReserveFull=()=>{let worst=0;CITIES.forEach(c=>{if(c.id===S.loc||!canReach(S.loc,c.id))return;worst=Math.max(worst,fareNow(S.loc,c.id)+liveCost(c.id)*tripWeeks(S.loc,c.id));});return Math.ceil(worst);};
+function noTripMoney(cost){const r=tripReserveFull();if(cost<=S.cash&&S.cash-cost<r&&cost>r){toast(`That would leave you less than ${money(r)}, which you need to travel anywhere. Buy a little less.`);return true;}return false;}
 function maxBuy(p){const space=cap()-used(),k=1+IMP(p),bud=S.cash-tripReserve();let qty=0,cost=0,unit=buyP(p);const u0=unit;while(qty<space&&cost+unit<=bud){cost+=unit;qty++;unit=stepU(unit,u0,k);}return qty;}
 function quote(p,n,mode){let t=0,u=mode==='buy'?buyP(p):sellP(p);const k=mode==='buy'?1+IMP(p):1-IMP(p);const u0=u;for(let i=0;i<n;i++){t+=u;u=mode==='buy'?stepU(u,u0,k):stepD(u,u0,k);}return t;}
 function giveItems(p,qty,cost){const it=S.inv[p]||{qty:0,avg:0};it.avg=(it.avg*it.qty+cost)/(it.qty+qty);it.qty+=qty;S.inv[p]=it;}
@@ -1542,11 +1544,11 @@ function etfFunds(){const live=S.stk.filter(st=>!st.off&&SD(st.sym));const secs=
  const f=[{id:'all',name:'Whole market',desc:'Every stock on the exchange'},{id:'div',name:'Dividend payers',desc:'Stocks that pay you every week'},{id:'safe',name:'Steady stocks',desc:'The least jumpy stocks'}].map(x=>({...x,syms:live.filter(st=>x.id==='all'?true:x.id==='div'?SD(st.sym)[6]>0:SD(st.sym)[4]<=.035).map(st=>st.sym)}));
  secs.forEach(sec=>f.push({id:'s_'+sec,name:sec,desc:`All ${sec.toLowerCase()} companies`,syms:live.filter(st=>SD(st.sym)[2]===sec).map(st=>st.sym),sec}));return f.filter(x=>x.syms.length>=2);}
 const etfPerf=f=>f.syms.reduce((a,sym)=>{const h=ST(sym).hist.slice(-11);return a+(h.length>1?ST(sym).p/h[0]-1:0);},0)/f.syms.length;
-function etfBuy(id,amt){const f=etfFunds().find(x=>x.id===id);if(!f)return;amt=Math.min(amt,S.cash);const per=amt/f.syms.length,fee=commission();let spent=0,c=0;
+function etfBuy(id,amt){const f=etfFunds().find(x=>x.id===id);if(!f)return;amt=Math.min(amt,S.cash-tripReserveFull());if(amt<=0)return toast('Keep some cash for travel.');const per=amt/f.syms.length,fee=commission();let spent=0,c=0;
  f.syms.forEach(sym=>{const p=ST(sym).p,n=Math.floor(per/(p*(1+fee)));if(n<1)return;const cost=n*p*(1+fee);S.cash-=cost;spent+=cost;const h=S.shares[sym]||{n:0,avg:0};h.avg=(h.avg*h.n+cost)/(h.n+n);h.n+=n;S.shares[sym]=h;c++;});
  if(!spent)return toast('Not enough cash to buy a share of each stock.');addLog(S,`Put ${money(spent)} into the ${f.name} fund (${c} stocks).`,'');popCash(`-${money(spent)}`,'var(--loss)');toast(`Bought into ${c} stocks for ${money(spent)}.`);after();}
 function stockTrade(sym,mode,n){n=Math.floor(n);if(n<1)return;const st=ST(sym),p=st.p,f=commission();
- if(mode==='buy'){const cost=n*p*(1+f);if(cost>S.cash+.01)return toast('Not enough cash.');S.cash-=cost;const h=S.shares[sym]||{n:0,avg:0};h.avg=(h.avg*h.n+cost)/(h.n+n);h.n+=n;S.shares[sym]=h;addLog(S,`Bought ${n.toLocaleString()} ${sym} shares for ${money(cost)}.`,'');popCash(`-${money(cost)}`,'var(--loss)');}
+ if(mode==='buy'){const cost=n*p*(1+f);if(cost>S.cash+.01)return toast('Not enough cash.');if(noTripMoney(cost))return;S.cash-=cost;const h=S.shares[sym]||{n:0,avg:0};h.avg=(h.avg*h.n+cost)/(h.n+n);h.n+=n;S.shares[sym]=h;addLog(S,`Bought ${n.toLocaleString()} ${sym} shares for ${money(cost)}.`,'');popCash(`-${money(cost)}`,'var(--loss)');}
  if(mode==='sell'){const h=S.shares[sym];if(!h)return;n=Math.min(n,h.n);const got0=n*p*(1-f),gt=gainTax(got0-n*h.avg),got=got0-gt,pf=got-n*h.avg;S.cash+=got;h.n-=n;if(!h.n)delete S.shares[sym];addLog(S,`Sold ${n.toLocaleString()} ${sym} shares for ${money(got)} (${pf>=0?'+':''}${money(pf)}).`,pf>=0?'good':'bad');popCash(`+${money(got)}`,'var(--cash)');}
  if(mode==='short'){if(!canShort())return;n=Math.min(n,Math.floor(shortRoom()/p));if(n<1)return toast('You can\'t short more right now.');const got=n*p*(1-f);S.cash+=got;const h=S.shorts[sym]||{n:0,entry:0};h.entry=(h.entry*h.n+n*p)/(h.n+n);h.n+=n;S.shorts[sym]=h;addLog(S,`Shorted ${n.toLocaleString()} ${sym} shares at ${pr(p)}.`,'');popCash(`+${money(got)}`,'var(--cash)');}
  if(mode==='cover'){const h=S.shorts[sym];if(!h)return;n=Math.min(n,h.n,Math.floor(S.cash/(p*(1+f))));if(n<1)return toast('Not enough cash to buy the shares back.');const cost=n*p*(1+f),pf=n*(h.entry-p);S.cash-=cost;h.n-=n;if(!h.n)delete S.shorts[sym];addLog(S,`Covered ${n.toLocaleString()} ${sym} shorts (${pf>=0?'+':''}${money(pf)}).`,pf>=0?'good':'bad');popCash(`-${money(cost)}`,'var(--loss)');}
@@ -2451,7 +2453,7 @@ const bizValue=()=>S.biz.reduce((a,b)=>a+bzVal(b)*b.own,0);
 const nextUnitCost=b=>Math.round(BZT(b.type).cost*(1+.035*(b.units+b.opening)));
 const bzName=b=>esc(b.name);
 const fxM=(b,k)=>b.fx.reduce((m,f)=>f.k===k?m*f.m:m,1);
-function startBiz(type,name){const t=BZT(type),cost=Math.round(t.cost*1.2);if(S.cash<cost)return toast(`You need ${money(cost)} in cash to start this.`);
+function startBiz(type,name){const t=BZT(type),cost=Math.round(t.cost*1.2);if(S.cash<cost)return toast(`You need ${money(cost)} in cash to start this.`);if(noTripMoney(cost))return;
  S.cash-=cost;const b={id:'b'+(S.bizSeq++),type,name:name||t.name,week0:S.week,units:1,opening:0,brand:20,lev:{price:1,mkt:1,staff:1,qual:1},own:1,pub:false,sent:1,auto:false,grow:false,
   hist:[],rev:0,cost:0,profit:0,trend:0,fx:[],mod:{rev:1,cost:1,sat:1,risk:1},ups:[],upPaid:0,goals:[],idea:null,ideaWeek:0,paid:cost};
  S.biz.push(b);addLog(S,`Started ${b.name}, a ${t.name.toLowerCase()} (${money(cost)}).`,'good');popCash(`-${money(cost)}`,'var(--loss)');confetti();UI.bz=b.id;toast(`${b.name} is open for business.`);newIdea(b);after();}
@@ -2804,7 +2806,7 @@ function maScenes(){if(!S.acq.length||Math.random()>.45)return [];const c=pick(S
 /* buying, running, selling */
 const ddCost=c=>Math.round(Math.max(1500,c.ask*.015));
 const maxLoan=c=>Math.round(c.ask*.5);
-function maBuy(id,price,loan){const c=S.listings.find(x=>x.id===id);if(!c)return;const cashNeed=price-loan;if(S.cash<cashNeed)return toast(`You need ${money(cashNeed)} in cash.`);
+function maBuy(id,price,loan){const c=S.listings.find(x=>x.id===id);if(!c)return;const cashNeed=price-loan;if(S.cash<cashNeed)return toast(`You need ${money(cashNeed)} in cash.`);if(noTripMoney(cashNeed))return;
 
  S.cash-=cashNeed;c.debt+=loan;c.paid=price;c.own=1;c.bought=S.week;c.cool=0;if(c.trait&&!c.dd)c.hitWeek=S.week+ri(2,6);
  S.listings=S.listings.filter(x=>x!==c);S.acq.push(c);addLog(S,`Bought ${c.name} for ${money(price)}${loan?` (${money(loan)} borrowed against it)`:''}.`,'good');popCash(`-${money(cashNeed)}`,'var(--loss)');confetti();toast(`${c.name} is yours.`);after();}
@@ -3309,7 +3311,7 @@ const reListPrice=(l,cid)=>Math.round(reFair(l.type,cid,l.cond)*l.deal);
 /* ---- buying and selling ---- */
 function reBuy(lid,down){const cid=S.loc,L=reListings(cid),l=L.find(x=>x.id===lid);if(!l)return toast('That listing is gone.');
  const price=reListPrice(l,cid),close=Math.round(price*.02),cashNeed=Math.round(price*down)+close,loan=price-Math.round(price*down);
- if(S.cash<cashNeed)return toast('Not enough cash.');if(loan>0&&reMortBal()+loan>reMortCap())return toast('The bank won\'t lend you that much yet. Grow your net worth or pay down other mortgages.');
+ if(S.cash<cashNeed)return toast('Not enough cash.');if(noTripMoney(cashNeed))return;if(loan>0&&reMortBal()+loan>reMortCap())return toast('The bank won\'t lend you that much yet. Grow your net worth or pay down other mortgages.');
  S.cash-=cashNeed;const rate=reRate(down<.3);const p={id:'pr'+(S.re.seq++),type:l.type,city:cid,cond:l.cond,name:l.name,cost:price+close,rent:false,mgr:false,reno:null,vac:0,bad:0,mul:1,t:turnsIn()};
  if(loan>0)p.mort={bal:loan,rate,pmt:rePmt(loan,rate),missed:0};
  const was=S.re.maxTier;S.re.props.push(p);S.re.list[cid].items=L.filter(x=>x!==l);S.re.maxTier=Math.max(S.re.maxTier,RTI(l.type));
@@ -4920,7 +4922,7 @@ function openLifeOld(id){const x=LF(id),o=S.life[id];
  openModal(`<div class="lifebig">${lifeArt(x)}</div><span class="evtag t-info">${LIFE_CATS[x.cat]}</span><h2>${x.name}</h2><p>${x.desc}</p>
   <div class="recap"><div><span>${o?'Worth now':'Price'}</span><b>${money(o?o.val:x.price)}</b></div>${o?`<div><span>You paid</span><b>${money(o.paid)}</b></div>`:''}<div><span>Upkeep</span><b class="down">${x.up?money(x.price*x.up)+'/week':'None'}</b></div><div><span>Value over time</span><b class="${x.dr>0?'up':x.dr<0?'down':''}">${x.once?'No resale':x.dr>0?'Usually goes up':x.dr<0?'Goes down':'Holds steady'}</b></div><div><span>Fame</span><b>+${x.fame} points</b></div>${o&&!x.once?`<div><span>Sell it for</span><b>${money(o.val*x.re)}</b></div>`:''}</div>
   <div class="ev-btns">${o?(x.once?'<p style="margin:0">Some things money can only buy once.</p>':`<button class="btn sun big" data-selllife="${id}">Sell for ${money(o.val*x.re)}</button>`):`<button class="btn go big" data-buylife="${id}" ${S.cash<x.price?'disabled':''}>${S.cash<x.price?`Need ${money(x.price)} in cash`:`Buy for ${money(x.price)}`}</button>`}<button class="btn" data-close>Close</button></div>`);}
-function buyLife(id){const x=LF(id);if(S.life[id]||S.cash<x.price)return;S.cash-=x.price;S.life[id]={val:x.once?0:x.price,paid:x.price,week:S.week};
+function buyLife(id){const x=LF(id);if(S.life[id]||S.cash<x.price||noTripMoney(x.price))return;S.cash-=x.price;S.life[id]={val:x.once?0:x.price,paid:x.price,week:S.week};
  addLog(S,x.once?`${x.name}: ${money(x.price)}.`:`Bought a ${x.name.toLowerCase()} for ${money(x.price)}.`,'good');popCash(`-${money(x.price)}`,'var(--loss)');confetti();toast(x.once?`${x.name}. Your classmates are furious.`:`${x.name} is yours.`);after();}
 function sellLife(id){const x=LF(id),o=S.life[id];if(!o||x.once)return;const v=o.val*x.re;S.cash+=v;delete S.life[id];addLog(S,`Sold your ${x.name.toLowerCase()} for ${money(v)}.`,'');popCash(`+${money(v)}`,'var(--cash)');after();}
 function viewStocks(){
@@ -4994,9 +4996,9 @@ function openTrade(p,mode,back){TS={p,mode,n:0,back:back||null};TS.n=mode==='sel
 const backBtn=l=>TS&&TS.back?`<button class="btn" data-city="${TS.back}">Back to ${C(TS.back).name} report</button>`:`<button class="btn" data-close>${l}</button>`;
 function renderTrade(){
  const {p,mode}=TS,pd=P(p),it=S.inv[p],max=tMax();TS.n=clamp(TS.n,0,max);
- let reason='';if(mode==='buy'&&max===0)reason=cap()-used()<=0?'Your cargo is full. Sell something or upgrade your ride in the Travel tab.':`One costs ${pr(buyP(p))} and you have ${money(S.cash)}. Work a shift, sell something, or borrow from the bank.`;
+ let reason='';if(mode==='buy'&&max===0)reason=cap()-used()<=0?'Your cargo is full. Sell something or upgrade your ride in the Travel tab.':(S.cash>=buyP(p)?`You have ${money(S.cash)}, but ${money(tripReserve())} is kept back so you can still afford to travel.`:`One costs ${pr(buyP(p))} and you have ${money(S.cash)}. Work a shift, sell something, or borrow from the bank.`);
  if(mode==='sell'&&max===0)reason=`You don't have any ${pd.name.toLowerCase()} to sell.`;
- const chips=[1,5,10,25].filter(x=>x<max).map(x=>`<button class="chip" data-tset="${x}">${x}</button>`).join('')+(max>0?`<button class="chip" data-tset="${max}">${mode==='buy'?'Max':'All'} (${max})</button>`:'');
+ const chips=[1,5,10,25].filter(x=>x<max).map(x=>`<button class="chip" data-tset="${x}">${x}</button>`).join('')+(max>0?`<button class="chip" data-tset="${max}">${mode==='buy'?'Max':'All'} (${max})</button>`:'')+(mode==='buy'&&max>0&&tripReserve()>0?`<small class="muted" style="flex-basis:100%">Max keeps ${money(tripReserve())} so you can still travel.</small>`:'');
  const best=nextBest(p,6),bh=herePrice(p);
  openModal(`<span class="evtag ${mode==='buy'?'t-good':'t-choice'}">${mode==='buy'?'Buying':'Selling'} in ${C(S.loc).name}</span>
   <div class="trade-head">${picon(p)}<div><h2 style="margin:0">${pd.name}</h2><span class="muted" style="font-size:13px">Buy ${pr(buyP(p))} · Sell ${pr(sellP(p))}${it?` · You own ${it.qty} (paid ${pr(it.avg)})`:''}</span></div></div>
