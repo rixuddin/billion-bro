@@ -1232,7 +1232,7 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261111013128';
+const BUILD='20261111165957';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
@@ -4974,6 +4974,21 @@ function viewBet(){
 let TS=null,AM=null;
 function openModal(html){$('#modal').hidden=false;const s=$('#sheet');s.innerHTML=html;s.scrollTop=0;s.style.animation='none';void s.offsetHeight;s.style.animation='';}
 function closeModal(){$('#modal').hidden=true;TS=null;AM=null;SK=null;}
+/* ===================== EVERY ACTION TAKES TIME ===================== */
+function spendDays(n){if(!S||S.kid||S.over||!n)return;S.td=(S.td||0)+n;const sc=[];let w=0;while(S.td>=7&&!S.over){S.td-=7;passWeeks(1,null,sc);w++;}
+ QUEUED=QUEUED.concat(sc);toast(`${n} day${n>1?'s':''} passed. Now day ${dayOfYear()}.`);setTimeout(tryFlush,400);}
+function tryFlush(){if(!S||SC||!QUEUED.length)return;if(!$('#modal').hidden)return;flushScenes([]);}
+const actSig=()=>S?`${Math.round(S.cash)}|${S.acq.length}|${S.acq.reduce((x,c)=>x+(c.own||1)*1e3+(c.gb||0)+(c.ceo||0),0).toFixed(4)}|${S.re?S.re.props.length:0}|${S.biz.length}|${lifeIds().length}|${Math.round(S.debt)}`:'';
+function timed(fn,cost){return function(){const k=actSig();const r=fn.apply(this,arguments);const c=typeof cost==='function'?cost.apply(null,arguments):cost;if(c&&S&&actSig()!==k)spendDays(c);return r;};}
+const MA_DAYS={dd:3,cut:7,grow:7,expand:10,rnd:7,ceo:10,split:14,paydebt:1,stakego:7,mergeallgo:21,merge:14,ipo:30,sellstocksgo:2,etfgo:1,deskin:1,deskout:1};
+const RE_DAYS={reno:14,renoall:21,renosell:14,refi:3,payoff:1,rent:3,mgr:2,prem:2,ins:1};
+const BZ_DAYS={up:5,grow:7,lev:3,raisego:14,ipogo:30,sellgo:14,buyback:7,ugstart:14,ugup:5,fixer:3,wash:3,low:3};
+const MS_DAYS={start:14,ap:7,rush:7,boost:7,hire:7};
+maBuy=timed(maBuy,21);maSellNow=timed(maSellNow,14);reBuy=timed(reBuy,10);reSell=timed(reSell,10);startBiz=timed(startBiz,21);
+buyLife=timed(buyLife,3);sellLife=timed(sellLife,3);stockTrade=timed(stockTrade,1);etfBuy=timed(etfBuy,1);
+maClick=timed(maClick,d=>MA_DAYS[d.ma]||0);reClick=timed(reClick,d=>RE_DAYS[d.re]||0);bizClick=timed(bizClick,d=>BZ_DAYS[d.bz]||0);msClick=timed(msClick,d=>MS_DAYS[d.ms]||0);
+closeModal=(f=>function(){f();setTimeout(tryFlush,150);})(closeModal);
+
 const tMax=()=>TS.mode==='buy'?maxBuy(TS.p):(S.inv[TS.p]?.qty||0);
 function openTrade(p,mode,back){TS={p,mode,n:0,back:back||null};TS.n=mode==='sell'?(S.inv[p]?.qty||0):Math.min(1,tMax());renderTrade();}
 const backBtn=l=>TS&&TS.back?`<button class="btn" data-city="${TS.back}">Back to ${C(TS.back).name} report</button>`:`<button class="btn" data-close>${l}</button>`;
