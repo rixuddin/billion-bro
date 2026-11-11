@@ -1232,7 +1232,7 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261111170357';
+const BUILD='20261111170923';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
@@ -1508,9 +1508,12 @@ const tripWeeks0=(a,b)=>{if(a===b)return 1;const d=km(a,b);if(hasPlane()||airlif
 const tripWeeks=(a,b)=>{const w=tripWeeks0(a,b);return nxOn(a,b)?Math.max(1,w+(S.nx.slow||0)-(S.nx.fast||0)):w;};
 const modeName=(a,b)=>a&&b&&airlift(a,b)?'flight':({bus:'bus',van:'van',truck:'truck',plane:'cargo plane'})[ride().mode];
 function report(c,p){const real=sellAt(c,p);const a=dif().acc;if(!a)return real;return real*(1+(hash(S.week+c+p)*2-1)*a);}
-function tripReserve(){const v=[];CITIES.forEach(c=>{if(c.id===S.loc||!canReach(S.loc,c.id))return;v.push(fareNow(S.loc,c.id)+liveCost(c.id)*tripWeeks(S.loc,c.id));});if(!v.length)return 0;v.sort((a,b)=>a-b);const ok=v.filter(x=>x<=S.cash*.6);return Math.ceil(ok.length?ok[ok.length-1]:v[0]);}
+function tripReserve(){const v=[];CITIES.forEach(c=>{if(c.id===S.loc||!canReach(S.loc,c.id))return;v.push(fareNow(S.loc,c.id)+liveCost(c.id)*tripWeeks(S.loc,c.id));});if(!v.length)return 0;v.sort((a,b)=>a-b);const ok=v.filter(x=>x<=S.cash);return Math.ceil(ok.length?ok[ok.length-1]:v[0]);}
 const tripReserveFull=()=>{let worst=0;CITIES.forEach(c=>{if(c.id===S.loc||!canReach(S.loc,c.id))return;worst=Math.max(worst,fareNow(S.loc,c.id)+liveCost(c.id)*tripWeeks(S.loc,c.id));});return Math.ceil(worst);};
 function noTripMoney(cost){const r=tripReserveFull();if(cost<=S.cash&&S.cash-cost<r&&cost>r){toast(`That would leave you less than ${money(r)}, which you need to travel anywhere. Buy a little less.`);return true;}return false;}
+const cargoCash=()=>Object.keys(S.inv).reduce((a,p)=>a+(S.inv[p].qty||0)*sellP(p),0);
+function coverFare(f){const L=Object.keys(S.inv).filter(p=>S.inv[p].qty>0).sort((a,b)=>sellP(a)/(S.inv[a].avg||sellP(a))-sellP(b)/(S.inv[b].avg||sellP(b))).reverse();
+ for(const p of L){if(S.cash>=f)break;const per=sellP(p),n=Math.min(S.inv[p].qty,Math.ceil((f-S.cash)/Math.max(.01,per)));if(n>0)sell(p,n);}}
 function maxBuy(p){const space=cap()-used(),k=1+IMP(p),bud=S.cash-tripReserve();let qty=0,cost=0,unit=buyP(p);const u0=unit;while(qty<space&&cost+unit<=bud){cost+=unit;qty++;unit=stepU(unit,u0,k);}return qty;}
 function quote(p,n,mode){let t=0,u=mode==='buy'?buyP(p):sellP(p);const k=mode==='buy'?1+IMP(p):1-IMP(p);const u0=u;for(let i=0;i<n;i++){t+=u;u=mode==='buy'?stepU(u,u0,k):stepD(u,u0,k);}return t;}
 function giveItems(p,qty,cost){const it=S.inv[p]||{qty:0,avg:0};it.avg=(it.avg*it.qty+cost)/(it.qty+qty);it.qty+=qty;S.inv[p]=it;}
@@ -5029,7 +5032,7 @@ function openDest(id){
   ${dl.length?`<div class="dsum">${dl.map(e=>`<div class="dline"><span class="tag ${e.deal==='glut'?'cheap':'pays'}">${e.deal==='glut'?'Super cheap':'Paying top dollar'}</span><b>${P(e.p).name} ${dealPct(e)}</b><small class="${e.weeks>w?'up':'down'}" style="font-weight:800">${e.weeks>w?`still on when you arrive (${e.weeks} wk left)`:'ends before you get there'}</small></div>`).join('')}</div>`:''}
   <div class="label">What ${c.name} will pay when you arrive${acc?` · can be off by up to ${acc}%`:''}. Tap any product to buy it here first.</div>
   <div class="rep">${rows.map(r=>`<button class="rrow ${r.it?'carry':''}" data-prod="${r.p.id}" data-back="${id}">${picon(r.p.id)}<span><b>${r.p.name}</b><small>${r.it?`You carry ${r.it.qty} · paid ${pr(r.here)}`:`Buy here ${pr(r.here)}`}</small></span><span class="pct ${r.g>0?'up':'down'}">${r.g>0?'+':''}${Math.round(r.g*100)}%<small>${acc?'~':''}${pr(r.there)}</small></span></button>`).join('')}</div>
-  <div class="ev-btns">${!reach?`<button class="btn go big" disabled>Needs a Cargo Plane</button><p style="margin:0">The Cargo Plane unlocks at ${TIERS[2].name} rank. Buy it in the Travel tab.</p>`:can?`<button class="btn go big" data-go="${id}">Go to ${c.name}${f?` · ${money(f)}`:''}</button>`:`<button class="btn go big" disabled>Need ${money(f)} for the fare</button><p style="margin:0">Work a shift, sell something, or borrow from the bank.</p>`}<button class="btn" data-close>Back to map</button></div>`);
+  <div class="ev-btns">${!reach?`<button class="btn go big" disabled>Needs a Cargo Plane</button><p style="margin:0">The Cargo Plane unlocks at ${TIERS[2].name} rank. Buy it in the Travel tab.</p>`:can?`<button class="btn go big" data-go="${id}">Go to ${c.name}${f?` · ${money(f)}`:''}</button>`:`<button class="btn go big" data-gocredit="${id}">Go now · put ${money(f-S.cash)} on your loan</button>${cargoCash()>=f-S.cash?`<button class="btn sun big" data-gosell="${id}">Sell cargo here to cover the fare</button>`:''}<p style="margin:0">You have ${money(S.cash)} and the trip costs ${money(f)}.</p>`}<button class="btn" data-close>Back to map</button></div>`);
 }
 const maxInvest=id=>{const st=S.startups.find(x=>x.id===id),mine=S.stakes[id]||0;if(mine>=.4)return 0;const room=(.4-mine)*st.val/(1-(.4-mine));return Math.floor(Math.max(0,Math.min(S.cash,st.val*.25,room)));};
 function openStartup(id){const st=S.startups.find(x=>x.id===id),mine=S.stakes[id]||0,maxI=maxInvest(id),minI=250;
@@ -5168,6 +5171,8 @@ document.addEventListener('click',e=>{
  else if(d.kid)kidClick(d);
  else if(d.city)openDest(d.city);
  else if(d.go){closeModal();travel(d.go);}
+ else if(d.gocredit){closeModal();const f=fareNow(S.loc,d.gocredit),short=Math.ceil(f-S.cash);if(short>0){S.debt+=short;S.cash+=short;startLoanClock();addLog(S,`Put ${money(short)} of the fare on your loan.`,'');}travel(d.gocredit);}
+ else if(d.gosell){closeModal();const f=fareNow(S.loc,d.gosell);coverFare(f);travel(d.gosell);}
  else if(d.act==='stay'){closeModal();travel(S.loc);}
  else if(d.act==='ageup'){closeModal();ageConfirm();}
  else if(d.act==='ageupgo'){closeModal();ageUp();}
