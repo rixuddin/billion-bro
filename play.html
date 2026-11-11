@@ -343,6 +343,7 @@ button.rrow:active{transform:scale(.99)}
 .btn small{display:block;font-size:12px}
 #btext{white-space:pre-line}
 .nwcats details summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;list-style:none}.nwcats details summary::-webkit-details-marker{display:none}.nwcats details summary span:first-child:after{content:' ▸';color:var(--muted);font-size:12px}.nwcats details[open] summary span:first-child:after{content:' ▾'}
+.shoplist{display:grid;gap:8px;margin:10px 0 90px}.shoprow{display:grid;grid-template-columns:56px 1fr auto;gap:12px;align-items:center;text-align:left;background:var(--surface,#fff);border:0;border-radius:16px;padding:10px 12px;box-shadow:var(--shadow);font:inherit;color:inherit;cursor:pointer}.shoprow.owned{outline:2px solid var(--cash)}.shopic{width:56px;height:56px;border-radius:14px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 14%,transparent)}.shopmid{min-width:0;display:grid;gap:2px}.shopmid b{font-size:15px;line-height:1.2}.shopmid small{color:var(--muted);font-size:12.5px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.shopr{display:grid;justify-items:end;gap:2px;font-size:14px}.shopr small{font-size:11px;font-weight:800}.shopown{background:var(--cash);color:#fff;border-radius:99px;padding:3px 10px;font-size:12px;font-weight:900}
 .nwcats details,.nwcats summary{width:100%;min-width:0}.recap .nwsub{display:grid;justify-content:stretch;grid-template-columns:1fr;gap:5px;margin:6px 0 8px 10px;padding:8px 10px;border-radius:10px;background:var(--surface2);font-size:14px}.recap .nwsub div{display:flex;justify-content:space-between;gap:10px;font-size:14px;min-width:0;width:100%;box-sizing:border-box}.nwsub div span:first-child{min-width:0}
 .nwlog{display:grid;gap:6px;margin:8px 0 12px;font-size:14px;font-weight:700}.nwlog div{padding:8px 10px;border-radius:10px;background:var(--surface2)}
 .nav-in{max-width:760px;margin:0 auto;height:var(--navh);display:grid;grid-template-columns:repeat(var(--navc,5),1fr);align-items:center}
@@ -1231,7 +1232,7 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261111011536';
+const BUILD='20261111013128';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
@@ -1391,14 +1392,14 @@ function ensureWorld(s){
 function newGame(c){
  const s={v:2,name:c.name||'You',look:JSON.parse(JSON.stringify(c.look)),trait:c.trait,diff:c.diff,week:1,cash:0,savings:0,debt:0,loc:'boston',inv:{},ride:'backpack',
   f:{},prev:{},press:{buy:{},sell:{}},effects:[],rivals:[],log:[],gig:false,pending:[],peak:0,tier:0,over:false,won:false,trades:0,bestRank:9,intro:false,trips:0,interest:0,freeFare:false,
-  cos:COMPANIES.map(([id,,,val])=>({id,val,last:val,owner:null})),startups:[],stakes:{}};
+  cos:COMPANIES.map(([id,,,val])=>({id,val,last:val,owner:null})),startups:[],stakes:{},age0:0,t0:0,yw:0,td:0,tripN:0,kid:true,kidS:{hap:75,smart:ri(35,60),hp:ri(70,90)}};
  ensureStocks(s);
  const names=[...RIVAL_POOL].sort(()=>Math.random()-.5).slice(0,8),archs=Object.keys(ARCH);
  s.rivals=names.map(n=>({name:n,arch:pick(archs),nw:0,last:0,look:randLook()}));
  CITIES.forEach(ct=>{s.f[ct.id]={};PRODUCTS.forEach(p=>s.f[ct.id][p.id]=+clamp(1+gauss()*DIFF[c.diff].noise,.6,1.6).toFixed(4));});s.fn={};ensureWorld(s);
  for(let i=0;i<6;i++)s.startups.push(makeStartup(s.startups.map(x=>x.name)));
  s.prev=allPrices(s);
- addLog(s,'Graduation night. You shook on the bet. Wallet: $0.','');
+ addLog(s,'You were born. Welcome to the world.','good');
  return s;
 }
 
@@ -1407,7 +1408,7 @@ const dif=()=>DIFF[S.diff],tr=()=>TRAITS[S.trait],ride=()=>RIDES.find(r=>r.id===
 function effMult(s,c,p){let m=1;s.effects.forEach(e=>{const cm=!e.c||e.c===c||(Array.isArray(e.c)&&e.c.includes(c));if(cm&&(!e.p||e.p===p))m*=e.mult;});return m;}
 function midPrice(s,c,p){const m=Math.pow(mOf(c,p),DIFF[s.diff].amp);return P(p).base*(s.cpi||1)*m*s.f[c][p]*effMult(s,c,p);}
 function effMultAt(s,c,p,w){let m=1;s.effects.forEach(e=>{if(e.weeks<=w)return;const cm=!e.c||e.c===c||(Array.isArray(e.c)&&e.c.includes(c));if(cm&&(!e.p||e.p===p))m*=e.mult;});return m;}
-/* Forecast: next week's market noise is rolled one week ahead, so "next turn" prices are known (reports still get fuzzier on harder modes) */
+/* Forecast: next week's market noise is rolled one week ahead, so "next trip" prices are known (reports still get fuzzier on harder modes) */
 function fcMid(c,p,w){w=Math.max(1,w||1);let f=S.fn[c][p];for(let i=2;i<=w;i++)f=nextF(S,f,S.week+i-2,c,p);return P(p).base*(S.cpi||1)*Math.pow(mOf(c,p),dif().amp)*f*effMultAt(S,c,p,w);}
 function fcSell(c,p,w){const v=fcMid(c,p,w)*sellMul(),a=dif().acc;return a?v*(1+(hash(S.week+'f'+c+p)*2-1)*a):v;}
 function fcBuy(c,p,w){return fcMid(c,p,w)*buyMul();}
@@ -1518,14 +1519,14 @@ function buy(p,n){
  const space=cap()-used();if(space<=0)return toast('Your cargo is full. Sell something first.');
  const k=1+IMP(p);let qty=0,cost=0,unit=buyP(p);const u0=unit;while(qty<n&&qty<space&&cost+unit<=S.cash){cost+=unit;qty++;unit=stepU(unit,u0,k);}
  if(!qty)return toast('Not enough cash for that.');
- S.cash-=cost;giveItems(p,qty,cost);sfx('buy');addLog(S,`Bought ${qty.toLocaleString()} ${P(p).name.toLowerCase()} in ${C(S.loc).name} for ${money(cost)}.`,'');press().buy[p]=Math.min(1.3,(press().buy[p]||1)*Math.pow(k,qty));S.trades++;
+ S.cash-=cost;giveItems(p,qty,cost);sfx('buy');addLog(S,`Bought ${qty.toLocaleString()} ${P(p).name.toLowerCase()} in ${C(S.loc).name} for ${money(cost)}.`,'');press().buy[p]=Math.min(1.3,(press().buy[p]||1)*Math.pow(k,qty));S.trades++;tradeDay();
  popCash(`-${money(cost)}`,'var(--loss)');after(p);
 }
 function sell(p,n){
  const it=S.inv[p];if(!it)return;const qty=clamp(n,1,it.qty);
  const k=1-IMP(p);let gain=0,unit=sellP(p);const u0=unit;for(let i=0;i<qty;i++){gain+=unit;unit=stepD(unit,u0,k);}
  const profit=gain-qty*it.avg;S.cash+=gain;sfx(profit>=0?'coin':'loss');it.qty-=qty;if(!it.qty)delete S.inv[p];
- press().sell[p]=Math.max(.7,(press().sell[p]||1)*Math.pow(k,qty));S.trades++;
+ press().sell[p]=Math.max(.7,(press().sell[p]||1)*Math.pow(k,qty));S.trades++;tradeDay();
  addLog(S,`Sold ${qty} ${P(p).name.toLowerCase()} in ${C(S.loc).name} for ${money(gain)} (${profit>=0?'+':''}${money(profit)}).`,profit>=0?'good':'bad');
  popCash(`+${money(gain)}`,'var(--cash)');after(p);
 }
@@ -1590,67 +1591,147 @@ function milestone(){if(SC)return;const nw=netWorth(),t=tierOf(nw),list=[];
  if(nw>=1e9&&!S.won){S.won=true;list.push(winScene());}
  if(list.length){save();playScenes(list);}}
 
-/* ===================== TURN (one trip) ===================== */
+/* ===================== TIME: weeks pass, seasons, years ===================== */
+const WPY=52,SEASON_AT=[10,21,31,42,52];
+let NEWS={heads:[],personal:[],moves:[],bz:[]},QUEUED=[];
+const dayOfYear=()=>(S.yw||0)*7+(S.td||0)+1;
+function ledAdd(k,v){if(!v)return;S.led=S.led||{};S.led[k]=(S.led[k]||0)+v;}
+function passWeeks(n,dest,scenes){let missed=0;
+ for(let w=0;w<n;w++){const r=tick(w===n-1?dest:null,NEWS);missed+=r.missed?1:0;
+  ledAdd('living',-r.living);ledAdd('interest',r.interest);ledAdd('loanInt',-r.loanInt);ledAdd('income',r.income);ledAdd('divs',r.divs);ledAdd('upkeep',-r.upkeep);ledAdd('bizp',r.bizp);ledAdd('clean',r.clean);ledAdd('acqp',r.acq);ledAdd('desk',r.desk);ledAdd('famc',-r.famc);
+  if(S.desk.fund>=1||Math.abs(r.desk)>=1){S.desk.last=r.desk;S.desk.hist.push(Math.round(S.desk.total));if(S.desk.hist.length>30)S.desk.hist.shift();}
+  S.yw=(S.yw||0)+1;if(SEASON_AT.includes(S.yw))seasonTurn(scenes);if(S.yw>=WPY)S.yw=0;
+  if(S.debt>=BANKRUPT)break;}
+ if(missed)scenes.push({who:'okonkwo',mood:'angry',tag:['t-bad','Bank'],pages:[`You missed your loan payment of ${money(minPay())}. I've added a late fee.`,S.missed>=3?`That's ${S.missed} missed in a row. Your interest rate is now ${(loanRate()*loanMult()*100).toFixed(2)}% a week and I can't lend you anything more until you catch up.`:`That's ${S.missed} missed in a row. Every miss pushes your interest rate higher.`]});
+ else if(S.debt>=1&&S.due&&[2,8].some(k=>dueIn()<=k&&dueIn()>k-n))scenes.push({who:'okonkwo',mood:'worried',tag:['t-bad','Bank'],pages:[`Reminder: your loan of ${money(S.debt)} is due in ${dueIn()} week${dueIn()===1?'':'s'}, by week ${S.due}.`,`Pay it off in the Bank tab before then.`]});
+ if(S.debt>=BANKRUPT&&!S.over){S.over=true;scenes.push(overScene());}}
+function seasonTurn(scenes){const news=NEWS;NEWS={heads:[],personal:[],moves:[],bz:[]};
+ S.trips++;
+ scenes.push(newsScene([],news));news.personal.forEach(x=>scenes.push(x));
+ {const cr=coReport();if(cr)scenes.push(cr);}S.acq.forEach(c=>{c.lv=maVal(c)*(c.own||1);c.lo=c.own||1;});
+ if(news.bz.length)scenes.push({who:'lou',mood:'happy',tag:['t-good','Your businesses'],pages:news.bz.slice(0,4)});
+ bizScenes().forEach(x=>scenes.push(x));maScenes().forEach(x=>scenes.push(x));famTurn().forEach(x=>scenes.push(x));
+ const yearEnd=turnsIn()>0&&turnsIn()%TPY===0;
+ timeTurn(scenes);reTurn(scenes);legacyTurn(scenes);msTurn(scenes);ms2Turn(scenes);castTurn(scenes);badgeCheck(scenes);
+ if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;ledAdd('rent',L.inc);ledAdd('reCost',-L.cost);ledAdd('mort',-L.mort);}
+ {const u=ugScene();if(u)scenes.push(u);}
+ if(S.trips%2===0)scenes.push(rivalScene());
+ if(S.debt>=BANKRUPT*.6)scenes.push({who:'okonkwo',mood:'angry',tag:['t-bad','Bank'],pages:[`You owe us ${money(S.debt)}. That's a dangerous number.`,`If what you owe reaches ${money(BANKRUPT)}, you're bankrupt and out of the bet. Pay it down now.`]});
+ if(yearEnd)scenes.push(yearReview());}
+const LED_N={income:'Companies you own',bizp:'Your businesses',acqp:'Companies you bought',desk:'Trade desk',rent:'Rent',reCost:'Property upkeep and fees',mort:'Mortgage payments',divs:'Stock dividends',interest:'Savings interest',loanInt:'Loan interest',living:'Living costs',upkeep:'Lifestyle upkeep',famc:'Family and partners',clean:'Dirty cash cleaned'};
+function yearReview(){const L=S.led||{};S.led={};const nw=netWorth(),ch=S.lastNw!=null?nw-S.lastNw:null;S.lastNw=nw;S.nwParts=nwParts();S.nwItems=nwItems();S.logMark=S.logN||0;
+ const rows=Object.entries(L).filter(([k,v])=>LED_N[k]&&Math.abs(v)>=1).sort((a,b)=>b[1]-a[1]);
+ return {who:'whitlock',mood:ch==null||ch>=0?'happy':'worried',tag:['t-good','Year in review'],onShow:confetti,pages:[{text:`Happy birthday, ${first(S.name)}! You're ${age()} now.${ch!=null?` Your net worth ${ch>=0?'grew':'fell'} ${money(Math.abs(ch))} this year.`:''}`,
+  extra:`<div class="recap">${rows.map(([k,v])=>`<div><span>${LED_N[k]}</span><span class="${v<0?'down':'up'}">${v>0?'+':''}${money(v)}</span></div>`).join('')}<div><span>Cash</span><b>${money(S.cash)}</b></div><div><span>Net worth</span><b class="up">${money(nw)}</b></div></div>`}]};}
+function flushScenes(scenes,done){scenes=trimScenes(QUEUED.concat(scenes),null);QUEUED=[];
+ const nw=netWorth();S.peak=Math.max(S.peak,nw);S.bestRank=Math.min(S.bestRank,myRank());
+ save();renderGame();if(scenes.length)playScenes(scenes,()=>{if(!S.over)milestone();done&&done();});else{milestone();done&&done();}}
 function travel(dest){
- const from=S.loc,stay=dest===from,weeks=tripWeeks(from,dest);let cost=fareNow(from,dest);
+ const from=S.loc,stay=dest===from,weeks=stay?1:tripWeeks(from,dest);let cost=stay?0:fareNow(from,dest);
  if(!canReach(from,dest))return toast(`You need a Cargo Plane to fly to ${C(dest).name}. It unlocks at ${TIERS[2].name} rank.`);
  if(cost>S.cash)return toast('Not enough cash for that trip.');
  snap();
  if(!stay&&S.freeFare&&ride().mode==='bus')S.freeFare=false;
  if(!stay)S.nx={};
- const recap=[],news={heads:[],personal:[],moves:[],bz:[]};
- S.lastNw=netWorth();S.nwParts=nwParts();S.nwItems=nwItems();S.logMark=S.logN||0;S.rivals.forEach(r=>r.last=r.nw);S.cos.forEach(c=>c.last=c.val);S.acq.forEach(c=>{c.lv=maVal(c)*(c.own||1);c.lo=c.own||1;});S.startups.forEach(s=>s.last=s.val);
- const pz=press();PRODUCTS.forEach(p=>{const b=pz.buy[p.id]||1,s=pz.sell[p.id]||1;S.f[S.loc][p.id]=clamp(S.f[S.loc][p.id]*Math.sqrt(b*s),.5,1.9);});S.press={buy:{},sell:{}};
+ S.rivals.forEach(r=>r.last=r.nw);S.cos.forEach(c=>c.last=c.val);S.startups.forEach(x=>x.last=x.val);
+ const pz=press();PRODUCTS.forEach(p=>{const b=pz.buy[p.id]||1,sl=pz.sell[p.id]||1;S.f[S.loc][p.id]=clamp(S.f[S.loc][p.id]*Math.sqrt(b*sl),.5,1.9);});S.press={buy:{},sell:{}};
  S.prev=allPrices(S);
- if(!stay){S.cash-=cost;recap.push([`${modeName(from,dest)==='bus'?'Bus ticket':modeName(from,dest)==='flight'?'Flight ticket':modeName(from,dest)==='cargo plane'?'Fuel and airport fees':'Fuel and tolls'}${ferry(from,dest)?' + ferry':''}`,-cost]);}
- let living=0,interest=0,loanInt=0,income=0,loanPay=0,missedNow=0,divs=0,upkeep=0,bizp=0,dirty=0,clean=0,acqp=0,deskp=0,famc=0;
- S.tripDest=dest;for(let w=0;w<weeks;w++){const r=tick(w===weeks-1?dest:null,news);living+=r.living;interest+=r.interest;loanInt+=r.loanInt;income+=r.income;loanPay+=r.loanPay;missedNow+=r.missed?1:0;divs+=r.divs;upkeep+=r.upkeep;bizp+=r.bizp;dirty+=r.dirty;clean+=r.clean;acqp+=r.acq;deskp+=r.desk;famc+=r.famc;}
- S.loc=dest;S.trips++;delete S.tripDest;
- recap.push([`Living costs (${weeks} week${weeks>1?'s':''})`,-living]);
- if(income>=1)recap.push(['Companies you bought',income]);
- if(S.biz.length)recap.push([bizp>=0?'Your businesses (profit)':'Your businesses (loss)',bizp]);
- if(clean>=1)recap.push(['Dirty cash cleaned',clean]);
- if(S.acq.length)recap.push([acqp>=0?'Companies you bought (profit)':'Companies you bought (loss)',acqp]);
- if(S.desk.fund>=1||Math.abs(deskp)>=1){recap.push(['Trade desk',deskp]);S.desk.last=deskp;S.desk.hist.push(Math.round(S.desk.total));if(S.desk.hist.length>30)S.desk.hist.shift();}
- fillListings(news);
- if(famc>=1)recap.push(['Family and partners',-famc]);
- S.biz.forEach(b=>{if(b.idea==null||S.week-b.ideaWeek>=2)newIdea(b);});
- if(upkeep>=1)recap.push(['Lifestyle upkeep',-upkeep]);
- if(Math.abs(divs)>=1)recap.push([divs>0?'Stock dividends':'Dividends owed on shorts',divs]);
- if(interest>=1)recap.push(['Savings interest',interest]);
- if(loanInt>=1)recap.push(['Loan interest',-loanInt]);
- if(loanPay>=1)recap.push(['Loan payment',-loanPay]);
- if(missedNow)recap.push(['Missed loan payment (late fee added)',null]);
- const scenes=[];
- const trip={who:null,bg:stay?'city':'trip',bgArgs:stay?[dest]:[from,dest,airlift(from,dest)?'plane':ride().mode],tag:['t-week',`Week ${S.week}`],pages:[]};scenes.push(trip);
- const seized=false;
- if(S.debt>=BANKRUPT){S.over=true;scenes.push(overScene());finishTrip(scenes,trip,recap,from,stay,weeks);return;}
- if(!seized&&missedNow)scenes.push({who:'okonkwo',mood:'angry',tag:['t-bad','Bank'],pages:[`You missed your loan payment of ${money(minPay())}. I've added a late fee.`,S.missed>=3?`That's ${S.missed} missed in a row. Your interest rate is now ${(loanRate()*loanMult()*100).toFixed(2)}% a week and I can't lend you anything more until you catch up.`:`That's ${S.missed} missed in a row. Every miss pushes your interest rate higher, and it keeps piling up on what you owe.`]});
- else if(!seized&&S.debt>=1&&S.due&&[2,8].some(n=>dueIn()<=n&&dueIn()>n-(weeks))) scenes.push({who:'okonkwo',mood:'worried',tag:['t-bad','Bank'],pages:[`Reminder: your loan of ${money(S.debt)} is due in ${dueIn()} week${dueIn()===1?'':'s'}, by week ${S.due}.`,`Pay it off in the Bank tab before then. If it's still open after that, your interest rate jumps by half and I stop lending until it's cleared.`]});
- const road=rollRoad({from,dest,stay});if(road)scenes.push(road);
- const border=!stay&&C(from).c!==C(dest).c;
- if(border&&cargoValue(dest)>150&&(RG(from)===RG(dest)||Math.random()<.6))scenes.push(customsScene(from,dest));
- S.pending=S.pending.filter(pd=>{if(pd.week>S.week)return true;const s=resolvePending(pd);if(s)scenes.push(s);return false;});
- const evs=rollEvents({from,dest,stay,border});
- const market=evs.filter(e=>e.market),other=evs.filter(e=>!e.market);
- scenes.push(newsScene(market,news));
- news.personal.forEach(s=>scenes.push(s));
- {const cr=coReport();if(cr)scenes.push(cr);}
- if(news.moves.length){const m=news.moves.slice(0,3);scenes.push({who:'dex',mood:m[0].ch>0?'happy':'worried',tag:[m[0].ch>0?'t-good':'t-bad','Your stocks'],pages:[m.map(x=>`${x.name} ${x.ch>0?'jumped':'dropped'} ${Math.abs(Math.round(x.ch*100))}%`).join('. ')+'.',`Your stocks are worth ${money(sharesValue())} now. Check the Invest tab if you want to make a move.`]});}
- other.forEach(e=>scenes.push(e));
- if(news.bz.length)scenes.push({who:'lou',mood:'happy',tag:['t-good','Your businesses'],pages:news.bz.slice(0,4)});
- bizScenes().forEach(x=>scenes.push(x));
- maScenes().forEach(x=>scenes.push(x));
- famTurn().forEach(x=>scenes.push(x));
- timeTurn(scenes);reTurn(scenes);legacyTurn(scenes);msTurn(scenes);ms2Turn(scenes);castTurn(scenes);badgeCheck(scenes);if(S.re&&S.re.last&&S.re.props.length){const L=S.re.last;recap.push(['Rent from your properties',L.inc]);recap.push(['Property upkeep and fees',-L.cost]);recap.push(['Mortgage payments',-L.mort]);}
- {const u=ugScene();if(u)scenes.push(u);}
- if(dirty>=1)scenes.push({who:'hank',mood:'smug',tag:['t-info','Off the books'],pages:[`Your shady side made ${money(dirty)} in dirty cash this trip.${clean>=1?` ${money(clean)} got cleaned through your legal businesses.`:''}`,`Dirty cash waiting: ${money(S.ug.dirty)}. Heat is at ${Math.round(S.ug.heat)} out of 100.`]});
- if(S.trips%2===0)scenes.push(rivalScene());
- if(S.debt>=BANKRUPT*.6)scenes.push({who:'okonkwo',mood:'angry',tag:['t-bad','Bank'],pages:[`You owe us ${money(S.debt)}. That's a dangerous number.`,`If what you owe reaches ${money(BANKRUPT)}, you're bankrupt and out of the bet. Pay it down now.`]});
- else if(S.debt>creditLimit()*.75&&S.debt>200)scenes.push({who:'okonkwo',mood:'worried',tag:['t-bad','Bank'],pages:[`Your loan is ${money(S.debt)} and your limit is ${money(creditLimit())}. That's getting close.`,`Once you're over your limit I can't lend you more, and interest keeps piling on. Please pay some back soon.`]});
- finishTrip(scenes,trip,recap,from,stay,weeks);
-}
-const KEEP_TAGS=['Game over','The end','You won the bet','In memoriam','The will','New rank','Mission complete','Mission failed','Badge earned','Legacy','Founder of Mars','Ruler of the World','World hunger ended','Bank','Warning','Foreclosure','Missed mortgage','Margin call','Seized','Kidnapping','Extortion','Baby','How to play','Graduation night'];
+ if(!stay)S.cash-=cost;
+ const scenes=[];S.tripN=(S.tripN||0)+1;S.td=0;
+ S.tripDest=dest;passWeeks(weeks,dest,scenes);S.loc=dest;delete S.tripDest;
+ if(!S.over){
+  const road=rollRoad({from,dest,stay});if(road)scenes.push(road);
+  const border=!stay&&C(from).c!==C(dest).c;
+  if(border&&cargoValue(dest)>150&&(RG(from)===RG(dest)||Math.random()<.6))scenes.push(customsScene(from,dest));
+  S.pending=S.pending.filter(pd=>{if(pd.week>S.week)return true;const x=resolvePending(pd);if(x)scenes.push(x);return false;});
+  rollEvents({from,dest,stay,border}).forEach(e=>{if(!e.market)scenes.push(e);});
+  fillListings(NEWS);S.biz.forEach(b=>{if(b.idea==null||S.week-b.ideaWeek>=2)newIdea(b);});}
+ addLog(S,stay?`Spent a week in ${C(dest).name}.`:`Travelled from ${C(from).name} to ${C(dest).name}.`,'');
+ UI.tab='market';UI.goods=false;UI.sel=null;UI.filter='all';
+ toast(stay?`A week went by. Day ${dayOfYear()} of 364.`:`${weeks} week${weeks>1?'s':''} on the road. Welcome to ${C(dest).name}!`);
+ flushScenes(scenes);}
+function tradeDay(){S.td=(S.td||0)+1;if(S.td<7)return;S.td=0;const sc=[];passWeeks(1,null,sc);QUEUED=QUEUED.concat(sc);if(S.over)flushScenes([]);}
+function ageUp(){if(SC)return;if(S.kid)return kidAgeUp();
+ const left=WPY-(S.yw||0);snap();S.td=0;S.rivals.forEach(r=>r.last=r.nw);S.cos.forEach(c=>c.last=c.val);S.startups.forEach(x=>x.last=x.val);S.prev=allPrices(S);
+ const scenes=[];passWeeks(left,null,scenes);
+ // fast forward: keep must-sees, but cap the optional choices
+ let opt=0;const out=trimScenes(QUEUED.concat(scenes),null).filter(sc=>{if(sc.tag&&KEEP_TAGS.includes(sc.tag[1]))return true;return ++opt<=6;});QUEUED=[];
+ const nw=netWorth();S.peak=Math.max(S.peak,nw);S.bestRank=Math.min(S.bestRank,myRank());
+ save();UI.tab='market';renderGame();if(out.length)playScenes(out,()=>{if(!S.over)milestone();});else milestone();}
+/* ===================== CHILDHOOD (age 0 to 17) ===================== */
+NPC.mom={name:'Mom',role:'Your mom',bg:'campus',look:{skin:2,hair:2,hc:1,top:'tee',oc:'#FF7FB0',pc:0,acc:['earrings']}};
+NPC.teach={name:'Ms. Ortiz',role:'Your teacher',bg:'campus',look:{skin:3,hair:4,hc:0,top:'suit',oc:'#8D63F2',pc:1,acc:['glasses']}};
+const KS=()=>S.kidS;
+const kAdj=(k,v)=>{KS()[k]=clamp(Math.round(KS()[k]+v),0,100);};
+const kCash=v=>{S.cash=Math.max(0,S.cash+v);};
+const kOk=(t,mood,who)=>ok(who||'mom',t,mood);
+const KID_ACTS=[
+ {id:'play',n:'Play outside',from:2,d:'Happiness up',run:()=>{kAdj('hap',8);kAdj('hp',3);return 'You ran around until the streetlights came on.';}},
+ {id:'read',n:'Read books',from:4,d:'Smarts up',run:()=>{kAdj('smart',7);return 'You read every book on your shelf. Twice.';}},
+ {id:'chores',n:'Do chores for allowance',from:6,d:'A little cash',run:()=>{const m=ri(10,30);kCash(m);kAdj('hap',-2);return `Dishes, laundry, the works. Mom paid you $${m}.`;}},
+ {id:'sport',n:'Join a sports team',from:6,d:'Health and happiness',run:()=>{kAdj('hp',8);kAdj('hap',4);return 'Practice twice a week. You got a lot faster.';}},
+ {id:'music',n:'Take music lessons',from:6,d:'Smarts and happiness',run:()=>{kAdj('smart',4);kAdj('hap',4);return 'You can play three songs now. Your parents can tell which ones.';}},
+ {id:'lemon',n:'Run a lemonade stand',from:7,d:'Your first business',run:()=>{const m=ri(5,70);kCash(m);kAdj('hap',3);S.kidBiz=(S.kidBiz||0)+1;return m>40?`Hot day, long line. You made $${m}!`:`Slow day. You made $${m} and drank the rest.`;}},
+ {id:'sale',n:'Sell old toys',from:8,d:'Cash, fewer toys',run:()=>{const m=ri(15,80);kCash(m);kAdj('hap',-3);return `Garage sale success. $${m} for stuff you forgot you had.`;}},
+ {id:'candy',n:'Sell candy at school',from:11,d:'Buy low, sell high',run:()=>{if(Math.random()<.25){kAdj('hap',-6);return 'The principal caught you and took your whole stock. Lesson learned.';}const m=ri(40,180);kCash(m);S.kidBiz=(S.kidBiz||0)+1;return `Bought in bulk, sold by the piece. $${m} profit. Sound familiar?`;}},
+ {id:'study',n:'Study hard',from:12,d:'Smarts up a lot',run:()=>{kAdj('smart',10);kAdj('hap',-4);return 'Late nights, good grades.';}},
+ {id:'gym',n:'Hit the gym',from:13,d:'Health up',run:()=>{kAdj('hp',10);return 'Sore for a week. Worth it.';}},
+ {id:'lawns',n:'Mow lawns',from:13,d:'Cash',run:()=>{const m=ri(150,500);kCash(m);kAdj('hp',2);return `Half the street hired you. $${m} for the summer.`;}},
+ {id:'flip',n:'Flip sneakers online',from:14,d:'Risky, can pay well',run:()=>{const bet=Math.min(S.cash,ri(50,200));if(bet<20)return 'You need at least $20 saved up to buy stock.';if(Math.random()<.6){const g=Math.round(bet*rnd(.4,1.2));kCash(g);S.kidBiz=(S.kidBiz||0)+1;return `Bought a pair for $${bet}, sold for $${bet+g}. Nice.`;}kCash(-Math.round(bet*.5));return 'They turned out to be fakes. You lost half your money.';}},
+ {id:'job',n:'Get a part-time job',from:15,d:'Steady cash',run:()=>{const m=ri(1200,3500);kCash(m);kAdj('hap',-3);kAdj('smart',2);return `Weekend shifts all year. You saved $${m.toLocaleString()}.`;}},
+];
+const kidActsLeft=()=>Math.max(0,2-(S.kidActs||0));
+const KID_EV=[
+ {from:4,run:()=>({who:'mom',mood:'happy',pages:['You found a $20 bill on the sidewalk!'],choices:[{label:'Keep it',run:()=>{kCash(20);kAdj('hap',5);return kOk('Finders keepers, I guess.');}},{label:'Hand it in',run:()=>{kAdj('hap',3);kAdj('smart',2);return kOk('The owner came back for it and gave you $5 for being honest.','happy');}}]})},
+ {from:5,run:()=>({who:'mom',mood:'happy',pages:['Grandma sent $50 for your birthday.'],choices:[{label:'Save it',run:()=>{kCash(50);return kOk('Into the piggy bank it goes.');}},{label:'Buy a toy',run:()=>{kAdj('hap',8);return kOk('Best toy ever. For about a week.');}}]})},
+ {from:6,run:()=>({who:'teach',mood:'worried',pages:['A kid at school keeps picking on you.'],choices:[{label:'Tell a teacher',run:()=>{kAdj('hap',2);return kOk('I had a word with them. It stopped.','happy','teach');}},{label:'Stand up to them',run:()=>{if(Math.random()<.6){kAdj('hap',8);return kOk('They backed off. Everyone saw.','happy','teach');}kAdj('hp',-6);return kOk('That went badly. Ice pack time.','worried','teach');}},{label:'Ignore it',run:()=>{kAdj('hap',-5);return kOk('It wore you down a bit.','neutral','teach');}}]})},
+ {from:7,run:()=>({who:'teach',mood:'happy',pages:['The school science fair is coming up.'],choices:[{label:'Enter',run:()=>{kAdj('smart',5);if(Math.random()<.35){kCash(100);return kOk('First place! The prize was $100.','happy','teach');}return kOk('No ribbon, but you learned a lot.','neutral','teach');}},{label:'Skip it',run:()=>kOk('Maybe next year.','neutral','teach')}]})},
+ {from:5,run:()=>({who:'mom',mood:'neutral',pages:['You really want a dog.'],choices:[{label:'Beg until they say yes',run:()=>{if(Math.random()<.5){kAdj('hap',12);return kOk('Fine. But you\'re walking it.');}kAdj('hap',-3);return kOk('No means no.','neutral');}},{label:'Let it go',run:()=>kOk('Maybe when you\'re older.','neutral')}]})},
+ {from:8,run:()=>({who:'teach',mood:'neutral',pages:['Big test tomorrow.'],choices:[{label:'Study all night',run:()=>{kAdj('smart',6);kAdj('hp',-2);return kOk('You aced it.','happy','teach');}},{label:'Play games instead',run:()=>{kAdj('hap',5);kAdj('smart',-3);return kOk('That grade will not go on the fridge.','worried','teach');}}]})},
+ {from:8,run:()=>({who:'mom',mood:'angry',pages:['Your ball just went through the neighbour\'s window.'],choices:[{label:'Confess and pay',run:()=>{kCash(-Math.min(S.cash,60));kAdj('smart',2);return kOk('They appreciated the honesty. Your piggy bank did not.','neutral');}},{label:'Run',run:()=>{if(Math.random()<.5){kAdj('hap',-8);return kOk('They saw you. You\'re grounded for a month.','angry');}return kOk('Nobody saw. You feel a little bad.','neutral');}}]})},
+ {from:9,run:()=>({who:'teach',mood:'happy',pages:['Your class is taking a field trip to a stock exchange.'],choices:[{label:'Ask a million questions',run:()=>{kAdj('smart',6);S.kidBiz=(S.kidBiz||0)+1;return kOk('A trader told you: buy low, sell high. It stuck.','happy','teach');}},{label:'Just enjoy the bus ride',run:()=>{kAdj('hap',3);return kOk('Fun day out.','happy','teach');}}]})},
+ {from:10,run:()=>({who:'mom',mood:'happy',pages:['A friend wants to trade cards with you.'],choices:[{label:'Trade',run:()=>{if(Math.random()<.5){kCash(40);return kOk('You got a rare one and sold it for $40.');}return kOk('You got ripped off. Live and learn.','neutral');}},{label:'Keep your cards',run:()=>kOk('Your collection stays complete.','neutral')}]})},
+ {from:3,run:()=>({who:'mom',mood:'worried',pages:['You caught a nasty flu.'],choices:[{label:'Rest in bed',run:()=>{kAdj('hp',3);return kOk('Soup, cartoons, and you\'re better.');}},{label:'Go to school anyway',run:()=>{kAdj('hp',-6);kAdj('smart',2);return kOk('You made it through, barely.','worried');}}]})},
+ {from:12,run:()=>({who:'mom',mood:'happy',pages:['The neighbours need a babysitter on weekends.'],choices:[{label:'Take the job',run:()=>{const m=ri(100,400);kCash(m);return kOk(`They paid you $${m} over the year.`);}},{label:'Pass',run:()=>kOk('Your weekends are yours.','neutral')}]})},
+ {from:13,run:()=>({who:'teach',mood:'happy',pages:['The school is starting an investing club.'],choices:[{label:'Join',run:()=>{kAdj('smart',5);S.kidBiz=(S.kidBiz||0)+1;return kOk('You picked a stock that doubled on paper. Everyone noticed.','happy','teach');}},{label:'Not my thing',run:()=>kOk('Fair enough.','neutral','teach')}]})},
+ {from:14,run:()=>({who:'teach',mood:'happy',pages:['You\'ve been picked for the school talent show.'],choices:[{label:'Go for it',run:()=>{if(Math.random()<.55){kAdj('hap',10);return kOk('Standing ovation.','happy','teach');}kAdj('hap',-6);return kOk('You froze on stage. It happens.','worried','teach');}},{label:'Back out',run:()=>kOk('Maybe next year.','neutral','teach')}]})},
+ {from:16,run:()=>({who:'mom',mood:'neutral',pages:['Driving test day.'],choices:[{label:'Take it',run:()=>{if(Math.random()<.7){kAdj('hap',8);return kOk('You passed! Freedom.');}kAdj('hap',-4);return kOk('Failed on the parallel parking. Try again soon.','neutral');}},{label:'Wait a year',run:()=>kOk('No rush.','neutral')}]})},
+];
+function kidMilestone(a){const n=first(S.name);return {5:`${n} started kindergarten.`,6:'First day of grade 1.',12:'Middle school starts. Things are getting serious.',14:'High school starts.',16:'You can work a real part-time job now.',17:'Last year of high school. Graduation is next year.'}[a];}
+function kidAgeUp(){S.trips+=TPY;S.kidActs=0;kAdj('hp',-1);const a=age(),sc=[];
+ if(a>=18)return growUp();
+ const m=kidMilestone(a);
+ const pool=KID_EV.filter(e=>a>=e.from&&!((S.kidSeen||[]).includes(KID_EV.indexOf(e))));
+ const ev=pool.length&&a>=3&&Math.random()<.75?pick(pool):null;
+ if(ev){S.kidSeen=(S.kidSeen||[]).concat([KID_EV.indexOf(ev)]);const x=ev.run();x.tag=['t-choice',`Age ${a}`];if(m)x.pages=[m].concat(x.pages);sc.push(x);}
+ else if(m)sc.push({who:'mom',mood:'happy',tag:['t-good',`Age ${a}`],pages:[m]});
+ save();renderGame();if(sc.length)playScenes(sc,()=>{save();renderGame();});else toast(`You're ${a} now.`);}
+function growUp(){const k=KS();S.kid=false;S.led={};S.age0=18;S.t0=S.trips;S.yw=0;S.td=0;S.hp=clamp(40+k.hp*.6,40,100);
+ let bonus=0;if(k.smart>=75)bonus+=2000;if((S.kidBiz||0)>=4)bonus+=1000;S.cash+=bonus;
+ addLog(S,`Graduated high school with ${money(S.cash)} saved.`,'good');
+ const lines=[`Look at you, ${first(S.name)}. Eighteen and done with school.`,`You walk out with ${money(S.cash)}${bonus?`, including a ${money(bonus)} ${k.smart>=75?'scholarship':'prize'} for ${k.smart>=75?'your grades':'all those little businesses'}`:''}.`];
+ S.lastNw=netWorth();S.nwParts=nwParts();S.nwItems=nwItems();S.logMark=S.logN||0;S.intro=true;save();renderGame();playScenes([{who:'mom',mood:'happy',tag:['t-good','Graduation'],onShow:confetti,pages:lines}].concat(introScene()),()=>{save();renderGame();});}
+function skipChildhood(){const a=age();S.trips+=(18-a)*TPY;KS().smart=Math.max(KS().smart,55);growUp();}
+function viewKid(){const k=KS(),a=age();const acts=KID_ACTS.filter(x=>a>=x.from);
+ const stat=(n,v)=>`<div><small>${n}</small><b>${v}</b>${bar(v)}</div>`;
+ $('#scr-game').innerHTML=`<header class="hud"><div class="row"><div class="who">${portrait(S.look,44)}<div style="min-width:0"><b>${esc(S.name)}</b><small>${a<5?'Little kid':a<13?'Kid':'Teenager'}</small></div></div>
+  <div class="cashbox"><div class="v" id="cashVal">${money(S.cash)}</div><small>Piggy bank</small></div>
+  <button class="iconbtn" data-act="menu" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div></header>
+  <main class="view"><div class="card kidhead" style="text-align:center"><div style="font-size:56px;font-weight:900;line-height:1">${a}</div><div class="label">years old</div>
+   <p class="muted" style="margin:8px 0 0">The bet starts when you turn 18. What you do now shapes who you'll be.</p></div>
+   <div class="card"><h3>You</h3><div class="kv2" style="margin-top:8px">${stat('Happiness',k.hap)}${stat('Smarts',k.smart)}${stat('Health',k.hp)}<div><small>Hustle</small><b>${S.kidBiz||0} deals</b></div></div></div>
+   <div class="card"><div class="between"><h3>This year</h3><span class="label">${kidActsLeft()} of 2 left</span></div>
+    ${a<2?'<p class="muted">You\'re a baby. Mostly you sleep and cry. Tap Age +1.</p>':`<div style="display:grid;gap:8px;margin-top:8px">${acts.map(x=>`<button class="btn" data-kid="${x.id}" ${kidActsLeft()?'':'disabled'}>${x.n}<small>${x.d}</small></button>`).join('')}</div>`}</div>
+   <div class="card"><h3>Your story</h3><div class="log" style="margin-top:6px">${S.log.slice(0,12).map(l=>`<div><span class="w"></span><span class="${l.tone==='good'?'up':l.tone==='bad'?'down':''}">${esc(l.t)}</span></div>`).join('')}</div></div>
+   <button class="btn wide" data-kid="skip" style="margin-bottom:96px">Skip to age 18</button></main>
+  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr"><button class="travelbtn agebtn" data-act="ageup" aria-label="Age up">${icon('cal')}<b>Age +1</b></button></div></nav>`;}
+function kidClick(d){if(d.kid==='skip')return openModal(`<h2>Skip to 18?</h2><p>You'll skip the rest of childhood and start the bet right away.</p><div class="ev-btns"><button class="btn go big" data-kid="skipgo">Skip</button><button class="btn" data-close>Keep growing up</button></div>`);
+ if(d.kid==='skipgo'){closeModal();return skipChildhood();}
+ const x=KID_ACTS.find(a=>a.id===d.kid);if(!x||!kidActsLeft())return;S.kidActs=(S.kidActs||0)+1;const t=x.run();addLog(S,`Age ${age()}: ${t}`,'');save();renderGame();toast(t);}
+function ageConfirm(){if(S.kid)return kidAgeUp();const left=WPY-(S.yw||0);
+ openModal(`<span class="evtag t-choice">Age +1</span><h2>Finish the year?</h2><p>${left} week${left>1?'s':''} left in this year. They'll pass all at once: your companies, properties, loans and family keep running while time skips ahead to your ${age()+1}th birthday.</p><div class="ev-btns"><button class="btn go big" data-act="ageupgo">Age up to ${age()+1}</button><button class="btn" data-close>Not yet</button></div>`);}
+
+const KEEP_TAGS=['Year in review','Game over','The end','You won the bet','In memoriam','The will','New rank','Mission complete','Mission failed','Badge earned','Legacy','Founder of Mars','Ruler of the World','World hunger ended','Bank','Warning','Foreclosure','Missed mortgage','Margin call','Seized','Kidnapping','Extortion','Baby','How to play','Graduation night'];
 function trimScenes(scenes,trip){if(S.allNews)return scenes;let n=0;const out=scenes.filter(sc=>{if(sc===trip||!sc)return !!sc;if(sc.choices&&sc.choices.length>=2)return true;if(sc.tag&&KEEP_TAGS.includes(sc.tag[1]))return true;
  if(sc.onShow&&sc.onShow!==confetti)sc.onShow();const pg=(sc.pages||[])[0];const t=pg&&(typeof pg==='string'?pg:pg.text);if(t&&n<6&&!(sc.tag&&sc.tag[1]==='The news')){addLog(S,t.length>140?t.slice(0,137)+'...':t,sc.tag&&sc.tag[0]==='t-bad'?'bad':sc.tag&&sc.tag[0]==='t-good'?'good':'');n++;}return false;});return out;}
 function finishTrip(scenes,trip,recap,from,stay,weeks){scenes=trimScenes(scenes,trip);
@@ -1789,7 +1870,7 @@ function customsScene(from,dest){
 function tierScene(t){const T=TIERS[t];return {who:'whitlock',mood:'happy',tag:['t-good','New rank'],onShow:confetti,pages:[`Well, well. ${money(T.at)} in net worth. You're officially a ${T.name}, ${first(S.name)}.`,`Next up: ${T.unlock.toLowerCase()}. Keep going.`]};}
 function winScene(){return {who:'whitlock',mood:'happy',tag:['t-good','You won the bet'],onShow:confetti,pages:[`One billion dollars. You actually did it, ${first(S.name)}. First in the class.`,...(LIFE_ON?[lifeEnding()]:[]),`The bet is yours. But there are people out there worth a lot more than a billion. The game keeps going.`]};}
 function overScene(){clearSave();return {who:'okonkwo',mood:'worried',tag:['t-bad','Game over'],pages:[`Your debt has reached ${money(S.debt)}. That's past the ${money(BANKRUPT)} line, and the bank has to call it. I'm sorry.`,{text:`You're bankrupt and out of the bet. Your classmates keep racing without you.`,extra:`<div class="recap"><div><span>Weeks survived</span><b>${S.week}</b></div><div><span>Peak net worth</span><b>${money(S.peak)}</b></div><div><span>Best class rank</span><b>#${S.bestRank}</b></div><div><span>Trips made</span><b>${S.trips}</b></div></div>`}],
- choices:[...[1,2,10].filter(n=>HIST.length>=n).map(n=>({label:`Go back ${n} turn${n>1?'s':''} (week ${histWeek(n)})`,go:n===1,run:()=>{rewind(n);return 'stop';}})),{label:'Take the bet again',go:!HIST.length,run:()=>{goCreate();return 'stop';}},{label:'Back to title',run:()=>{goTitle();return 'stop';}}]};}
+ choices:[...[1,2,10].filter(n=>HIST.length>=n).map(n=>({label:`Go back ${n} step${n>1?'s':''} (week ${histWeek(n)})`,go:n===1,run:()=>{rewind(n);return 'stop';}})),{label:'Take the bet again',go:!HIST.length,run:()=>{goCreate();return 'stop';}},{label:'Back to title',run:()=>{goTitle();return 'stop';}}]};}
 function introScene(){return [
  {who:'whitlock',mood:'smug',tag:['t-week','Graduation night'],pages:[`Nine of my brightest students, and you all made the same ridiculous bet. Everyone walks out of here with zero dollars.`,`First one to a billion wins. I'll be watching, ${first(S.name)}.`]},
  {who:'mo',mood:'happy',tag:['t-week','How to play'],pages:[
@@ -1797,6 +1878,7 @@ function introScene(){return [
   `Tap Travel and pick a city. You'll see its market report, so you know what sells high there before you go.`,
   `Buy here, travel there, sell. Each trip takes a week or more, and you pay living costs on the road.`,
   `You start broke, so take the bank's starter loan, work a shift, and fill your bag. Just make sure you pay the loan back on time.`,
+  `Buying and selling uses up days, and trips take weeks. When you've done everything you want this year, tap Age +1 and the rest of the year goes by.`,
   `Once you've got real money, check Invest. There's a stock market, startups, and whole companies you can buy. Good luck, ${first(S.name)}!`]},
  starterLoanScene()];}
 function starterLoanScene(){const A=dif().start,t=dif().term,yr=((Math.pow(1+loanRate(),52)-1)*100).toFixed(0);
@@ -2117,12 +2199,12 @@ const ROAD=[
 ];
 const roadTag=['t-choice','On the road'];
 function rollRoad(ctx){
- if(ctx.stay||S.trips<=1||Math.random()>.72)return null;
- const fresh=e=>!S.seen||!S.seen[e.id]||S.trips-S.seen[e.id]>=5;
+ if(ctx.stay||(S.tripN||0)<=1||Math.random()>.72)return null;
+ const fresh=e=>!S.seen||!S.seen[e.id]||(S.tripN||0)-S.seen[e.id]>=5;
  let pool=ROAD.filter(e=>(!e.cond||e.cond(ctx))&&fresh(e));if(!pool.length)pool=ROAD.filter(e=>!e.cond||e.cond(ctx));if(!pool.length)return null;
  for(let tries=0;tries<4&&pool.length;tries++){
   const tot=pool.reduce((a,e)=>a+(e.w||1),0);let x=Math.random()*tot,ev=pool[0];for(const e of pool){x-=(e.w||1);if(x<=0){ev=e;break;}}
-  const res=ev.run(ctx);if(res){(S.seen=S.seen||{})[ev.id]=S.trips;res.who=res.who||'mo';res.mood=res.mood||'neutral';res.tag=res.tag||roadTag;return res;}
+  const res=ev.run(ctx);if(res){(S.seen=S.seen||{})[ev.id]=S.tripN||0;res.who=res.who||'mo';res.mood=res.mood||'neutral';res.tag=res.tag||roadTag;return res;}
   pool=pool.filter(e=>e!==ev);}
  return null;
 }
@@ -2537,15 +2619,15 @@ function nwItems(){const o={cash:{},cargo:{},stocks:{},invest:{},biz:{},acq:{},d
 function nwParts(){return {cash:S.cash+S.savings,cargo:cargoValue(),stocks:sharesValue()-shortLiab(),invest:stakesTotal()+cosTotal(),biz:bizValue(),acq:acqValue(),desk:S.desk.fund,bonds:bondsTotal(),re:reEquity(),trust:trustsTotal(),life:lifeVal(),debt:-S.debt};}
 const NW_LBL={cash:'Cash and savings',cargo:'Cargo',stocks:'Stocks',invest:'Old companies and startups',biz:'Your businesses',acq:'Companies you bought',desk:'Trade desk',bonds:'Bonds',re:'Real estate',trust:'Kids\' trust funds',life:'Lifestyle',debt:'Loans'};
 function openNw(){const nwI=nwItems(),now=nwParts(),was=S.nwParts||now,d=netWorth()-(S.lastNw??netWorth());
- openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This turn</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since you set off on your last trip, and exactly where the money went.</p><span class="label">By type · tap a line to see each item</span>
+ openModal(`<span class="evtag ${d>=0?'t-good':'t-bad'}">This year</span><h2>${d>=0?'+':''}${money(d)}</h2><p>How your net worth changed since your last birthday, and exactly where the money went.</p><span class="label">By type · tap a line to see each item</span>
   <div class="recap nwcats">${Object.keys(NW_LBL).map(k=>{const ch=now[k]-(was[k]||0);if(Math.abs(ch)<1&&Math.abs(now[k])<1)return '';
    const a=S.nwItems?S.nwItems[k]||{}:null,b=nwI[k]||{},keys=a?[...new Set([...Object.keys(a),...Object.keys(b)])]:[];
    const rows=keys.map(id=>{const w=a&&a[id],n=b[id],d=(n?n[1]:0)-(w?w[1]:0);return {nm:(n||w)[0]+(!n?' (sold or gone)':!w?' (new)':''),d};}).filter(r=>Math.abs(r.d)>=1).sort((x,y)=>Math.abs(y.d)-Math.abs(x.d));
    const head=`<span>${NW_LBL[k]}</span><span class="${ch>0?'up':ch<0?'down':'muted'}">${ch>0?'+':''}${money(ch)}</span>`;
    return rows.length?`<details><summary>${head}</summary><div class="nwsub">${rows.slice(0,25).map(r=>`<div><span>${esc(r.nm)}</span><span class="${r.d>0?'up':'down'}">${r.d>0?'+':''}${money(r.d)}</span></div>`).join('')}</div></details>`:`<div>${head}</div>`;}).join('')}
   <div><span>Net worth now</span><b>${money(netWorth())}</b></div>${S.ug.dirty>=1?`<div><span>Dirty cash (hidden, not counted)</span><b class="muted">${money(S.ug.dirty)}</b></div>`:''}</div>
-  ${(S.lastRecap||[]).length?`<span class="label">Cash in and out on your last trip</span><div class="recap">${S.lastRecap.map(([l,v])=>`<div><span>${esc(l)}</span><span class="${v>0?'up':'down'}">${v>0?'+':''}${money(v)}</span></div>`).join('')}</div>`:''}
-  ${(()=>{const ev=S.log.filter(x=>x.n>(S.logMark||0)).slice(0,40);return ev.length?`<span class="label">Everything that happened this turn</span><div class="nwlog">${ev.map(x=>`<div class="${x.tone==='good'?'up':x.tone==='bad'?'down':''}">${esc(x.t)}</div>`).join('')}</div>`:'';})()}
+  ${Object.keys(S.led||{}).length?`<span class="label">Cash in and out so far this year</span><div class="recap">${Object.entries(S.led).filter(([k,v])=>LED_N[k]&&Math.abs(v)>=1).map(([k,v])=>[LED_N[k],v]).map(([l,v])=>`<div><span>${esc(l)}</span><span class="${v>0?'up':'down'}">${v>0?'+':''}${money(v)}</span></div>`).join('')}</div>`:''}
+  ${(()=>{const ev=S.log.filter(x=>x.n>(S.logMark||0)).slice(0,40);return ev.length?`<span class="label">Everything that happened this year</span><div class="nwlog">${ev.map(x=>`<div class="${x.tone==='good'?'up':x.tone==='bad'?'down':''}">${esc(x.t)}</div>`).join('')}</div>`:'';})()}
   <p class="muted" style="font-size:13px">Cash spent on cargo isn't lost: it moves from cash into cargo until you sell.</p><div class="ev-btns"><button class="btn" data-close>Close</button></div>`);}
 
 /* ===================== BUSINESS TAB VIEW ===================== */
@@ -2560,7 +2642,7 @@ function viewBiz(){const mode=UI.bzMode||'legit';
  if(mode==='re')return top+viewRE();
  if(mode==='legacy')return top+viewLegacy();
  return top+`<div class="card"><div class="between"><h3 style="font-size:20px">Your businesses</h3><span class="label">${S.biz.length} running</span></div>
-  ${S.biz.length?`<div class="recap" style="margin-bottom:0"><div><span>Your share of last week's profit</span><b class="${tot>=0?'up':'down'}">${tot>=0?'+':''}${money(tot)}</b></div><div><span>Your share of their value</span><b>${money(val)}</b></div></div>`:`<p class="muted" style="margin:8px 0 0">Start a company, make choices every turn, and watch it grow. Its value counts toward your net worth.</p>`}</div>
+  ${S.biz.length?`<div class="recap" style="margin-bottom:0"><div><span>Your share of last week's profit</span><b class="${tot>=0?'up':'down'}">${tot>=0?'+':''}${money(tot)}</b></div><div><span>Your share of their value</span><b>${money(val)}</b></div></div>`:`<p class="muted" style="margin:8px 0 0">Start a company, make choices every season, and watch it grow. Its value counts toward your net worth.</p>`}</div>
   ${S.biz.map(b=>{const t=BZT(b.type);return `<button class="bzrow" data-bz="open" data-id="${b.id}">${bzBadge(t)}<span><b>${bzName(b)}</b><small>${t.name} · ${b.units+b.opening} ${b.units+b.opening===1?t.unit:t.units}${b.auto?' · Auto':''}${b.pub?' · Public':''}</small></span><span class="bzright"><b class="${b.profit>=0?'up':'down'}">${b.hist.length?(b.profit>=0?'+':'')+money(b.profit*b.own)+'/wk':'New'}</b><small>${money(bzVal(b)*b.own)}</small></span></button>`;}).join('')}
   <button class="btn go big" data-bz="new">Start a new business</button>`;}
 function viewOneBiz(b){const t=BZT(b.type),v=bzVal(b),h=b.hist,last4=h.slice(-4),avg=last4.length?last4.reduce((a,x)=>a+x,0)/last4.length:0;
@@ -2572,7 +2654,7 @@ function viewOneBiz(b){const t=BZT(b.type),v=bzVal(b),h=b.hist,last4=h.slice(-4)
  return `<button class="chip" data-bz="back">← All businesses</button>
  <div class="card bzhead"><div class="row">${bzBadge(t)}<div style="min-width:0"><h3 style="font-size:22px;margin:0">${bzName(b)}</h3><small class="muted">${t.name}${b.pub?' · Public company':''} · You own ${Math.round(b.own*100)}%</small></div></div>
   <div class="recap"><div><span>Worth</span><b>${money(v)}${b.own<1?` <small class="muted">(your share ${money(v*b.own)})</small>`:''}</b></div><div><span>Brand</span><b>${Math.round(b.brand)} / 100</b></div><div><span>Locations</span><b>${b.units} ${b.units===1?t.unit:t.units}${b.opening?` (+${b.opening} opening)`:''}</b></div></div></div>
- <div class="card"><div class="between"><h3>Last week</h3><span class="label">${h.length?`Avg 4 wks ${avg>=0?'+':''}${money(avg)}`:'Opens this turn'}</span></div>
+ <div class="card"><div class="between"><h3>Last week</h3><span class="label">${h.length?`Avg 4 wks ${avg>=0?'+':''}${money(avg)}`:'Opens this season'}</span></div>
   ${h.length?`<div class="recap"><div><span>Revenue</span><span class="up">+${money(b.rev)}</span></div><div><span>Costs</span><span class="down">-${money(b.cost)}</span></div><div><span>Profit</span><b class="${b.profit>=0?'up':'down'}">${b.profit>=0?'+':''}${money(b.profit)}</b></div>${b.own<1?`<div><span>Your ${Math.round(b.own*100)}% share</span><b class="${b.profit>=0?'up':'down'}">${b.profit>=0?'+':''}${money(b.profit*b.own)}</b></div>`:''}</div>${bzSpark(h.slice(-16))}`:'<p class="muted">Results show up after your next trip. Profits (or losses) are paid into your cash every week.</p>'}</div>
  <div class="card"><div class="between"><h3>Strategy</h3><button class="chip ${b.auto?'on':''}" data-bz="auto" data-id="${b.id}">${b.auto?'Auto: on':'Auto: off'}</button></div>
   ${b.auto?`<p class="muted" style="margin:6px 0">A hired manager runs this for you and handles its events. They take 4% of revenue and play it safe.</p><button class="chip ${b.grow?'on':''}" data-bz="grow" data-id="${b.id}">${b.grow?'Manager may open new locations: yes':'Manager may open new locations: no'}</button>`:''}
@@ -2741,13 +2823,13 @@ function viewMA(){if(!S.listings.length)fillListings(null);
   <div class="between"><span class="badge2 ${c.risk==='High'?'b-rival':c.risk==='Medium'?'b-info':'b-free'}">${c.risk} risk</span>${c.dd?'<span class="badge2 b-mine">Investigated</span>':''}<small class="muted">Gone in ${Math.max(1,c.exp-S.week)} wk</small></div></button>`;}).join('');
  return `<div class="card"><span class="label">Industry cycles</span><div class="indgrid">${IND_KEYS.map(k=>`<div><small>${INDS[k].n}</small>${indArrow(k)}</div>`).join('')}</div><small class="muted">The % is how pricey companies in that industry are versus normal. The arrow is where it's heading. Buy low, sell high.</small></div>
  ${mine||old?`<div class="card"><div class="between"><h3>Your companies</h3><span class="label">${money(S.acq.reduce((a,c)=>a+maVal(c)*(c.own||1),0)+cosTotal())}</span></div>${mergeGroups().length?`<button class="btn go" data-ma="mergeall" style="margin-top:8px">Merge all similar companies<small>${mergeGroups().map(g=>`${g.length} ${INDS[g[0].ind].n.toLowerCase()}`).join(' · ')}</small></button>`:''}<div class="dgrid" style="margin-top:8px">${mine}${old}</div></div>`:''}
- <div class="sec-title"><h3>For sale now</h3><span class="label">New deals every turn</span></div><div class="dgrid">${list}</div>`;}
+ <div class="sec-title"><h3>For sale now</h3><span class="label">New deals every season</span></div><div class="dgrid">${list}</div>`;}
 function openDealMA(id){const c=S.listings.find(x=>x.id===id);if(!c)return;const I=INDS[c.ind],v=maVal(c),p=maProfit(c),dc=ddCost(c);
  openModal(`<span class="evtag t-choice">${I.n} · ${c.risk} risk</span><h2>${esc(c.name)}</h2>${maChart(c.hist)}<small class="muted">Company value, last ${c.hist.length} weeks</small>
  <div class="recap"><div><span>Asking price</span><b>${money(c.ask)}</b></div><div><span>Our estimate of its value</span><b>${money(v)}</b></div><div><span>Revenue</span><b>${money(c.rev)}/wk</b></div><div><span>Profit</span><b class="${p>=0?'up':'down'}">${p>=0?'+':''}${money(p)}/wk</b></div><div><span>Margin</span><b>${pct(c.margin)}</b></div><div><span>Growth</span><b>${pct(c.growth)} a year</b></div><div><span>Debt</span><b>${money(c.debt)}</b></div><div><span>Industry</span><b>${indArrow(c.ind)}</b></div></div>
  <div class="ddbox">${c.dd?`<b>Investigation:</b> ${c.trait?TRAITS_MA[c.trait].t:'Clean. No hidden surprises.'}`:`<b>Not investigated.</b> About half of deals hide something, good or bad.`}</div>
  <div class="ev-btns">${c.dd?'':`<button class="btn" data-ma="dd" data-id="${c.id}" ${S.cash<dc?'disabled':''}>Investigate (${money(dc)})</button>`}
-  ${c.neg<S.week?`<div class="btnrow"><button class="btn" data-ma="offer" data-id="${c.id}" data-p=".75">Offer 75% (${money(c.ask*.75)})</button><button class="btn" data-ma="offer" data-id="${c.id}" data-p=".88">Offer 88% (${money(c.ask*.88)})</button></div>`:'<p class="muted" style="margin:0">The seller won\'t negotiate again this turn.</p>'}
+  ${c.neg<S.week?`<div class="btnrow"><button class="btn" data-ma="offer" data-id="${c.id}" data-p=".75">Offer 75% (${money(c.ask*.75)})</button><button class="btn" data-ma="offer" data-id="${c.id}" data-p=".88">Offer 88% (${money(c.ask*.88)})</button></div>`:'<p class="muted" style="margin:0">The seller won\'t negotiate again this season.</p>'}
   <button class="btn go big" data-ma="buy" data-id="${c.id}" data-p="${c.ask}" ${S.cash<c.ask?'disabled':''}>Buy for ${money(c.ask)}</button>
   <button class="btn sun" data-ma="buyloan" data-id="${c.id}" data-p="${c.ask}" ${S.cash<c.ask-maxLoan(c)?'disabled':''}>Buy with a loan: ${money(c.ask-maxLoan(c))} cash + ${money(maxLoan(c))} borrowed</button>
   <button class="btn" data-close>Close</button></div><p class="muted" style="font-size:12px">Borrowed money becomes the company's debt at 10% a year, paid from its profits.</p>`);}
@@ -2779,7 +2861,7 @@ function maClick(d){const c=d.id?(S.listings.find(x=>x.id===d.id)||S.acq.find(x=
    if(o>=floor){closeModal();return maBuyAsk(c,o,'The seller accepted your offer!');}
    if(o>=floor*.9){const ctr=Math.round((o+floor)/2/100)*100;save();return openModal(`<span class="evtag t-choice">Counteroffer</span><h2>They came back at ${money(ctr)}</h2><p>You offered ${money(o)}. Asking was ${money(c.ask)}.</p><div class="ev-btns"><button class="btn go big" data-ma="buy" data-id="${c.id}" data-p="${ctr}" ${S.cash<ctr?'disabled':''}>Accept ${money(ctr)}</button><button class="btn sun" data-ma="buyloan" data-id="${c.id}" data-p="${ctr}" ${S.cash<ctr-Math.round(ctr*.5)?'disabled':''}>Accept with a loan</button><button class="btn" data-close>Walk away</button></div>`);}
    if(Math.random()<.35){S.listings=S.listings.filter(x=>x!==c);closeModal();save();renderGame();return toast(`Insulted, the owner of ${c.name} pulled the sale.`);}
-   save();closeModal();renderGame();return toast(`"No. ${money(c.ask)} is the price." Try again next turn.`);}
+   save();closeModal();renderGame();return toast(`"No. ${money(c.ask)} is the price." Try again next trip.`);}
   case 'buy':closeModal();return maBuy(d.id,+d.p,0);
   case 'buyloan':closeModal();return maBuy(d.id,+d.p,Math.round(+d.p*.5));
   case 'cut':c.margin+=.03;c.growth-=.02;c.cool=S.week+3;if(Math.random()<.25){c.rev*=.95;toast('Costs cut, but some staff quit. Revenue -5%.');}else toast('Costs cut.');save();renderGame();return openOwnMA(c.id);
@@ -2815,8 +2897,8 @@ function maBuyAsk(c,price,msg){openModal(`<span class="evtag t-good">Deal</span>
 /* trade desk */
 const deskOn=()=>S.tier>=2;
 function deskRoutes(){const cs=CITIES.filter(c=>c.id!==S.loc&&canReach(S.loc,c.id)).slice(0,40);const out=[];cs.forEach(c=>{const b=cityBest(c.id,1)[0];if(b)out.push({c,p:b.p,g:b.g});});return out.sort((a,b)=>b.g-a.g).slice(0,3);}
-function viewDeskCard(){if(!deskOn())return '';const D=S.desk;return `<button class="card deskcard" data-ma="desk"><div class="between"><h3>Trade desk</h3><span class="label">${D.fund>=1?'Working':'Idle'}</span></div><div class="between" style="margin-top:4px"><span class="muted">${D.fund>=1?`${money(D.fund)} trading for you`:'Hire a crew to trade for you every turn'}</span><b class="${D.last>=0?'up':'down'}">${D.hist.length?(D.last>=0?'+':'')+money(D.last)+' last turn':''}</b></div></button>`;}
-function openDesk(){const D=S.desk,rt=deskRoutes();openModal(`<span class="evtag t-info">Trade desk</span><h2>${money(D.fund)} working</h2><p>Your crew runs buy-low, sell-high routes for you every turn. Steady but low returns (about 0.3% a week, less on huge amounts). Sometimes a shipment goes wrong. You can still trade by hand anytime.</p>
+function viewDeskCard(){if(!deskOn())return '';const D=S.desk;return `<button class="card deskcard" data-ma="desk"><div class="between"><h3>Trade desk</h3><span class="label">${D.fund>=1?'Working':'Idle'}</span></div><div class="between" style="margin-top:4px"><span class="muted">${D.fund>=1?`${money(D.fund)} trading for you`:'Hire a crew to trade for you every season'}</span><b class="${D.last>=0?'up':'down'}">${D.hist.length?(D.last>=0?'+':'')+money(D.last)+' last turn':''}</b></div></button>`;}
+function openDesk(){const D=S.desk,rt=deskRoutes();openModal(`<span class="evtag t-info">Trade desk</span><h2>${money(D.fund)} working</h2><p>Your crew runs buy-low, sell-high routes for you every season. Steady but low returns (about 0.3% a week, less on huge amounts). Sometimes a shipment goes wrong. You can still trade by hand anytime.</p>
  ${D.hist.length>1?maChart(D.hist.slice(-16)):''}
  <div class="recap"><div><span>Last turn</span><b class="${D.last>=0?'up':'down'}">${D.last>=0?'+':''}${money(D.last)}</b></div><div><span>Total earned</span><b class="${D.total>=0?'up':'down'}">${D.total>=0?'+':''}${money(D.total)}</b></div><div><span>Profits</span><b>${D.re?'Added back to the fund':'Paid to your cash'}</b></div></div>
  ${rt.length?`<span class="label">Routes they're running now</span><div class="recap">${rt.map(r=>`<div><span>${r.p.name} to ${r.c.name}</span><span class="up">+${Math.round(r.g*100)}%</span></div>`).join('')}</div>`:''}
@@ -2875,7 +2957,7 @@ const bar=(v,c)=>`<div class="capbar" style="height:8px"><i style="width:${clamp
 function famWeek(){if(!LIFE_ON)return 0;const F=S.fam;FP().forEach(p=>{if(p.rel==='partner'){if(S.week-p.last>3)p.love=Math.max(0,p.love-1.5*(p.trait==='kind'||p.trait==='diva'?1.4:1));}else if(S.week-p.last>4)p.bond=Math.max(0,p.bond-.7);});
  F.stress=clamp(F.stress+1.1+.25*(S.biz.length+S.acq.length),0,100);F.pb=clamp(F.pb-.4+Math.max(0,partners().length-1)*.8,0,100);F.scandal=Math.max(0,F.scandal-1);
  const c=famUpkeep();if(c>0)payOut(c);return c;}
-function useTp(n){if(S.fam.tp<n){toast('No time left this turn. Travel to get more.');return false;}S.fam.tp-=n;return true;}
+function useTp(n){if(S.fam.tp<n){toast('No time left this season. It refills as the weeks go by.');return false;}S.fam.tp-=n;return true;}
 /* ---- turn hook ---- */
 function normP(){const ps=partners();if(ps.length&&!ps.some(p=>!p.secret)){const best=ps.slice().sort((a,b)=>b.love-a.love)[0];best.secret=false;}}
 function famTurn(){if(!LIFE_ON)return [];const F=S.fam,out=[];normP();
@@ -2935,7 +3017,7 @@ const FAM_EV=[
   {label:'Help with their bills',run:()=>{ps.forEach(p=>{p.allow=Math.max(p.allow||0,Math.round(rp(200,50000)));p.bond=Math.min(100,p.bond+10);});return ok('f_'+ps[0].id,'"That takes a weight off. Thank you."');}},
   {label:'They\'ll figure it out',run:()=>{ps.forEach(p=>p.bond=Math.max(0,p.bond-12));return ok('f_'+ps[0].id,'"We understand."','worried');}}]};},
  ()=>{if(!family().length)return null;return {who:'f_'+family()[0].id,mood:'happy',tag:['t-choice','Family'],pages:['The whole family is getting together in Boston for a reunion.'],choices:[
-  {label:'Go (uses 1 time this turn)',run:()=>{if(S.fam.tp<1)return ok('f_'+family()[0].id,'You\'re out of time this turn. Everyone noticed you weren\'t there.','worried');S.fam.tp--;family().forEach(p=>{p.bond=Math.min(100,p.bond+8);p.last=S.week;});S.fam.stress=Math.max(0,S.fam.stress-8);return ok('f_'+family()[0].id,'"So good to have everyone together."');}},
+  {label:'Go (uses 1 time this season)',run:()=>{if(S.fam.tp<1)return ok('f_'+family()[0].id,'You\'re out of time this season. Everyone noticed you weren\'t there.','worried');S.fam.tp--;family().forEach(p=>{p.bond=Math.min(100,p.bond+8);p.last=S.week;});S.fam.stress=Math.max(0,S.fam.stress-8);return ok('f_'+family()[0].id,'"So good to have everyone together."');}},
   {label:'Skip it',run:()=>{family().forEach(p=>p.bond=Math.max(0,p.bond-6));return ok('f_'+family()[0].id,'"Everyone asked about you."','worried');}}]};},
  ()=>{const p=famPick(x=>x.rel==='sib');if(!p||!S.biz.length)return null;const b=pick(S.biz);return {who:'f_'+p.id,mood:'happy',tag:['t-choice','Family'],pages:[`${p.name.split(' ')[0]} is ${p.job==='between jobs'?'out of work':'tired of being a '+p.job} and wants a job at ${b.name}.`],choices:[
   {label:'Hire them',run:()=>{const r=Math.random();if(r<.5){b.brand=Math.min(100,b.brand+5);p.bond=Math.min(100,p.bond+15);p.job='works at '+b.name;return ok('f_'+p.id,'They\'re a natural. Customers love them. Brand +5.');}if(r<.8){b.fx.push({k:'cost',m:1.04,w:8});p.bond=Math.min(100,p.bond+8);return ok('f_'+p.id,'They show up late and leave early, but they\'re happy.','neutral');}const l=Math.round(Math.max(1000,b.rev*.5));payOut(l);p.bond=Math.max(0,p.bond-20);return {who:'f_'+p.id,mood:'worried',tag:['t-bad','Family'],pages:[`${p.name.split(' ')[0]} was caught taking ${money(l)} from the register. You had to let them go.`]};}},
@@ -2957,7 +3039,7 @@ const FAM_EV=[
   {label:'Ask them to stay',run:()=>{if(Math.random()<.3){S.fam.people=FP().filter(p=>p!==m);return {who:'f_'+m.id,mood:'angry',tag:['t-bad','Breakup'],pages:['"I can\'t believe you\'d ask that. We\'re done."']};}m.love=Math.max(0,m.love-10);return ok('f_'+m.id,'"Fine. I\'ll stay. But I won\'t forget this."','neutral');}}]};},
  ()=>{const m=partners().find(p=>PT(p.type).fame>=5);if(!m)return null;return {who:'anchor',mood:'happy',tag:['t-info','Tabloids'],pages:[`Paparazzi caught you and ${m.name} together. The photos are everywhere.`,m.secret?'This is a problem. Your main partner might see them.':'Your fame just went up.'],onShow:()=>{if(m.secret)S.fam.sus=Math.min(100,S.fam.sus+40);else S.fam.pb+=3;}};},
  ()=>{const k=kids().length?pick(kids()):null;if(!k)return null;return {who:'f_'+k.id,mood:'happy',tag:['t-choice','Family'],pages:[`${k.name} has ${pick(['a school play','a big soccer game','a piano recital','a science fair'])} this week and really wants you there.`],choices:[
-  {label:'Go (uses 1 time this turn)',run:()=>{if(S.fam.tp<1)return ok('f_'+k.id,'You\'re out of time this turn and missed it.','worried');S.fam.tp--;k.bond=Math.min(100,k.bond+12);k.last=S.week;return ok('f_'+k.id,'"You came!"');}},
+  {label:'Go (uses 1 time this season)',run:()=>{if(S.fam.tp<1)return ok('f_'+k.id,'You\'re out of time this season and missed it.','worried');S.fam.tp--;k.bond=Math.min(100,k.bond+12);k.last=S.week;return ok('f_'+k.id,'"You came!"');}},
   {label:'Send someone to film it',run:()=>{k.bond=Math.max(0,k.bond-10);return ok('f_'+k.id,'"...It\'s fine."','worried');}}]};},
  ()=>{if(W()<5e7||Math.random()>.25||(S.guard&&Math.random()<.8))return null;const pool=[...family(),...kids().filter(k=>kidAge(k)>=6),...(mainP()?[mainP()]:[])];if(!pool.length)return null;const p=pick(pool),n=first(p.name),rel=p.rel==='partner'?(p.status==='married'?'spouse':'partner'):p.rel==='kid'?(p.g==='f'?'daughter':'son'):p.role.replace('Your ','').toLowerCase();
   const ran=Math.round(W()*rnd(.002,.005)),team=Math.round(ran*.12);
@@ -2994,7 +3076,7 @@ const compat=q=>{const gap=Math.abs((q.age||age())-age());let c=100-gap*1.6;if(q
 const askChance=q=>{const t=PT(q.type);return clamp(.35+(compat(q)-60)/250-Math.max(0,(q.looks||6)-7)*.05+fame()*.01+partnerFame()*.01+lv()*.1+Math.min(.15,S.fam.pb/200)-t.diff-(W()<t.need?.3:0),.05,.92);};
 function lifeClick(d){if(lifeClick2(d))return;const p=d.id?FPid(d.id):null;const F=S.fam;
  switch(d.lf){
-  case 'call':{if(p.called===S.trips)return toast('You already called this turn.');p.called=S.trips;p.bond=Math.min(100,p.bond+(p.trait==='worrier'?5:3));p.last=S.week;toast(`Called ${p.name.split(' ')[0]}.`);return after();}
+  case 'call':{if(p.called===S.trips)return toast('You already called this season.');p.called=S.trips;p.bond=Math.min(100,p.bond+(p.trait==='worrier'?5:3));p.last=S.week;toast(`Called ${p.name.split(' ')[0]}.`);return after();}
   case 'visit':{const f=S.loc==='boston'?0:Math.round(fare(S.loc,'boston')*2);if(S.cash<f)return toast('You can\'t afford the flights.');if(!useTp(1))return;payOut(f);p.bond=Math.min(100,p.bond+(p.trait==='proud'?14:10));p.last=S.week;F.spent++;F.stress=Math.max(0,F.stress-5);toast(S.loc==='boston'?`Spent the day with ${p.name.split(' ')[0]}.`:`Flew ${p.name.split(' ')[0]} out to see you (${money(f)}).`);return after();}
   case 'gift':return openGifts(p.id);
   case 'give':{const [n,c,pts]=GIFTS[+d.i];if(S.cash<c)return toast('Not enough cash.');S.cash-=c;let m=1;if(p.trait==='gold digger'||p.trait==='diva')m=c>=40000?1.5:.6;if(p.trait==='kind'||p.trait==='proud')m=c>=250000?.7:1.1;if(p.trait==='snob'&&c<4000)m=.3;if(p.gifts.includes(n))m*=.5;p.gifts.push(n);
@@ -3046,10 +3128,10 @@ function personCard(p){const isP=p.rel==='partner',k=isP?p.love:p.bond,face=port
 function viewPersonal(){const F=S.fam,h=happiness(),m=mainP();
  const meet=UI.lifeMeet&&F.prosTurn===S.trips?`<div class="card"><div class="between"><h3>People you met</h3><button class="chip" data-lf="closeMeet">Close</button></div>
   <div class="seg" style="margin:6px 0 10px">${['women','men','anyone'].map(v=>`<button class="chip ${F.pref===v?'on':''}" data-lf="pref" data-v="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div>
-  ${F.pros.length?F.pros.map(q=>`<div class="pcard"><div class="row">${portrait(q.look,46)}<div style="min-width:0;flex:1"><div class="between"><b>${esc(q.name)}</b><small class="muted">${q.age?`${q.age} · `:''}${compat(q)}% match</small></div><small class="muted" style="display:block">${PT(q.type).n} from ${esc(q.from||'the city')} · ${q.trait} · fame ${PT(q.type).fame}</small><small style="display:block;font-weight:800;color:#C9502F;margin-top:2px">Looks ${q.looks||6}/10 ${'★'.repeat(Math.round((q.looks||6)/2))}${'☆'.repeat(5-Math.round((q.looks||6)/2))}</small><small class="muted" style="display:block;margin-top:2px">${esc(q.desc||'')}</small><small class="muted">${TRAIT_TIP[q.trait]||''} Costs about ${money(pCost(q))}/wk to date.</small></div></div><div class="between" style="margin-top:8px"><small class="muted">Chance: ${Math.round(askChance(q)*100)}%${mainP()?' · This would be an affair':''}</small><button class="btn go" data-lf="ask" data-id="${q.id}">Ask out</button></div></div>`).join(''):'<p class="muted">Nobody else here caught your eye. Try again next turn.</p>'}</div>`:'';
- return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Your life</h3><span class="label">Time this turn: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
+  ${F.pros.length?F.pros.map(q=>`<div class="pcard"><div class="row">${portrait(q.look,46)}<div style="min-width:0;flex:1"><div class="between"><b>${esc(q.name)}</b><small class="muted">${q.age?`${q.age} · `:''}${compat(q)}% match</small></div><small class="muted" style="display:block">${PT(q.type).n} from ${esc(q.from||'the city')} · ${q.trait} · fame ${PT(q.type).fame}</small><small style="display:block;font-weight:800;color:#C9502F;margin-top:2px">Looks ${q.looks||6}/10 ${'★'.repeat(Math.round((q.looks||6)/2))}${'☆'.repeat(5-Math.round((q.looks||6)/2))}</small><small class="muted" style="display:block;margin-top:2px">${esc(q.desc||'')}</small><small class="muted">${TRAIT_TIP[q.trait]||''} Costs about ${money(pCost(q))}/wk to date.</small></div></div><div class="between" style="margin-top:8px"><small class="muted">Chance: ${Math.round(askChance(q)*100)}%${mainP()?' · This would be an affair':''}</small><button class="btn go" data-lf="ask" data-id="${q.id}">Ask out</button></div></div>`).join(''):'<p class="muted">Nobody else here caught your eye. Try again next trip.</p>'}</div>`:'';
+ return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Your life</h3><span class="label">Time this season: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
   <div class="kv2"><div><small>Happiness</small><b>${h}</b>${bar(h)}</div><div><small>Stress</small><b>${Math.round(F.stress)}</b>${bar(100-F.stress)}</div>${secrets().length&&m?`<div><small>Suspicion</small><b>${Math.round(F.sus)}</b>${bar(100-F.sus)}</div>`:''}${F.pb>=5?`<div><small>Playboy reputation</small><b>${Math.round(F.pb)}</b>${bar(Math.min(100,F.pb),'#8D63F2')}</div>`:''}</div>
-  <small class="muted">You get 3 time points every turn. Family and partners drift away if you ignore them. Upkeep for family and partners: ${money(famUpkeep())}/wk.</small>
+  <small class="muted">You get 3 time points every season. Family and partners drift away if you ignore them. Upkeep for family and partners: ${money(famUpkeep())}/wk.</small>
   <div class="btnrow" style="margin-top:10px"><button class="btn go" data-lf="meet">Meet someone<small>${F.prosTurn===S.trips?'See who you met':'1 time point'}</small></button><button class="btn" data-lf="vacation">Vacation<small>2 time · ${money(rp(1500,1e+06))} · stress -35</small></button></div></div>
  ${meet}
  ${partners().length?`<div class="sec-title"><h3>Love life</h3><span class="label">${partners().length} ${partners().length===1?'partner':'partners'}</span></div>${partners().map(personCard).join('')}`:''}
@@ -3069,6 +3151,7 @@ PENDING2.sibrepay=pd=>{const p=FPid(pd.pid);S.cash+=pd.amount;addLog(S,`${p?p.na
 /* ===================== YEARS, AGE, HEALTH, INFLATION, BONDS ===================== */
 const TPY=5; // turns per year
 function ensureTime(s){if(s.age0==null){const old=(s.trips||0)>0;s.age0=old?34:22;s.t0=s.trips||0;}
+ if(s.yw==null){s.yw=Math.floor(((s.trips||0)-(s.t0||0))%5*WPY/5);s.td=0;s.tripN=s.trips||0;}
  if(s.cpi==null)s.cpi=1;if(s.infl==null)s.infl=.025;if(s.hp==null)s.hp=85;s.bonds=s.bonds||[];s.hcare=s.hcare||{trainer:false,doctor:false};s.inflHist=s.inflHist||[];s.bondSeq=s.bondSeq||1;return s;}
 const turnsIn=()=>Math.max(0,S.trips-S.t0);
 const age=()=>S.age0+Math.floor(turnsIn()/TPY);
@@ -3089,7 +3172,7 @@ function buyBond(cc,years,linked,amt){amt=Math.floor(amt);if(amt<1||amt>S.cash)r
 function sellBondEarly(id){const b=S.bonds.find(x=>x.id===id);if(!b)return;const v=Math.round(bondValue(b)*.9);S.cash+=v;S.bonds=S.bonds.filter(x=>x!==b);addLog(S,`Cashed out a ${CNAME(b.cc)} bond early for ${money(v)} (10% penalty).`,'bad');popCash(`+${money(v)}`,'var(--cash)');after();}
 /* ---- per-turn and per-year ---- */
 function timeTurn(scenes){
- // inflation creeps every turn
+ // inflation creeps every season
  S.cpi*=Math.pow(1+S.infl,1/TPY);
  // health
  let d=-.12;const load=S.biz.length+S.acq.length+myCos().length+Math.floor(reUnmanaged()/3);if(load>8)d-=.15;if(load>20)d-=.15;const a=age();if(a>45)d-=(a-45)*.012;
@@ -3115,20 +3198,20 @@ function newYearScene(){const prev=S.infl;S.inflHist.push(+(prev*100).toFixed(1)
  return {who:'anchor',mood:crisis?'worried':'happy',tag:[crisis?'t-bad':'t-good',`Year ${yearNo()}`],onShow:confetti,pages:lines};}
 /* ---- health actions ---- */
 function healthClick(d){switch(d.hl){
- case 'checkup':{const f=Math.round(rp(200,20000));if(S.cash<f)return toast('Not enough cash.');if(S.lastCheck===S.trips)return toast('You already had a checkup this turn.');S.cash-=f;S.lastCheck=S.trips;S.hp=Math.min(100,S.hp+3);
+ case 'checkup':{const f=Math.round(rp(200,20000));if(S.cash<f)return toast('Not enough cash.');if(S.lastCheck===S.trips)return toast('You already had a checkup this season.');S.cash-=f;S.lastCheck=S.trips;S.hp=Math.min(100,S.hp+3);
   return openModal(`<span class="evtag t-info">Checkup</span><h2>Health: ${hpLabel(S.hp)} (${Math.round(S.hp)}/100)</h2><p>${S.hp>=70?'The doctor says you\'re in great shape. Keep it up.':S.hp>=45?'Some wear and tear. Less stress and more rest would help.':'The doctor is worried. Your body is paying for the long hours. Get a trainer or doctor and take a vacation soon.'}</p><div class="ev-btns"><button class="btn" data-close>Close</button></div>`);}
- case 'trainer':S.hcare.trainer=!S.hcare.trainer;toast(S.hcare.trainer?`Personal trainer hired (${money(careCost('trainer'))} a turn).`:'Trainer let go.');return after();
- case 'doctor':S.hcare.doctor=!S.hcare.doctor;toast(S.hcare.doctor?`Personal doctor hired (${money(careCost('doctor'))} a turn).`:'Doctor let go.');return after();
- case 'rest':{const f=Math.round(rp(1500,1e+06));if(S.cash<f)return toast('Not enough cash.');if(S.lastRest===S.trips)return toast('You already took a break this turn.');S.cash-=f;S.lastRest=S.trips;S.hp=Math.min(100,S.hp+8);toast(`Vacation. Health +8.`);return after();}
+ case 'trainer':S.hcare.trainer=!S.hcare.trainer;toast(S.hcare.trainer?`Personal trainer hired (${money(careCost('trainer'))} a season).`:'Trainer let go.');return after();
+ case 'doctor':S.hcare.doctor=!S.hcare.doctor;toast(S.hcare.doctor?`Personal doctor hired (${money(careCost('doctor'))} a season).`:'Doctor let go.');return after();
+ case 'rest':{const f=Math.round(rp(1500,1e+06));if(S.cash<f)return toast('Not enough cash.');if(S.lastRest===S.trips)return toast('You already took a break this season.');S.cash-=f;S.lastRest=S.trips;S.hp=Math.min(100,S.hp+8);toast(`Vacation. Health +8.`);return after();}
 }}
 function viewHealth(){const h=S.hp;return `<div class="card lifehead"><div class="between"><h3 style="font-size:20px">You</h3><span class="label">Year ${yearNo()} · turn ${turnOfYear()} of ${TPY}</span></div>
  <div class="kv2"><div><small>Age</small><b>${age()}</b></div><div><small>Health</small><b>${Math.round(h)} · ${hpLabel(h)}</b>${bar(h)}</div><div><small>Inflation this year</small><b>${(S.infl*100).toFixed(1)}%</b></div><div><small>Prices vs when you started</small><b>${S.cpi>=1?'+':''}${Math.round((S.cpi-1)*100)}%</b></div></div>
- <small class="muted">Every ${TPY} turns is one year. Long hours, lots of companies, heavy debt and getting older wear your health down. Let it get too low and it will catch up with you.</small></div>
+ <small class="muted">A year is 52 weeks. Long hours, lots of companies, heavy debt and getting older wear your health down. Let it get too low and it will catch up with you.</small></div>
  <div class="card"><h3>Stay healthy</h3><div style="display:grid;gap:8px;margin-top:8px">
   <button class="btn" data-hl="checkup">Doctor checkup<small>${money(rp(200,20000))} · see how you're really doing · health +3</small></button>
-  <button class="btn" data-hl="rest">Take a vacation<small>${money(rp(1500,1e+06))} · health +8 · once a turn</small></button>
-  <button class="btn ${S.hcare.trainer?'go':''}" data-hl="trainer">${S.hcare.trainer?'Personal trainer: hired':'Hire a personal trainer'}<small>${money(careCost('trainer'))} a turn · slows health loss</small></button>
-  <button class="btn ${S.hcare.doctor?'go':''}" data-hl="doctor">${S.hcare.doctor?'Personal doctor: hired':'Hire a personal doctor'}<small>${money(careCost('doctor'))} a turn · slows health loss</small></button></div></div>`;}
+  <button class="btn" data-hl="rest">Take a vacation<small>${money(rp(1500,1e+06))} · health +8 · once a season</small></button>
+  <button class="btn ${S.hcare.trainer?'go':''}" data-hl="trainer">${S.hcare.trainer?'Personal trainer: hired':'Hire a personal trainer'}<small>${money(careCost('trainer'))} a season · slows health loss</small></button>
+  <button class="btn ${S.hcare.doctor?'go':''}" data-hl="doctor">${S.hcare.doctor?'Personal doctor: hired':'Hire a personal doctor'}<small>${money(careCost('doctor'))} a season · slows health loss</small></button></div></div>`;}
 /* ---- bonds view (Bank tab) ---- */
 function viewBonds(){const cs=bondCountries(),sel=UI.bondCC||cs[0];const bt=bondsTotal();
  const mine=S.bonds.map(b=>{const v=bondValue(b),left=b.years*TPY-(turnsIn()-b.t);return `<div class="mrow"><span class="flag ${b.cc}">${b.cc}</span><span><b>${CNAME(b.cc)} ${b.years}-year${b.linked?' · inflation-protected':''}</b><small>Put in ${money(b.amt)} · ${(b.rate*100).toFixed(1)}%/yr · pays out in ${Math.ceil(left/TPY)} yr (${left} turns)</small></span><span class="rt">${money(v)}<button class="chip" data-bd="sell" data-id="${b.id}" style="margin-top:4px">Cash out early</button></span></div>`;}).join('');
@@ -3237,7 +3320,7 @@ function reSell(id,price,why){const p=S.re.props.find(x=>x.id===id);if(!p)return
  if(net>=0)S.cash+=net;else payOut(-net);const prof=gross-p.cost;S.re.profit+=prof;S.re.done++;S.re.props=S.re.props.filter(x=>x!==p);
  addLog(S,`${why||'Sold'} ${p.name} in ${C(p.city).name} for ${money(gross)}${bal?` (paid off ${money(bal)} mortgage)`:''}. ${prof>=0?'Profit':'Loss'}: ${money(Math.abs(prof))}.`,prof>=0?'good':'bad');
  if(net>0)popCash(`+${money(net)}`,'var(--cash)');return {gross,net,prof};}
-/* ---- every turn ---- */
+/* ---- every season ---- */
 function reTurn(scenes){if(!S.re)return;const sc0=scenes.length;if(S.re.boss.on)reBossAct();reMarketsTurn(scenes);let inc=0,cost=0,mort=0;const gone=[];
  S.re.props.forEach(p=>{const t=RT(p.type);
   if(p.reno){p.reno.left--;if(p.reno.left<=0){p.cond=p.reno.to;if(p.reno.prem){p.prem=true;p.mul=(p.mul||1)*1.12;}p.reno=null;addLog(S,`Renovation finished on ${p.name}.`,'good');
@@ -3256,7 +3339,7 @@ function reTurn(scenes){if(!S.re)return;const sc0=scenes.length;if(S.re.boss.on)
     else{inc+=reRent(p);if(p.mgr)cost+=reMgrCost(p);
      if(Math.random()<(p.mgr?.02:.05))p.vac=Math.ceil(rnd(0,3));
      else if(Math.random()<(p.mgr?.008:.025)){p.bad=Math.ceil(rnd(1,4));const pid=p.id,fee=Math.round(reRent(p)*1.5);
-      scenes.push({who:'priya',mood:'worried',tag:['t-choice','Tenant trouble'],pages:[`${t.big?'A big tenant':'Your tenant'} at ${p.name} stopped paying rent and won't answer calls.`,`I can start an eviction for ${money(fee)} in legal fees and have them out by next turn. Or you can wait and hope they catch up. ${p.mgr?'':'A property manager would have screened them better.'}`],choices:[
+      scenes.push({who:'priya',mood:'worried',tag:['t-choice','Tenant trouble'],pages:[`${t.big?'A big tenant':'Your tenant'} at ${p.name} stopped paying rent and won't answer calls.`,`I can start an eviction for ${money(fee)} in legal fees and have them out by next trip. Or you can wait and hope they catch up. ${p.mgr?'':'A property manager would have screened them better.'}`],choices:[
        {label:`Evict them (${money(fee)})`,go:true,run:()=>{const q=S.re.props.find(x=>x.id===pid);if(!q)return;payOut(fee);q.bad=0;q.vac=1;addLog(S,`Evicted a tenant at ${q.name} (${money(fee)}).`,'bad');return ok('priya','Done. They\'re out. I\'ll find someone new.');}},
        {label:'Wait it out',run:()=>ok('priya','Your call. Fingers crossed.','worried')}],meta:{nm:p.name}});}}
     p.cond=Math.max(5,p.cond-(p.mgr?.35:.6));}
@@ -3308,9 +3391,9 @@ function reBossResolve(scenes,from){const keep=scenes.slice(0,from),rest=scenes.
  scenes.length=0;keep.concat(out).forEach(x=>scenes.push(x));}
 function reBossReport(){const r=S.re,v=reValue(),y=r.yr,ch=y.v0!=null?v-y.v0:null;const sc={who:'priya',mood:'happy',tag:['t-info','Portfolio report'],pages:[`Here's your real estate year. You own ${r.props.length} ${r.props.length===1?'property':'properties'} worth ${money(v)}${ch!=null?`, ${ch>=0?'up':'down'} ${money(Math.abs(ch))} from last year`:''}.`,`We collected ${money(y.inc)} in rent${y.buys?` and bought ${y.buys} new ${y.buys===1?'property':'properties'} for you`:''}. Mortgages left to pay: ${money(reMortBal())}.`]};r.yr={inc:0,buys:0,sells:0,v0:v};return sc;}
 function viewBoss(){const b=S.re.boss;return `<div class="card"><div class="between"><h3>Portfolio manager</h3><span class="badge2 ${b.on?'b-mine':'b-info'}">${b.on?'Hired':'Not hired'}</span></div>
- <p class="muted" style="margin:6px 0 10px;font-size:13px">${b.on?`Running everything for 1% of the portfolio's value a year (${money(reBossFee())} a turn): tenants, repairs, renovations, insurance, refinancing, tenant trouble and offers. They only sell if someone offers 15% over value.`:`Hand over the whole portfolio. They find tenants, fix and renovate, keep you insured, refinance when rates drop, and deal with tenant trouble and offers so you don't have to. Costs 1% of the portfolio's value a year and replaces individual property managers.`}</p>
+ <p class="muted" style="margin:6px 0 10px;font-size:13px">${b.on?`Running everything for 1% of the portfolio's value a year (${money(reBossFee())} a season): tenants, repairs, renovations, insurance, refinancing, tenant trouble and offers. They only sell if someone offers 15% over value.`:`Hand over the whole portfolio. They find tenants, fix and renovate, keep you insured, refinance when rates drop, and deal with tenant trouble and offers so you don't have to. Costs 1% of the portfolio's value a year and replaces individual property managers.`}</p>
  <button class="btn ${b.on?'':'go'}" data-re="boss">${b.on?'Let them go':'Hire a portfolio manager'}</button>
- ${b.on?`<div style="margin-top:10px"><small class="muted" style="font-weight:800">Let them buy property for you</small><div class="seg" style="margin-top:6px">${[[0,'Off'],[.1,'10% of cash'],[.25,'25% of cash'],[.5,'50% of cash']].map(([v,l])=>`<button class="chip ${b.buy===v?'on':''}" data-re="bbuy" data-v="${v}">${l}</button>`).join('')}</div><small class="muted" style="display:block;margin-top:6px">${b.buy?`They look for good deals in a few cities each turn and spend up to ${Math.round(b.buy*100)}% of your cash on one, with a 50% mortgage when it helps.`:'They manage what you own but won\'t buy anything new.'}</small></div>`:''}
+ ${b.on?`<div style="margin-top:10px"><small class="muted" style="font-weight:800">Let them buy property for you</small><div class="seg" style="margin-top:6px">${[[0,'Off'],[.1,'10% of cash'],[.25,'25% of cash'],[.5,'50% of cash']].map(([v,l])=>`<button class="chip ${b.buy===v?'on':''}" data-re="bbuy" data-v="${v}">${l}</button>`).join('')}</div><small class="muted" style="display:block;margin-top:6px">${b.buy?`They look for good deals in a few cities each season and spend up to ${Math.round(b.buy*100)}% of your cash on one, with a 50% mortgage when it helps.`:'They manage what you own but won\'t buy anything new.'}</small></div>`:''}
  ${b.on&&b.log.length?`<div class="ddbox" style="margin-top:10px"><b style="font-size:12px">Recently</b>${b.log.slice(0,4).map(x=>`<div style="font-size:13px;margin-top:4px">${esc(x.charAt(0).toUpperCase()+x.slice(1))}</div>`).join('')}</div>`:''}</div>`;}
 /* ---- view ---- */
 const reBadge=t=>`<span class="bzbadge" style="background:${t.col}">${t.ic}</span>`;
@@ -3319,14 +3402,14 @@ function viewRE(){const r=S.re,cid=S.loc,c=C(cid),[md,mc]=reMood(cid),ych=reYear
  const hot=CITIES.filter(x=>x.id!==cid).map(x=>({x,ch:reYearCh(x.id)})).sort((a,b)=>b.ch-a.ch);
  const nextLock=RE_TYPES.find((t,i)=>!reUnlocked(i));const smallest=RE_TYPES[reTiers(cid)[0]];
  return `<div class="card"><div class="between"><h3 style="font-size:20px">Real estate</h3><span class="label">${r.props.length} ${r.props.length===1?'property':'properties'}</span></div>
-  ${r.props.length?`<div class="recap" style="margin-bottom:0"><div><span>What they're worth</span><b>${money(v)}</b></div>${bal>=1?`<div><span>Mortgages you owe</span><b class="down">-${money(bal)}</b></div>`:''}<div><span>Your equity</span><b>${money(v-bal)}</b></div><div><span>Expected cash each turn</span><b class="${net>=0?'up':'down'}">${net>=0?'+':''}${money(net)}</b></div>${r.done?`<div><span>Profit from ${r.done} sold</span><b class="${r.profit>=0?'up':'down'}">${r.profit>=0?'+':''}${money(r.profit)}</b></div>`:''}</div>`:`<p class="muted" style="margin:8px 0 0">Buy property in the city you're in. Flip it, rent it out, or hold it while prices climb. Property values grow with inflation, and mortgages let you buy more than your cash allows. What's for sale grows with your net worth. Hire a portfolio manager and they run everything for you.</p>`}
-  <button class="btn ${r.ins?'go':''}" data-re="ins" style="margin-top:10px">${r.ins?'Insurance: on':'Turn on property insurance'}<small>${r.props.length?`${money(r.props.reduce((a,p)=>a+reInsCost(p),0))} a turn · `:''}covers fires, floods and storms</small></button></div>
+  ${r.props.length?`<div class="recap" style="margin-bottom:0"><div><span>What they're worth</span><b>${money(v)}</b></div>${bal>=1?`<div><span>Mortgages you owe</span><b class="down">-${money(bal)}</b></div>`:''}<div><span>Your equity</span><b>${money(v-bal)}</b></div><div><span>Expected cash each season</span><b class="${net>=0?'up':'down'}">${net>=0?'+':''}${money(net)}</b></div>${r.done?`<div><span>Profit from ${r.done} sold</span><b class="${r.profit>=0?'up':'down'}">${r.profit>=0?'+':''}${money(r.profit)}</b></div>`:''}</div>`:`<p class="muted" style="margin:8px 0 0">Buy property in the city you're in. Flip it, rent it out, or hold it while prices climb. Property values grow with inflation, and mortgages let you buy more than your cash allows. What's for sale grows with your net worth. Hire a portfolio manager and they run everything for you.</p>`}
+  <button class="btn ${r.ins?'go':''}" data-re="ins" style="margin-top:10px">${r.ins?'Insurance: on':'Turn on property insurance'}<small>${r.props.length?`${money(r.props.reduce((a,p)=>a+reInsCost(p),0))} a season · `:''}covers fires, floods and storms</small></button></div>
  ${viewBoss()}
  <div class="card"><div class="between"><h3>${esc(c.name)} property market</h3><span class="badge2 ${mc}">${md}</span></div>
   ${spark(r.hist[cid],320,46,ych>=0?'#12B076':'#F0574A')}
   <div class="kv2"><div><small>Past year</small><b class="${ych>=0?'up':'down'}">${ych>=0?'+':''}${(ych*100).toFixed(1)}%</b></div><div><small>Typical rent</small><b>${(5.5*reYieldMul(cid)).toFixed(1)}% a year</b></div></div>
   <small class="muted">Hottest markets right now: ${hot.slice(0,3).map(h=>`${esc(h.x.name)} ${h.ch>=0?'+':''}${(h.ch*100).toFixed(0)}%`).join(', ')}. Coldest: ${hot.slice(-2).map(h=>`${esc(h.x.name)} ${(h.ch*100).toFixed(0)}%`).join(', ')}. You can only buy where you are.</small></div>
- <div class="card"><div class="between"><h3>For sale in ${esc(c.name)}</h3><span class="label">New listings every turn</span></div><div class="dgrid" style="margin-top:8px">
+ <div class="card"><div class="between"><h3>For sale in ${esc(c.name)}</h3><span class="label">New listings every season</span></div><div class="dgrid" style="margin-top:8px">
   ${L.map(l=>{const t=RT(l.type),pr=reListPrice(l,cid),fv=reFair(l.type,cid,l.cond),d=1-pr/fv;return `<button class="bzrow" data-re="list" data-id="${l.id}">${reBadge(t)}<span><b>${esc(l.name)}</b><small>${t.name} · condition ${l.cond}${l.cond<40?' · needs work':''}</small></span><span class="bzright"><b>${money(pr)}</b><small class="${d>.02?'up':d<-.02?'down':''}">${d>.02?`${Math.round(d*100)}% under value`:d<-.02?`${Math.round(-d*100)}% over value`:'fair price'}</small></span></button>`;}).join('')}</div>
   <small class="muted" style="display:block;margin-top:8px">Listings match your net worth, from ${smallest.name.toLowerCase()}s up.${nextLock?` ${nextLock.name}s open up at about ${money(nextLock.base/1.5)} net worth.`:''}</small></div>
  ${r.props.length?`<div class="card"><h3>My properties</h3>${(()=>{const L=r.props.filter(p=>!p.reno&&p.cond<95),c=L.reduce((a,p)=>a+reRenoCost(p),0),g=L.reduce((a,p)=>a+reFair(p.type,p.city,100)*(p.mul||1)-reVal(p),0);return L.length?`<button class="btn go" data-re="renoall" style="margin-top:8px" ${S.cash<Math.min(...L.map(reRenoCost))?'disabled':''}>Renovate all (${L.length})<small>${money(c)} total · worth about +${money(g)}${S.cash<c?' · not enough cash for all, cheapest first':''}</small></button>`:'';})()}<div class="dgrid" style="margin-top:8px">${r.props.map(p=>{const t=RT(p.type),val=reVal(p),eq=val-(p.mort?p.mort.bal:0),n=reNet(p);
@@ -3339,7 +3422,7 @@ function reClick(d){const r=S.re;switch(d.re){
  case 'list':{const l=reListings(S.loc).find(x=>x.id===d.id);if(!l)return;const t=RT(l.type),pr=reListPrice(l,S.loc),fv=Math.round(reFair(l.type,S.loc,l.cond)),cl=Math.round(pr*.02);
   const fake={type:l.type,city:S.loc,cond:l.cond,mul:1};const rent=reRent(fake),up=reUpkeep(fake);const cap=reMortCap()-reMortBal();
   const opt=(down,lbl)=>{const need=Math.round(pr*down)+cl,loan=pr-Math.round(pr*down),rate=reRate(down<.3),pm=loan?rePmt(loan,rate):0,okc=S.cash>=need,okl=!loan||loan<=cap;
-   return `<button class="btn ${down===1?'go':''}" data-re="buy" data-id="${l.id}" data-dn="${down}" ${okc&&okl?'':'disabled'}>${lbl} (${money(need)})<small>${loan?`${money(loan)} mortgage at ${(rate*100).toFixed(1)}% · ${money(pm)} a turn for 25 years`:'No mortgage, no payments'}${!okc?' · not enough cash':!okl?' · bank won\'t lend this much':''}</small></button>`;};
+   return `<button class="btn ${down===1?'go':''}" data-re="buy" data-id="${l.id}" data-dn="${down}" ${okc&&okl?'':'disabled'}>${lbl} (${money(need)})<small>${loan?`${money(loan)} mortgage at ${(rate*100).toFixed(1)}% · ${money(pm)} a season for 25 years`:'No mortgage, no payments'}${!okc?' · not enough cash':!okl?' · bank won\'t lend this much':''}</small></button>`;};
   return openModal(`<span class="evtag t-choice">${t.name} · ${esc(C(S.loc).name)}</span><h2>${esc(l.name)}</h2><p>${t.desc}</p>
    <div class="recap"><div><span>Asking price</span><b>${money(pr)}</b></div><div><span>Worth at this condition</span><b>${money(fv)}</b></div><div><span>Condition</span><b>${l.cond}/100</b></div><div><span>Worth fixed up</span><b>${money(reFair(l.type,S.loc,100))}</b></div><div><span>Rent if you rent it out</span><b class="up">+${money(rent)}/turn</b></div><div><span>Upkeep and property tax</span><b class="down">-${money(up)}/turn</b></div><div><span>Closing costs</span><b>${money(cl)}</b></div></div>
    <div class="ev-btns">${opt(1,'Pay cash')}${opt(.5,'Put 50% down')}${opt(.2,'Put 20% down')}<button class="btn" data-close>Not now</button></div>`);}
@@ -3350,7 +3433,7 @@ function reClick(d){const r=S.re;switch(d.re){
   if(!p.reno&&p.cond<95)btns.push(`<button class="btn go" data-re="reno" data-id="${p.id}" ${S.cash<rc?'disabled':''}>Renovate for ${money(rc)}<small>Condition to 100 · worth about +${money(gain)} · done right away</small></button>`);
   if(!p.reno&&p.cond<95){const av=Math.round(reFair(p.type,p.city,100)*(p.mul||1)*.95),bal=p.mort?p.mort.bal:0;btns.push(`<button class="btn sun" data-re="renosell" data-id="${p.id}" ${S.cash<rc?'disabled':''}>Renovate and sell now<small>Pay ${money(rc)}, sell for ${money(av)} after fees${bal?` · ${money(bal)} goes to the bank`:''} · ${av-p.cost-rc>=0?'profit':'loss'} about ${money(Math.abs(av-p.cost-rc))}</small></button>`);}
   if(!p.reno&&p.cond>=95&&!p.prem)btns.push(`<button class="btn" data-re="prem" data-id="${p.id}" ${S.cash<pc?'disabled':''}>Luxury upgrade for ${money(pc)}<small>Worth +12% · rent +15% · done right away</small></button>`);
-  if(!p.reno)btns.push(`<button class="btn ${p.rent?'':'go'}" data-re="rent" data-id="${p.id}">${p.rent?'Stop renting it out':`Rent it out`}<small>${p.rent?'Tenants move out. No rent, less wear.':`About ${money(reRent(p))} a turn. Tenants wear it down over time.`}</small></button>`);
+  if(!p.reno)btns.push(`<button class="btn ${p.rent?'':'go'}" data-re="rent" data-id="${p.id}">${p.rent?'Stop renting it out':`Rent it out`}<small>${p.rent?'Tenants move out. No rent, less wear.':`About ${money(reRent(p))} a season. Tenants wear it down over time.`}</small></button>`);
   btns.push(`<button class="btn ${p.mgr?'go':''}" data-re="mgr" data-id="${p.id}">${p.mgr?'Property manager: hired':'Hire a property manager'}<small>8% of rent · fewer empty months and bad tenants · less wear · less stress for you</small></button>`);
   if(p.mort){btns.push(`<button class="btn" data-re="payoff" data-id="${p.id}" ${S.cash<p.mort.bal?'disabled':''}>Pay off the mortgage (${money(p.mort.bal)})<small>No more ${money(p.mort.pmt)} payments</small></button>`);
    if(p.mort.rate-nr>=.0075)btns.push(`<button class="btn" data-re="refi" data-id="${p.id}">Refinance at ${(nr*100).toFixed(1)}%<small>Costs ${money(p.mort.bal*.01)} · payment drops to ${money(rePmt(p.mort.bal,nr))} a turn</small></button>`);}
@@ -3363,7 +3446,7 @@ function reClick(d){const r=S.re;switch(d.re){
  case 'reno':{const p=r.props.find(x=>x.id===d.id);if(!p||p.reno)return;const c=reRenoCost(p);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;p.cost+=c;p.cond=100;addLog(S,`Renovated ${p.name} (${money(c)}).`,'');closeModal();toast(`Renovated. ${p.name} is now worth ${money(reVal(p))}.`);return after();}
  case 'renosell':{const p=r.props.find(x=>x.id===d.id);if(!p||p.reno)return;const c=reRenoCost(p);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;p.cost+=c;p.cond=100;addLog(S,`Renovated ${p.name} (${money(c)}).`,'');closeModal();const x=reSell(p.id);if(x)toast(`Renovated and sold. ${x.prof>=0?'+':'-'}${money(Math.abs(x.prof))} ${x.prof>=0?'profit':'loss'}.`);return after();}
  case 'prem':{const p=r.props.find(x=>x.id===d.id);if(!p||p.reno)return;const c=Math.round(reFair(p.type,p.city,100)*.12);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;p.cost+=c;p.cond=100;p.prem=true;p.mul=(p.mul||1)*1.12;addLog(S,`Luxury upgrade on ${p.name} (${money(c)}).`,'');toast('Upgraded. Worth 12% more.');closeModal();return after();}
- case 'rent':{const p=r.props.find(x=>x.id===d.id);if(!p)return;p.rent=!p.rent;p.vac=p.rent?1:0;p.bad=0;toast(p.rent?'Listed for rent. Tenants should move in next turn.':'Tenants moved out.');closeModal();return after();}
+ case 'rent':{const p=r.props.find(x=>x.id===d.id);if(!p)return;p.rent=!p.rent;p.vac=p.rent?1:0;p.bad=0;toast(p.rent?'Listed for rent. Tenants should move in next trip.':'Tenants moved out.');closeModal();return after();}
  case 'mgr':{const p=r.props.find(x=>x.id===d.id);if(!p)return;p.mgr=!p.mgr;toast(p.mgr?'Property manager hired.':'Property manager let go.');closeModal();return after();}
  case 'payoff':{const p=r.props.find(x=>x.id===d.id);if(!p||!p.mort)return;if(S.cash<p.mort.bal)return toast('Not enough cash.');S.cash-=p.mort.bal;addLog(S,`Paid off the ${money(p.mort.bal)} mortgage on ${p.name}.`,'good');delete p.mort;closeModal();return after();}
  case 'refi':{const p=r.props.find(x=>x.id===d.id);if(!p||!p.mort)return;const f=Math.round(p.mort.bal*.01),nr=reRate(false);payOut(f);p.mort.rate=nr;p.mort.pmt=rePmt(p.mort.bal,nr);addLog(S,`Refinanced ${p.name} at ${(nr*100).toFixed(1)}%.`,'good');closeModal();return after();}
@@ -3402,8 +3485,8 @@ function kidMilestone(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id,d=k.don
  if(a>=5&&!d.school){d.school=true;const pc=Math.round(rp(800,80000)),bc=Math.round(rp(3000,150000));
   return {who,mood:'happy',tag:['t-choice',`${n} is 5`],pages:[`${n} is starting school. Where should they go?`,`Better schools grow their smarts faster. Boarding school is the best education money can buy, but they'd be away from home.`],choices:[
    {label:'Public school (free)',run:()=>{k.school='public';return ok(who,'"I made a friend already!"');}},
-   {label:`Private school (${money(pc)} a turn)`,go:true,run:()=>{k.school='private';return ok(who,'"The uniform is itchy. But the teachers are nice."');}},
-   {label:`Elite boarding school (${money(bc)} a turn)`,run:()=>{k.school='boarding';k.bond=Math.max(0,k.bond-12);return ok(who,'"Do I have to go? I\'ll miss you."','worried');}}]};}
+   {label:`Private school (${money(pc)} a season)`,go:true,run:()=>{k.school='private';return ok(who,'"The uniform is itchy. But the teachers are nice."');}},
+   {label:`Elite boarding school (${money(bc)} a season)`,run:()=>{k.school='boarding';k.bond=Math.max(0,k.bond-12);return ok(who,'"Do I have to go? I\'ll miss you."','worried');}}]};}
  if(a>=9&&!d.act){d.act=true;return {who,mood:'happy',tag:['t-choice',`${n} is 9`],pages:[`${n} wants to try something after school. What do you push them toward?`],choices:[
    {label:'Sports',run:()=>{k.drive+=8;return ok(who,'"I scored a goal!"');}},
    {label:'Coding and robotics',go:true,run:()=>{k.smarts+=4;k.biz+=4;return ok(who,'"I built a robot that sorts my socks."');}},
@@ -3418,8 +3501,8 @@ function kidMilestone(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id,d=k.don
  if(a>=18&&!d.uni){d.uni=true;const sc=Math.round(rp(2000,50000)),tc=Math.round(rp(6000,120000)),don=Math.round(rp(5e5,5e+07)),inTop=k.smarts>=65;
   return {who,mood:'happy',tag:['t-choice',`${n} is 18`],pages:[`${n} finished high school. Smarts ${Math.round(k.smarts)}, business sense ${Math.round(k.biz)}, drive ${Math.round(k.drive)}.`,inTop?`Their grades are good enough for a top university.`:`Their grades aren't quite good enough for a top university. A big donation might change the school's mind.`],choices:[
    {label:'Skip university, start working',run:()=>{k.uni=null;k.biz+=8;k.drive+=6;k.done.career=false;return ok(who,'"Real world, here I come."');}},
-   {label:`State university (${money(sc)} a turn)`,run:()=>{k.uni='state';return ok(who,'"Dorm life! I\'ll call. Probably."');}},
-   inTop?{label:`Top university (${money(tc)} a turn)`,go:true,run:()=>{k.uni='top';k.drive+=3;return ok(who,'"I got in! I actually got in!"');}}:{label:`Donate ${money(don)} so they get into a top university`,run:()=>{payOut(don);k.uni='top';k.drive=Math.max(0,k.drive-5);if(Math.random()<.15){S.fam.scandal=Math.min(100,S.fam.scandal+25);return {who:'anchor',mood:'worried',tag:['t-bad','Scandal'],pages:[`A reporter found out you paid to get ${n} into university. It's all over the news.`,`They're still in, but your reputation took a hit.`]};}return ok(who,'"I got in. Thanks... I guess."','neutral');}}]};}
+   {label:`State university (${money(sc)} a season)`,run:()=>{k.uni='state';return ok(who,'"Dorm life! I\'ll call. Probably."');}},
+   inTop?{label:`Top university (${money(tc)} a season)`,go:true,run:()=>{k.uni='top';k.drive+=3;return ok(who,'"I got in! I actually got in!"');}}:{label:`Donate ${money(don)} so they get into a top university`,run:()=>{payOut(don);k.uni='top';k.drive=Math.max(0,k.drive-5);if(Math.random()<.15){S.fam.scandal=Math.min(100,S.fam.scandal+25);return {who:'anchor',mood:'worried',tag:['t-bad','Scandal'],pages:[`A reporter found out you paid to get ${n} into university. It's all over the news.`,`They're still in, but your reputation took a hit.`]};}return ok(who,'"I got in. Thanks... I guess."','neutral');}}]};}
  if(a>=22&&!d.career){d.career=true;const al=Math.round(rp(500,100000));return {who,mood:'happy',tag:['t-choice',`${n} is 22`],pages:[`${n} is ready to decide what comes next. Business sense ${Math.round(k.biz)}, drive ${Math.round(k.drive)}.`,`If they join your empire, they learn the business and could take over one day. Kids who follow their own path are happier with you, but harder to hand everything to.`],choices:[
    {label:'Join the family empire',go:true,run:()=>{k.career='family';k.job='works in the family empire';if(k.drive<35&&Math.random()<.5){k.bond=Math.max(0,k.bond-10);return ok(who,'"Fine. But I\'m only doing this because you asked."','neutral');}return ok(who,'"I won\'t let you down."');}},
    {label:'Follow their own dream',run:()=>{k.career=pick(CAREERS);k.job=k.career;k.bond=Math.min(100,k.bond+12);return ok(who,`"I'm going to be a ${k.career}. Thank you for believing in me."`);}},
@@ -3430,7 +3513,7 @@ function kidEvent(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id;
   ()=>{const f=Math.round(rp(5000,500000));return {who:'brady',mood:'neutral',tag:['t-choice',`${n} in trouble`],pages:[`Police broke up a party and ${n} was there. They're fine, but they're at the station.`],choices:[
    {label:`Get a good lawyer (${money(f)})`,run:()=>{payOut(f);k.bond=Math.min(100,k.bond+4);return ok(who,'"Thanks for not yelling. Yet."','worried');}},
    {label:'Ground them for a month',run:()=>{k.bond=Math.max(0,k.bond-8);k.drive+=3;return ok(who,'"This is so unfair."','angry');}},
-   {label:'Talk it through',run:()=>{if(useTp(1)){k.bond=Math.min(100,k.bond+8);return ok(who,'"I\'m sorry. It was dumb."');}return ok(who,'You had no time left this turn. They spent the night stewing.','worried');}}]};},
+   {label:'Talk it through',run:()=>{if(useTp(1)){k.bond=Math.min(100,k.bond+8);return ok(who,'"I\'m sorry. It was dumb."');}return ok(who,'You had no time left this season. They spent the night stewing.','worried');}}]};},
   ()=>{const c=Math.round(rp(30000,3e+06));return {who,mood:'happy',tag:['t-choice',`${n} wants a car`],pages:[`"Everyone at school has a car. Can I get one? Please?"`],choices:[
    {label:`Buy them a sports car (${money(c)})`,run:()=>{payOut(c);k.bond=Math.min(100,k.bond+10);k.drive=Math.max(0,k.drive-5);return ok(who,'"NO WAY. Best day of my life."');}},
    {label:'Make them earn half',go:true,run:()=>{k.drive+=8;k.biz+=3;k.bond=Math.max(0,k.bond-2);return ok(who,'"Fine. I\'ll get a job. Watch me."','neutral');}},
@@ -3440,7 +3523,7 @@ function kidEvent(k){const a=kidAge(k),n=first(k.name),who='f_'+k.id;
    {label:'Not yet',run:()=>{k.drive=Math.max(0,k.drive-3);return ok(who,'"Okay. I\'ll save up."','neutral');}}]};},
   ()=>{const f=Math.round(rp(2000,50000));return {who,mood:'worried',tag:['t-choice',`${n}'s grades`],pages:[`${n}'s report card came in. It's not great.`],choices:[
    {label:`Hire a tutor (${money(f)})`,go:true,run:()=>{payOut(f);k.smarts+=7;return ok(who,'"Okay, math makes a little more sense now."');}},
-   {label:'Help them yourself',run:()=>{if(useTp(1)){k.smarts+=5;k.bond=Math.min(100,k.bond+6);return ok(who,'"You\'re actually good at this."');}return ok(who,'You had no time left this turn.','worried');}},
+   {label:'Help them yourself',run:()=>{if(useTp(1)){k.smarts+=5;k.bond=Math.min(100,k.bond+6);return ok(who,'"You\'re actually good at this."');}return ok(who,'You had no time left this season.','worried');}},
    {label:'They\'ll figure it out',run:()=>{k.smarts=Math.max(0,k.smarts-3);return ok(who,'"Cool. Thanks."','neutral');}}]};}];
   return pick(L)();}
  if(a>=22&&k.rel==='kid'){const L=[
@@ -3466,7 +3549,7 @@ function oopsScene(p){const n=first(p.name),who='f_'+p.id,me=p.g==='m';
    p.love=Math.max(0,p.love-3);return ok(who,`You talk it through and decide together not to go ahead. It's a hard conversation, but you both feel it's right for now.`,'neutral');}}]};}
 /* ---- disown and reconcile ---- */
 function disownKid(k){if(k.trust>0){S.cash+=k.trust;addLog(S,`${money(k.trust)} from ${k.name}'s trust fund came back to you.`,'');k.trust=0;}k.rel='disowned';k.role=k.g==='f'?'Disowned daughter':'Disowned son';k.bond=0;k.allow=0;const par=FPid(k.par);if(par&&par.rel==='partner')par.love=Math.max(0,par.love-15);family().forEach(x=>{if(x.rel!=='sib')x.bond=Math.max(0,x.bond-6);});kids().forEach(x=>x.bond=Math.max(0,x.bond-5));addLog(S,`Disowned ${k.name}.`,'bad');}
-/* ---- every turn ---- */
+/* ---- every season ---- */
 function famTurn2(out){const F=S.fam;
  // births
  F.due=F.due.filter(d=>{if(turnsIn()>=d.t){out.push(babyScene(d.with));return false;}return true;});
@@ -3476,7 +3559,7 @@ function famTurn2(out){const F=S.fam;
  FP().forEach(p=>{if((p.rel==='kid'||p.rel==='disowned')&&p.trust>0)p.trust*=Math.pow(1.04,1/TPY);});
  // school costs
  const sc=kids().reduce((a,k)=>a+schoolCost(k),0);if(sc>0){payOut(sc);F.lastSchool=sc;}else F.lastSchool=0;
- // milestones, one per turn
+ // milestones, one per season
  for(const k of kids()){const m=kidMilestone(k);if(m){out.push(m);break;}}
  // a kid event now and then
  if(kids().length&&Math.random()<.12){const e=kidEvent(pick(kids()));if(e)out.push(e);}
@@ -3495,15 +3578,15 @@ function kidCard(k){const a=kidAge(k),isD=k.rel==='disowned',face=portrait(k.loo
  return `<div class="pcard"><div class="row">${face}<div style="min-width:0;flex:1"><div class="between"><b>${esc(k.name)}</b><small class="muted">${isD?'Disowned':`Bond ${Math.round(k.bond)}`}</small></div><small class="muted">${a} · ${kidStage(a)} · ${esc(where)} · ${k.trait}</small>${isD?'':bar(k.bond)}</div></div>${stats}<div class="seg" style="margin-top:8px">${btns}</div></div>`;}
 function viewLifeTab(){const mode=UI.lfMode||'me',F=S.fam,h=happiness(),m=mainP();
  const top=`<div class="seg">${[['me','Me'],['love','Love'],['family','Family'],['people','People']].map(([k,l])=>`<button class="chip ${mode===k?'on':''}" data-lf="lmode" data-v="${k}">${l}${k==='family'&&kids().some(x=>x.needName)?' •':''}</button>`).join('')}</div>`;
- const timeCard=`<div class="card"><div class="between"><h3>Time and mood</h3><span class="label">Time this turn: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
+ const timeCard=`<div class="card"><div class="between"><h3>Time and mood</h3><span class="label">Time this season: ${'●'.repeat(F.tp)}${'○'.repeat(Math.max(0,3-F.tp))}</span></div>
   <div class="kv2"><div><small>Happiness</small><b>${h}</b>${bar(h)}</div><div><small>Stress</small><b>${Math.round(F.stress)}</b>${bar(100-F.stress)}</div>${secrets().length&&m?`<div><small>Suspicion</small><b>${Math.round(F.sus)}</b>${bar(100-F.sus)}</div>`:''}${F.pb>=5?`<div><small>Playboy reputation</small><b>${Math.round(F.pb)}</b>${bar(Math.min(100,F.pb),'#8D63F2')}</div>`:''}</div>
-  <small class="muted">You get 3 time points every turn for dates, family and kids. High stress hurts your health. People drift away if you ignore them. Family and partners cost ${money(famUpkeep())} a week${F.lastSchool?`, plus ${money(F.lastSchool)} a turn for school`:''}.</small>
+  <small class="muted">You get 3 time points every season for dates, family and kids. High stress hurts your health. People drift away if you ignore them. Family and partners cost ${money(famUpkeep())} a week${F.lastSchool?`, plus ${money(F.lastSchool)} a season for school`:''}.</small>
   <button class="btn" data-lf="vacation" style="margin-top:10px">Family vacation<small>2 time · ${money(rp(1500,1e+06))} · stress -35 · everyone gets closer</small></button></div>`;
  if(mode==='me')return top+viewHealth()+timeCard;
  if(mode==='people')return top+viewContacts();
  if(mode==='love'){const meet=UI.lifeMeet&&F.prosTurn===S.trips?`<div class="card"><div class="between"><h3>People you met</h3><button class="chip" data-lf="closeMeet">Close</button></div>
   <div class="seg" style="margin:6px 0 10px">${['women','men','anyone'].map(v=>`<button class="chip ${F.pref===v?'on':''}" data-lf="pref" data-v="${v}">${v[0].toUpperCase()+v.slice(1)}</button>`).join('')}</div>
-  ${F.pros.length?F.pros.map(q=>`<div class="pcard"><div class="row">${portrait(q.look,46)}<div style="min-width:0;flex:1"><div class="between"><b>${esc(q.name)}</b><small class="muted">${q.age?`${q.age} · `:''}${compat(q)}% match</small></div><small class="muted" style="display:block">${PT(q.type).n} from ${esc(q.from||'the city')} · ${q.trait} · fame ${PT(q.type).fame}</small><small style="display:block;font-weight:800;color:#C9502F;margin-top:2px">Looks ${q.looks||6}/10 ${'★'.repeat(Math.round((q.looks||6)/2))}${'☆'.repeat(5-Math.round((q.looks||6)/2))}</small><small class="muted" style="display:block;margin-top:2px">${esc(q.desc||'')}</small><small class="muted">${TRAIT_TIP[q.trait]||''} Costs about ${money(pCost(q))}/wk to date.</small></div></div><div class="between" style="margin-top:8px"><small class="muted">Chance: ${Math.round(askChance(q)*100)}%${mainP()?' · This would be an affair':''}</small><button class="btn go" data-lf="ask" data-id="${q.id}">Ask out</button></div></div>`).join(''):'<p class="muted">Nobody else here caught your eye. Try again next turn.</p>'}</div>`:'';
+  ${F.pros.length?F.pros.map(q=>`<div class="pcard"><div class="row">${portrait(q.look,46)}<div style="min-width:0;flex:1"><div class="between"><b>${esc(q.name)}</b><small class="muted">${q.age?`${q.age} · `:''}${compat(q)}% match</small></div><small class="muted" style="display:block">${PT(q.type).n} from ${esc(q.from||'the city')} · ${q.trait} · fame ${PT(q.type).fame}</small><small style="display:block;font-weight:800;color:#C9502F;margin-top:2px">Looks ${q.looks||6}/10 ${'★'.repeat(Math.round((q.looks||6)/2))}${'☆'.repeat(5-Math.round((q.looks||6)/2))}</small><small class="muted" style="display:block;margin-top:2px">${esc(q.desc||'')}</small><small class="muted">${TRAIT_TIP[q.trait]||''} Costs about ${money(pCost(q))}/wk to date.</small></div></div><div class="between" style="margin-top:8px"><small class="muted">Chance: ${Math.round(askChance(q)*100)}%${mainP()?' · This would be an affair':''}</small><button class="btn go" data-lf="ask" data-id="${q.id}">Ask out</button></div></div>`).join(''):'<p class="muted">Nobody else here caught your eye. Try again next trip.</p>'}</div>`:'';
   return top+`<div class="card lifehead"><div class="between"><h3 style="font-size:20px">Love life</h3><span class="label">${partners().length?`${partners().length} ${partners().length===1?'partner':'partners'}`:'Single'}</span></div>
    <p class="muted" style="margin:6px 0 10px;font-size:13px">Date, get engaged, marry (a prenup protects you in a divorce), or play the field. More partners raise your fame and your playboy reputation, but secret ones can get you caught.</p>
    <button class="btn go" data-lf="meet">Meet someone<small>${F.prosTurn===S.trips?'See who you met':'1 time point'}</small></button></div>${meet}${partners().map(personCard).join('')}`;}
@@ -3597,7 +3680,7 @@ const natIncome=()=>S.legacy.rule.own.reduce((a,id)=>a+NAT(id).gdp*1e9*.04/TPY,0
 const milCost=()=>2e10;
 const buyPrice=n=>n.gdp*1e9*1.6*(S.legacy.rule.op>=60?.85:1);
 const warNeed=n=>n.def*1.4;
-/* ---- per turn ---- */
+/* ---- per season ---- */
 function legacyTurn(scenes){if(!S.legacy)return;const L=S.legacy;if(!L.open&&netWorth()>=LEGACY_AT){L.open=true;scenes.push({who:'whitlock',mood:'happy',tag:['t-good','Legacy'],pages:['You\'re one of the richest people who has ever lived. Money alone doesn\'t mean much anymore.','Time to decide what you\'ll be remembered for. End world hunger, rule a nation and then the world, or leave Earth and build a home on Mars. Chase one, or all three. You\'ll find them in your Empire and Business tabs, under Legacy.']});}
  const act=[L.hunger.on,L.rule.on,L.space.on].filter(Boolean).length+Math.floor((S.ms?msActive():0)/2);if(act>1)S.hp=Math.max(0,S.hp-.15*(act-1));
  // hunger
@@ -3628,7 +3711,7 @@ function legacyClick(d){const L=S.legacy;switch(d.lg){
  case 'homepick':{const n=NAT(d.id);L.rule.home=n.id;L.rule.pop=25;toast(`You set your sights on ${n.name}.`);return after();}
  case 'media':{const c=Math.max(2e9,NAT(L.rule.home).gdp*1e9*.02);if(!lgPay(c))return;L.rule.spent+=c;L.rule.pop=Math.min(100,L.rule.pop+6);L.rule.op=Math.max(0,L.rule.op-1);return after();}
  case 'house':{const n=NAT(L.rule.leader?pick(L.rule.own):L.rule.home),c=Math.max(5e9,n.pop*1e6*800);if(!lgPay(c))return;L.rule.spent+=c;L.rule.pop=Math.min(100,L.rule.pop+(L.rule.leader?5:9));L.rule.stab=Math.min(100,L.rule.stab+4);L.rule.op=Math.min(100,L.rule.op+2);toast(`Built homes, hospitals and schools in ${n.name}.`);return after();}
- case 'elect':{const R=L.rule,n=NAT(R.home),c=Math.max(3e9,n.gdp*1e9*.01);if(!lgPay(c))return;R.spent+=c;if(Math.random()<R.pop/110){R.leader=true;R.title='President';R.own=[n.id];R.op=Math.min(100,R.op+10);scenes1({who:'anchor',mood:'happy',tag:['t-good','Election'],onShow:confetti,pages:[`You won the election in ${n.name}! You are now its President.`,'Your new country pays you a share of its budget every turn. Keep the people happy, build an army, and look beyond your borders.']});}else{R.pop=Math.max(0,R.pop-12);scenes1({who:'anchor',mood:'worried',tag:['t-bad','Election'],pages:[`You lost the election in ${n.name}. People weren't ready to trust a billionaire.`,'Win them over first: housing, hospitals, jobs. Then try again.']});}return after();}
+ case 'elect':{const R=L.rule,n=NAT(R.home),c=Math.max(3e9,n.gdp*1e9*.01);if(!lgPay(c))return;R.spent+=c;if(Math.random()<R.pop/110){R.leader=true;R.title='President';R.own=[n.id];R.op=Math.min(100,R.op+10);scenes1({who:'anchor',mood:'happy',tag:['t-good','Election'],onShow:confetti,pages:[`You won the election in ${n.name}! You are now its President.`,'Your new country pays you a share of its budget every season. Keep the people happy, build an army, and look beyond your borders.']});}else{R.pop=Math.max(0,R.pop-12);scenes1({who:'anchor',mood:'worried',tag:['t-bad','Election'],pages:[`You lost the election in ${n.name}. People weren't ready to trust a billionaire.`,'Win them over first: housing, hospitals, jobs. Then try again.']});}return after();}
  case 'coup':{const R=L.rule,n=NAT(R.home);if(R.mil<n.def)return toast(`You need a private force of at least ${n.def} strength.`);if(Math.random()<.55+(R.mil-n.def)/100){R.leader=true;R.title='Supreme Leader';R.own=[n.id];R.op=Math.max(0,R.op-30);R.stab=40;scenes1({who:'anchor',mood:'worried',tag:['t-bad','Coup'],pages:[`Your forces took the capital of ${n.name} overnight. You are its Supreme Leader.`,'The world is not happy. Expect sanctions, protests and a lot of enemies.']});}else{const f=Math.round(S.cash*.2);S.cash-=f;R.mil=Math.max(0,R.mil-20);R.op=Math.max(0,R.op-25);R.pop=Math.max(0,R.pop-20);scenes1({who:'brady',mood:'angry',tag:['t-bad','Coup failed'],pages:[`The coup in ${n.name} failed. Your forces were defeated and the government seized ${money(f)} of your money.`,'You barely got out of the country.']});}return after();}
  case 'army':{if(!lgPay(milCost()))return;L.rule.spent+=milCost();L.rule.mil=Math.min(200,L.rule.mil+(L.space.stage>=2?6:5));L.rule.op=Math.max(0,L.rule.op-1);return after();}
  case 'sec':{const c=5e9;if(!lgPay(c))return;L.rule.sec=Math.min(100,L.rule.sec+20);toast('Security upgraded.');return after();}
@@ -3664,7 +3747,7 @@ function viewLegacy(){const L=S.legacy;if(!legacyOn())return `<div class="card">
   ${card('rule','Rule the world','Win over a country, take power by election or by force, build an army, then take the world one nation at a time. Real cost: tens of trillions, but your nations pay you back.','Free to start')}
   ${card('space','Leave Earth','Build rockets, a moon base, then a Mars colony that can survive on its own. Then move there. Real cost: over a trillion dollars.','Free to start')}
   <div class="card"><div class="between"><h3>Missions</h3><span class="label">${msDone()} of ${MISSIONS.length} done</span></div>
-   <div class="kv2"><div><small>Public trust</small><b>${Math.round(S.trust)}</b>${bar(S.trust)}</div><div><small>People free</small><b>${S.talent.filter(t=>!t.busy).length} of ${S.talent.length}</b></div></div>${S.wev?`<div class="ddbox"><b>${WEV[S.wev.k].n}</b> · ${WEV[S.wev.k].d} About ${S.wev.t} more turns.</div>`:''}
+   <div class="kv2"><div><small>Public trust</small><b>${Math.round(S.trust)}</b>${bar(S.trust)}</div><div><small>People free</small><b>${S.talent.filter(t=>!t.busy).length} of ${S.talent.length}</b></div></div>${S.wev?`<div class="ddbox"><b>${WEV[S.wev.k].n}</b> · ${WEV[S.wev.k].d} About ${S.wev.t} more seasons.</div>`:''}
    <small class="muted">Every stage asks you how to do it: cheap or fast, safe or bold. Obstacles force choices. Stages can fail. Public trust raises your odds on everything. Every stage needs a free person to lead it, rivals race you to each goal, and finished missions boost the others, so pick your order carefully.</small>
    <button class="btn sun" data-ms="badges" style="margin-top:10px">Badges<small>${Object.keys(S.badges||{}).length} of ${BADGES.length} earned</small></button></div>
   ${viewTalent()}${viewMissions()}`;}
@@ -3679,7 +3762,7 @@ function viewRule(){const R=S.legacy.rule,back=`<button class="btn" data-lg="hom
   <div style="display:grid;gap:8px"><button class="btn" data-lg="media">Buy media and lobbyists<small>${money(Math.max(2e9,h.gdp*1e9*.02))} · popularity +6</small></button><button class="btn" data-lg="house">Build homes, hospitals and jobs<small>${money(Math.max(5e9,h.pop*1e6*800))} · popularity +9 · world opinion up</small></button><button class="btn" data-lg="army">Build a private force<small>${money(milCost())} · military +5</small></button>
   <button class="btn go" data-lg="elect" ${R.pop<40?'disabled':''}>Run for president<small>${money(Math.max(3e9,h.gdp*1e9*.01))} · about ${Math.round(Math.min(100,R.pop/1.1))}% chance</small></button><button class="btn danger" data-lg="coup" ${R.mil<h.def?'disabled':''}>Take power by force<small>Needs military ${h.def} · world opinion -30</small></button></div></div>`;
  const others=NATIONS.filter(n=>!ownsN(n.id));
- return back+`<div class="card lifehead"><div class="between"><h3>${R.title} of ${R.own.length===1?h.name:`${R.own.length} nations`}</h3><span class="label">${R.own.length} of ${NATIONS.length}</span></div>${stats}<small class="muted">Your nations pay you ${money(natIncome())} a turn. Low popularity and stability cause revolts. Low world opinion brings sanctions and coalitions once you're big.</small>
+ return back+`<div class="card lifehead"><div class="between"><h3>${R.title} of ${R.own.length===1?h.name:`${R.own.length} nations`}</h3><span class="label">${R.own.length} of ${NATIONS.length}</span></div>${stats}<small class="muted">Your nations pay you ${money(natIncome())} a season. Low popularity and stability cause revolts. Low world opinion brings sanctions and coalitions once you're big.</small>
   <div class="seg" style="margin-top:10px"><button class="chip" data-lg="house">Housing and hospitals</button><button class="chip" data-lg="army">Army ${money(milCost())}</button><button class="chip" data-lg="sec">Security $5B</button><button class="chip" data-lg="propaganda">Propaganda $3B</button><button class="chip" data-lg="crack">Crackdown</button><button class="chip" data-lg="aidout">Foreign aid $10B</button></div></div>
   ${others.length?`<div class="sec-title"><h3>The rest of the world</h3></div><div class="dgrid">${others.map(n=>`<div class="card" style="margin:0"><div class="between"><b>${n.name}</b><small class="muted">${n.pop}M · ${money(n.gdp*1e9)}</small></div><small class="muted">Defence ${n.def}. Needs military ${Math.ceil(warNeed(n))} to invade.</small><div class="seg" style="margin-top:8px"><button class="chip" data-lg="ally" data-id="${n.id}">Invite to join ${money(n.gdp*1e9*.2)}</button><button class="chip" data-lg="buy" data-id="${n.id}">Buy it ${money(buyPrice(n))}</button><button class="chip" data-lg="war" data-id="${n.id}">Invade</button></div></div>`).join('')}</div>`:'<div class="card"><h3>The whole world is yours.</h3></div>'}`;}
 function viewSpace(){const P=S.legacy.space,back=`<button class="btn" data-lg="home" style="margin-bottom:10px">Back to Legacy</button>`;
@@ -3706,7 +3789,7 @@ const MISSIONS=[
   {t:'A pharma company wants to buy into your research. They would own part of the cure.',ch:[['Refuse',{}],['Take their money',{c:-.3,tr:-6,p:.04}]]},
   {t:'Activists say your trials use poor patients as test subjects.',ch:[['Move trials to rich countries',{c:.1,d:1,tr:6}],['Pay patients fairly and show it',{c:.05,tr:4}],['Ignore them',{tr:-10}]]},
   {t:'One of your labs found something nobody expected. It could be big.',ch:[['Pour money into it',{c:.12,p:.12}],['Stay on plan',{}]]}]},
-{id:'climate',name:'Fix climate change',cat:'Planet',need:1e12,blurb:'Switch the world to clean power and pull the carbon back out of the sky.',perk:'Your energy companies pay you $5B every turn.',
+{id:'climate',name:'Fix climate change',cat:'Planet',need:1e12,blurb:'Switch the world to clean power and pull the carbon back out of the sky.',perk:'Your energy companies pay you $5B every season.',
  stages:[
   {n:'Solar and wind everywhere',c:3e11,ap:[['Build it all yourself',1,5,.9,'You own the farms.'],['Subsidize everyone else',.7,6,.85,'Cheaper, slower, more friends.',{tr:4}]]},
   {n:'Store the power',c:2e11,ap:[['Proven batteries',1,4,.9,'Safe bet.'],['New solid-state tech',.8,3,.6,'Cheaper and better, if it works.']]},
@@ -3765,7 +3848,7 @@ const MISSIONS=[
   {t:'One of your scientists secretly injected himself. He looks ten years younger, and he is on the news.',ch:[['Fire him',{tr:4}],['Hire him to lead the trials',{p:.08,tr:-6,sc:5}]]},
   {t:'Religious leaders say you are playing god.',ch:[['Meet with them',{d:1,tr:4}],['Ignore them',{tr:-4}]]},
   {t:'Test animals developed tumours.',ch:[['Go back a step',{lose:true}],['Tweak the formula and continue',{p:-.08}]]}]},
-{id:'city',name:'Build the city of the future',cat:'People',need:5e11,blurb:'A brand new city for a million people. Clean, safe, and run your way.',perk:'Your city pays you $3B every turn.',
+{id:'city',name:'Build the city of the future',cat:'People',need:5e11,blurb:'A brand new city for a million people. Clean, safe, and run your way.',perk:'Your city pays you $3B every season.',
  stages:[
   {n:'Find the land',c:5e10,ap:[['Buy desert land',1,2,.9,'Cheap and empty.'],['Build an island',2.5,4,.8,'Iconic.']]},
   {n:'Roads, power and water',c:2e11,ap:[['Underground everything',1.3,5,.85,'No traffic, no wires.'],['Standard grid',1,4,.9,'Proven.']]},
@@ -3776,7 +3859,7 @@ const MISSIONS=[
   {t:'A building under construction collapsed.',ch:[['Stop everything and inspect',{d:2,tr:6}],['Pay the families and keep going',{c:.04,tr:-4}]]},
   {t:'Crime is rising in the new districts.',ch:[['More police',{c:.03,tr:-2}],['More jobs and youth centers',{c:.05,tr:4}]]},
   {t:'Residents want more say in how the city is run.',ch:[['Give them a council',{tr:6,p:.03}],['Say no',{tr:-6}]]}]},
-{id:'agi',name:'Build safe superintelligence',cat:'Tech',need:2e12,blurb:'Build an AI smarter than any human, and make sure it stays on our side.',perk:'Your AI earns you 0.15% of your net worth every turn.',
+{id:'agi',name:'Build safe superintelligence',cat:'Tech',need:2e12,blurb:'Build an AI smarter than any human, and make sure it stays on our side.',perk:'Your AI earns you 0.15% of your net worth every season.',
  stages:[
   {n:'Assemble the best AI team',c:5e10,ap:[['Poach from every lab',1,2,.85,'Rivals will hate you.',{tr:-2}],['Train your own',.6,4,.85,'Slow but loyal.']]},
   {n:'World\'s biggest supercomputer',c:4e11,ap:[['Build data centers',1,5,.85,'Yours forever.'],['Rent everyone\'s chips',1.5,2,.8,'Fast.']]},
@@ -3798,7 +3881,7 @@ const MISSIONS=[
   {t:'Fishing towns say you are killing their jobs.',ch:[['Retrain them and pay them',{c:.06,tr:6}],['Stick to the plan',{tr:-6}]]},
   {t:'A big storm wrecked your plastic collectors.',ch:[['Rebuild stronger',{c:.07}],['Rebuild the same',{c:.03,p:-.05}]]},
   {t:'A marine heat wave is bleaching coral as fast as you grow it.',ch:[['Double the effort',{c:.08,p:.05}],['Focus on the coolest reefs',{d:1}]]}]},
-{id:'net',name:'Internet for every human',cat:'Tech',need:3e11,blurb:'Three billion people are still offline. Connect them all, for free.',perk:'Your network pays you $2B every turn in ads and data deals.',
+{id:'net',name:'Internet for every human',cat:'Tech',need:3e11,blurb:'Three billion people are still offline. Connect them all, for free.',perk:'Your network pays you $2B every season in ads and data deals.',
  stages:[
   {n:'Launch a satellite network',c:6e10,ap:[['10,000 small satellites',1,4,.8,'Covers everything.'],['High-altitude balloons',.5,3,.6,'Cheap, fragile.']]},
   {n:'Cheap phones for everyone',c:4e10,ap:[['Build a $20 phone',1,3,.85,'Your own factory.'],['Give away old phones',.5,3,.75,'Recycled.',{tr:4}]]},
@@ -3808,7 +3891,7 @@ const MISSIONS=[
   {t:'A government wants to censor what its people see.',ch:[['Refuse and get banned there',{p:-.05,tr:6}],['Comply',{tr:-10}]]},
   {t:'Space debris knocked out 300 satellites.',ch:[['Replace them',{c:.08}],['Fly them lower and slower',{d:1}]]},
   {t:'Telecom companies are suing to stop free internet.',ch:[['Fight in court',{c:.02,d:1}],['Buy them',{c:.25,p:.05}]]}]},
-{id:'asteroid',name:'Mine the asteroids',cat:'Space',need:3e12,blurb:'One metal asteroid holds more platinum than Earth has ever mined.',perk:'Space metals pay you $20B every turn.',
+{id:'asteroid',name:'Mine the asteroids',cat:'Space',need:3e12,blurb:'One metal asteroid holds more platinum than Earth has ever mined.',perk:'Space metals pay you $20B every season.',
  stages:[
   {n:'Find the right asteroid',c:3e10,ap:[['Space telescopes',1,3,.9,'Careful.'],['Send probes to dozens',1.8,2,.85,'Fast.']]},
   {n:'Robot mining ships',c:2e11,ap:[['Build your own',1,5,.7,'Yours.'],['Buy a space company',1.6,3,.8,'Quick start.']]},
@@ -3830,7 +3913,7 @@ const msDone=()=>MISSIONS.filter(d=>S.ms[d.id]&&S.ms[d.id].done).length;
 function msLog(m,t){m.log=m.log||[];m.log.unshift(t);m.log=m.log.slice(0,6);}
 function msFx(def,m,fx,cost){if(!fx)return '';let t=[];
  if(fx.c){const a=Math.round(Math.abs(fx.c)*cost);if(fx.c>0){payOut(a);m.spent+=a;t.push(`-${money(a)}`);}else{S.cash+=a;t.push(`+${money(a)}`);}}
- if(fx.d){m.left=Math.max(1,(m.left||0)+fx.d);t.push(fx.d>0?`${fx.d} turn${fx.d>1?'s':''} slower`:`${-fx.d} turn faster`);}
+ if(fx.d){m.left=Math.max(1,(m.left||0)+fx.d);t.push(fx.d>0?`${fx.d} season${fx.d>1?'s':''} slower`:`${-fx.d} season faster`);}
  if(fx.p){m.ch=clamp(m.ch+fx.p,.05,.97);t.push(`success chance ${fx.p>0?'+':''}${Math.round(fx.p*100)}%`);}
  if(fx.tr){S.trust=clamp(S.trust+fx.tr,0,100);t.push(`public trust ${fx.tr>0?'+':''}${fx.tr}`);}
  if(fx.sc&&S.fam){S.fam.scandal=Math.min(100,S.fam.scandal+fx.sc);}
@@ -3860,7 +3943,7 @@ function msClick(d){const def=MS(d.id);switch(d.ms){
  case 'ap':{const m=S.ms[d.id],st=def.stages[m.st],a=st.ap[+d.i],cost=Math.round(st.c*a[1]*wevCost()),role=MS_ROLE[d.id],lead=freeTalent(role);if(!lead)return toast(`All your ${ROLE_P[role]} are busy. Hire another one, or wait for a mission stage to finish.`);if(S.cash<cost)return toast(`You need ${money(cost)} in cash.`);S.cash-=cost;m.spent+=cost;m.id=d.id;m.mult=a[1];m.run=true;lead.busy=d.id;m.left=a[2];m.tot=a[2];m.ch=a[3];m.ap=a[0];
   let r='';if(a[5]){const fx={...a[5]};if(fx.c){const back=Math.round(-fx.c*st.c);if(back>0){S.cash+=back;r=` and earned ${money(back)} back`;}delete fx.c;}msFx(def,m,fx,st.c);}
   msLog(m,`Started ${st.n.toLowerCase()}: ${a[0].toLowerCase()}, led by ${lead.name}${r}.`);popCash(`-${money(cost)}`,'var(--loss)');toast(`${st.n} started. About ${a[2]} turns.`);return after();}
- case 'rush':{const m=S.ms[d.id],st=def.stages[m.st],c=Math.round(st.c*.3);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;m.spent+=c;m.left=Math.max(1,m.left-1);m.ch=clamp(m.ch-.03,.05,.97);toast('More people, more money. One turn faster, slightly riskier.');return after();}
+ case 'rush':{const m=S.ms[d.id],st=def.stages[m.st],c=Math.round(st.c*.3);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;m.spent+=c;m.left=Math.max(1,m.left-1);m.ch=clamp(m.ch-.03,.05,.97);toast('More people, more money. One season faster, slightly riskier.');return after();}
  case 'boost':{const m=S.ms[d.id],st=def.stages[m.st],c=Math.round(st.c*.25);if(S.cash<c)return toast('Not enough cash.');S.cash-=c;m.spent+=c;m.ch=clamp(m.ch+.08,.05,.97);toast('Hired more experts. Better odds.');return after();}
  case 'badges':UI.badges=true;return renderGame();
  case 'nobadges':UI.badges=false;return renderGame();
@@ -4243,7 +4326,7 @@ function addDirt(id,name){if(!S.dirt.some(x=>x.id===id))S.dirt.push({id,name});}
 const hasDirt=id=>S.dirt.some(x=>x.id===id);
 const useDirt=id=>{S.dirt=S.dirt.filter(x=>x.id!==id);myDirt(1);};
 CAST.forEach(d=>{NPC['c_'+d.id]={name:d.name,role:d.role,bg:d.bg,look:d.look};});
-/* each turn: someone from your world shows up */
+/* each season: someone from your world shows up */
 function castScene(d,c,ev){const who='c_'+d.id;const first=!c.met;c.met=true;c.n++;c.last=turnsIn();
  return {who,mood:ev.mood||'neutral',tag:['t-choice',first?`New: ${d.role}`:d.name.split(' ').slice(-1)[0]],pages:first?[`You meet ${d.name}, ${d.role.toLowerCase()}.`,...ev.p]:ev.p,
   choices:ev.ch.map(([lbl,fn])=>({label:lbl,run:()=>{let r=fn();if(!r)return;const [t,m]=Array.isArray(r)?r:[r,'happy'];return ok(who,t,m);}}))};}
@@ -4369,7 +4452,7 @@ function viewEmpire(){const nw=netWorth(),pr=nwParts(),tot=Object.entries(pr).fi
  const rows=Object.entries(pr).filter(([k,v])=>Math.abs(v)>=1).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="emprow"><span>${NW_LBL[k]||k}</span><span class="empbar"><i style="width:${Math.max(2,Math.min(100,Math.abs(v)/tot*100))}%;background:${v<0?'var(--loss)':'#C9A45C'}"></i></span><b class="${v<0?'down':''}">${money(v)}</b></div>`).join('');
  const tile=(go,t,v,sub)=>`<button class="emptile" data-nav="${go}"><small>${t}</small><b>${v}</b><span>${sub}</span></button>`;
  const rich=(S.rich||[]).filter(r=>r.nw>nw).length+1;
- return `<div class="luxhero"><div class="luxbrand">YOUR <span>EMPIRE</span></div><div class="luxsub">Net worth ${money(nw)}${S.lastNw!=null?` · ${nw-S.lastNw>=0?'+':''}${money(nw-S.lastNw)} this turn`:''} · #${rich} richest on earth</div>
+ return `<div class="luxhero"><div class="luxbrand">YOUR <span>EMPIRE</span></div><div class="luxsub">Net worth ${money(nw)}${S.lastNw!=null?` · ${nw-S.lastNw>=0?'+':''}${money(nw-S.lastNw)} this season`:''} · #${rich} richest on earth</div>
   <div class="emprows">${rows}</div></div>
   ${typeof viewLegacyCard==='function'?viewLegacyCard():''}
   <div class="empgrid">
@@ -4384,14 +4467,14 @@ function viewEmpire(){const nw=netWorth(),pr=nwParts(),tot=Object.entries(pr).fi
 function goClick(v){if(v==='goods'){UI.goods=true;return renderGame();}if(v==='goodsback'){UI.goods=false;return renderGame();}const [t,sub]=v.split(':');UI.tab=t;if(t==='deals')UI.deals=sub;if(t==='biz'){UI.bzMode=sub;UI.bz=null;}if(t==='life')UI.lfMode=sub;renderGame();window.scrollTo(0,0);}
 
 function rollEvents(ctx){
- if(S.trips<=1)return [];
+ if((S.tripN||0)<=1)return [];
  const n=Math.random()<.05?0:Math.random()<.18?3:Math.random()<.5?2:1,out=[],usedIds=new Set();
  for(let i=0;i<n;i++){let tone;const r=Math.random(),bad=dif().bad*.45*tr().luck;
   if(r<bad)tone='bad';else if(r<bad+.42)tone='choice';else if(r<bad+.68)tone='market';else tone='good';
-  const okE=e=>e.tone===tone&&!usedIds.has(e.id)&&(!e.cond||e.cond(ctx)),fresh=e=>!S.seen||!S.seen[e.id]||S.trips-S.seen[e.id]>=6;
+  const okE=e=>e.tone===tone&&!usedIds.has(e.id)&&(!e.cond||e.cond(ctx)),fresh=e=>!S.seen||!S.seen[e.id]||(S.tripN||0)-S.seen[e.id]>=6;
   let pool=EVENTS.filter(e=>okE(e)&&fresh(e));if(!pool.length)pool=EVENTS.filter(okE);if(!pool.length)continue;
   const tot=pool.reduce((a,e)=>a+(e.w||1),0);let x=Math.random()*tot,ev=pool[0];for(const e of pool){x-=(e.w||1);if(x<=0){ev=e;break;}}
-  usedIds.add(ev.id);(S.seen=S.seen||{})[ev.id]=S.trips;const res=ev.run(ctx);if(res){if(!res.market)res.tag=res.tag||TONE_TAG[tone];out.push(res);}}
+  usedIds.add(ev.id);(S.seen=S.seen||{})[ev.id]=S.tripN||0;const res=ev.run(ctx);if(res){if(!res.market)res.tag=res.tag||TONE_TAG[tone];out.push(res);}}
  return out;
 }
 
@@ -4451,7 +4534,7 @@ function renderTitle(){const has=!!loadSave();
   <div class="tagline">Nine classmates. Zero dollars. First to a billion wins.</div>
   <div class="lineup">${titleLooks.map((l,i)=>`<span style="animation-delay:${i*.07}s">${figure(l,{w:i===3?104:80,mood:['happy','smug','happy','happy','neutral','smug','happy'][i]})}</span>`).join('')}</div>
   <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">${has?`<button class="btn go big" data-act="continue">Continue</button><button class="btn big" data-act="new">New game</button>`:`<button class="btn go big" data-act="new">Take the bet</button>`}${slotList().length?`<button class="btn big" data-act="slots">Saved games (${slotList().length})</button>`:''}</div>
-  <div class="stage-note">Start on the East Coast, then fly your cargo to 40 cities on six continents.</div>${accountLine()}</div>`;}
+  <div class="stage-note">Grow up, then trade your way across 10 cities.</div>${accountLine()}</div>`;}
 function renderCreate(){const c=cfg;
  const sw=(arr,key)=>arr.map((col,i)=>`<button class="sw ${c.look[key]===i?'on':''}" style="background:${col}" data-look="${key}" data-i="${i}" aria-label="Colour ${i+1}"></button>`).join('');
  $('#scr-create').innerHTML=`<div class="create-grid">
@@ -4475,21 +4558,21 @@ function renderCreate(){const c=cfg;
 
 /* ===================== RENDER: GAME ===================== */
 function renderGame(){
- if(!S)return;
+ if(!S)return;if(S.kid)return viewKid();
  const nw=netWorth(),t=S.tier,next=TIERS[t+1],pct=next?clamp((nw-TIERS[t].at)/(next.at-TIERS[t].at)*100,0,100):100;
  const loc=C(S.loc),rk=myRank(),low=S.cash+S.savings<liveCost();
   const views={market:viewMain,travel:viewTravel,deals:viewDeals,bank:viewBank,bet:viewBet,biz:viewBiz,life:viewLifeTab};
  const changed=UI.lastTab!==UI.tab;UI.lastTab=UI.tab;
  $('#scr-game').innerHTML=`<header class="hud">
    <div class="row"><div class="who">${portrait(S.look,44)}<div style="min-width:0"><b>${esc(S.name)}</b><small>${TIERS[t].name}</small></div></div>
-    <div class="cashbox"><div class="v" id="cashVal">${money(shownCash??S.cash)}</div><small>Net worth ${money(nw)}</small>${S.lastNw!=null&&S.trips>0?(()=>{const dd=nw-S.lastNw;return `<button class="nwdelta ${dd>=0?'up':'down'}" data-bz="nw">${dd>=0?'+':''}${money(dd)} this turn</button>`;})():''}</div>
+    <div class="cashbox"><div class="v" id="cashVal">${money(shownCash??S.cash)}</div><small>Net worth ${money(nw)}</small>${S.lastNw!=null&&S.trips>0?(()=>{const dd=nw-S.lastNw;return `<button class="nwdelta ${dd>=0?'up':'down'}" data-bz="nw">${dd>=0?'+':''}${money(dd)} this year</button>`;})():''}</div>
     <button class="iconbtn" data-act="menu" aria-label="Menu"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></div>
-   <div class="chips"><span class="pill">${icon('cal')}Age ${age()} · turn ${turnOfYear()}/${TPY}</span><span class="pill">${icon('pin')}${loc.name}</span><button class="pill" data-tab="bet">${icon('bet')}#${rk} of 9</button>
+   <div class="chips"><span class="pill">${icon('cal')}Age ${age()} · Day ${dayOfYear()}</span><span class="pill">${icon('pin')}${loc.name}</span><button class="pill" data-tab="bet">${icon('bet')}#${rk} of 9</button>
     <span class="pill ${low?'warn':''}">${icon('home')}Living ${money(liveCost())}/wk</span>${S.debt>=1?`<span class="pill ${dueIn()!==null&&dueIn()<=8||S.missed?'warn':''}">${icon('debt')}Loan ${money(S.debt)}${S.due?` · due in ${Math.max(0,dueIn())} wk`:''}</span>`:''}</div>
    <div><div class="track"><i style="width:${pct}%"></i></div><div class="tierline"><span>${TIERS[t].name}</span><span>${next?`${money(next.at-nw)} to ${next.name}`:'Top of the world'}</span></div></div></header>
   <main class="view" ${changed?'':'style="animation:none"'}>${views[UI.tab]()}</main>
-  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr 1fr 1.25fr 1fr 1fr 1fr">${tabBtn('market',empireOn()?'Empire':'Market')}${tabBtn('deals','Invest')}
-   <button class="travelbtn ${UI.tab==='travel'?'on':''}" data-tab="travel" aria-label="Travel">${icon('travel')}<b>Travel</b></button>
+  <nav class="nav"><div class="nav-in" style="grid-template-columns:1fr 1fr 1fr 1.25fr 1fr 1fr 1fr">${tabBtn('market',empireOn()?'Empire':'Market')}${tabBtn('travel','Travel')}${tabBtn('deals','Invest')}
+   <button class="travelbtn agebtn" data-act="ageup" aria-label="Age up">${icon('cal')}<b>Age +1</b></button>
    ${tabBtn('biz','Business')}${tabBtn('life','Life')}${tabBtn('bank','Bank')}</div></nav>`;
  tweenCash(S.cash);
 }
@@ -4519,15 +4602,15 @@ function viewMarket(){
   return `<button class="prod" data-prod="${p.id}"><div class="top">${picon(p.id)}<span class="trend ${tcls}">${deal?`${dealPct(deal)}`:tt}</span></div><b class="n">${p.name}</b>
    <div class="prices"><span class="bp">${pr(b)}</span><span class="sp">sell ${pr(s)}</span></div>
    ${it?`<span class="own has">You own ${it.qty} · <span class="${s>=it.avg?'up':'down'}">${s>=it.avg?'+':''}${Math.round((s/it.avg-1)*100)}%</span></span>`:''}
-   ${nb&&nb.g>.03?`<span class="own nb">Next turn: ${esc(nb.c.id===S.loc?'here':nb.c.name)} +${Math.round(nb.g*100)}%</span>`:it?'':`<span class="own">${p.unit}</span>`}</button>`;}).join('');
+   ${nb&&nb.g>.03?`<span class="own nb">Next trip: ${esc(nb.c.id===S.loc?'here':nb.c.name)} +${Math.round(nb.g*100)}%</span>`:it?'':`<span class="own">${p.unit}</span>`}</button>`;}).join('');
  const fl=[['all','All'],['mine','My cargo']].concat(dif().hints?[['cheap','Cheap here']]:[]).concat(Object.entries(CATS));
  return viewDeskCard()+`<div class="card loc"><div class="between"><span class="label">You are in</span><span class="flag ${loc.c}">${flagName(loc)}</span></div><h2>${loc.name}</h2><p>${loc.vibe}</p>${dif().hints?hintTags(loc):''}
    <div class="shiftrow"><span>${S.gig?'Done for this stop. Travel or stay to start a new week.':'Need cash? One paid job per stop.'}</span><button class="btn ${S.gig?'':'sun'}" data-act="work" ${S.gig?'disabled':''}>${S.gig?'Worked':`${job().btn} (~${money(shiftPay())})`}</button></div></div>
   <div class="card cargo"><div class="between"><h3 style="font-size:20px">Cargo</h3><span class="label">${used()} / ${cap()} · ${ride().name}</span></div><div class="capbar"><i style="width:${used()/cap()*100}%"></i></div>
-   ${items.length?`<div class="tags">${items.map(([p,it])=>`<button class="tag info" data-sellitem="${p}">${it.qty} ${P(p).name}</button>`).join('')}</div><div class="between"><span class="muted" style="font-size:13px;font-weight:700">Worth here</span><b>${money(cargoValue())}</b></div>`:'<span class="muted" style="font-size:14px;font-weight:700">Empty. Tap any product to see where it sells highest next turn.</span>'}</div>
+   ${items.length?`<div class="tags">${items.map(([p,it])=>`<button class="tag info" data-sellitem="${p}">${it.qty} ${P(p).name}</button>`).join('')}</div><div class="between"><span class="muted" style="font-size:13px;font-weight:700">Worth here</span><b>${money(cargoValue())}</b></div>`:'<span class="muted" style="font-size:14px;font-weight:700">Empty. Tap any product to see where it sells highest next trip.</span>'}</div>
   <div class="sec-title"><h3>${loc.name} market</h3><span class="label">${list.length} products</span></div>
   <div class="mapchips">${fl.map(([k,n])=>`<button class="chip ${UI.filter===k?'on':''}" data-filter="${k}">${n}</button>`).join('')}</div>
-  <div class="mapchips sortrow"><span class="label" style="align-self:center;flex:none">Sort</span>${[['default','Default'],['low','Price: low to high'],['high','Price: high to low'],['profit','Best profit next turn'],['name','A to Z']].map(([k,n])=>`<button class="chip ${srt===k?'on':''}" data-sort="${k}">${n}</button>`).join('')}</div>
+  <div class="mapchips sortrow"><span class="label" style="align-self:center;flex:none">Sort</span>${[['default','Default'],['low','Price: low to high'],['high','Price: high to low'],['profit','Best profit next trip'],['name','A to Z']].map(([k,n])=>`<button class="chip ${srt===k?'on':''}" data-sort="${k}">${n}</button>`).join('')}</div>
   <div class="pgrid">${cards||'<div class="card" style="grid-column:1/-1;text-align:center;color:var(--muted);font-weight:700">Nothing here yet.</div>'}</div>`;
 }
 function nxNote(){const n=S.nx||{},l=[];if(n.fast)l.push('a week faster');if(n.slow)l.push(`${n.slow} week${n.slow>1?'s':''} slower`);if(n.fare&&n.fare!==1)l.push(`${Math.round((n.fare-1)*100)}% pricier`);if(n.fareTo)l.push(`half price to ${C(n.fareTo.c).name}`);
@@ -4541,16 +4624,16 @@ function viewTravel(){
  const map=v==='east'?mapSVG({here:S.loc,sel:UI.sel,hints}):worldSVG({vb:regionVB(v),view:v,here:S.loc,sel:UI.sel,lock:true});
  const dealsIn=c=>S.effects.filter(e=>e.deal&&e.c===c.id).map(e=>`<span class="tag ${e.deal==='glut'?'cheap':'pays'}">${P(e.p).name} ${e.deal==='glut'?dealPct(e):'pays '+dealPct(e)}</span>`).join('');
  return `<div class="card loc"><div class="between"><span class="label">Plan your next trip</span><span class="label">${ride().name}</span></div>
-   <p>Tap a city to see what it will pay for all ${PRODUCTS.length} products when you arrive, and buy straight from the report before you go. Every trip ends the week.</p>
+   <p>Tap a city to see what it will pay for all ${PRODUCTS.length} products when you arrive, and buy straight from the report before you go. Trips take a week or more. Buying and selling uses up days too. When you're done with the year, tap Age +1.</p>
    ${nxNote()}${insured()?`<p class="up" style="margin:0;font-size:13px;font-weight:800">Cargo insured until week ${S.insTo}.</p>`:''}
    ${hasPlane()?'':`<p class="muted" style="margin:0;font-size:13px">Overseas cities need a Cargo Plane. It unlocks at ${TIERS[2].name} rank (${money(TIERS[2].at)} net worth).</p>`}
    <button class="btn wide" data-act="stay">Stay in ${C(S.loc).name} this week (${money(liveCost())} living cost)</button></div>
   <div class="mapchips">${chips}</div>
   <div class="card mapcard">${map}</div>
-  <div class="sec-title"><h3>${v==='world'?'Every city':REGIONS[v]}</h3><span class="label">Best next turn first</span></div>
+  <div class="sec-title"><h3>${v==='world'?'Every city':REGIONS[v]}</h3><span class="label">Best next trip first</span></div>
   <div class="clist">${rows.map(({c,reach,f,w,b})=>`<button class="crow ${reach?'':'lockrow'}" data-city="${c.id}"><span><b>${c.name} <span class="flag ${c.c}">${c.c}</span></b><small>${Math.round(km(S.loc,c.id))} km · ${w} week${w>1?'s':''} · living ${money(liveCost(c.id))}/wk</small></span>
    <span class="fare">${reach?(f?money(f):'Free'):'Locked'}<small>${reach?modeName(S.loc,c.id):'cargo plane'}</small></span>
-   <span class="best"><span class="dline"><span class="dl">Next turn</span>${b.filter(x=>x.g>.03).map(x=>`<span class="tag pays">${x.p.name}${S.inv[x.p.id]?' (yours)':''} +${Math.round(x.g*100)}%</span>`).join('')||'<span class="tag info">No big gains</span>'}</span>${dealsIn(c)?`<span class="dline"><span class="dl">Deals</span>${dealsIn(c)}</span>`:''}</span></button>`).join('')||'<div class="card muted" style="text-align:center">No other cities in this view.</div>'}</div>
+   <span class="best"><span class="dline"><span class="dl">Next trip</span>${b.filter(x=>x.g>.03).map(x=>`<span class="tag pays">${x.p.name}${S.inv[x.p.id]?' (yours)':''} +${Math.round(x.g*100)}%</span>`).join('')||'<span class="tag info">No big gains</span>'}</span>${dealsIn(c)?`<span class="dline"><span class="dl">Deals</span>${dealsIn(c)}</span>`:''}</span></button>`).join('')||'<div class="card muted" style="text-align:center">No other cities in this view.</div>'}</div>
   <div class="card"><div class="sec-title" style="margin-bottom:10px"><h3>Your ride</h3><span class="label">More cargo, more profit</span></div>
    <div style="display:grid;gap:8px">${RIDES.map(r=>{const own=r.id===S.ride,past=RIDES.findIndex(x=>x.id===r.id)<RIDES.findIndex(x=>x.id===S.ride),gated=r.tier&&S.tier<r.tier;
     return `<button class="ride ${own?'own':''} ${r.locked||past||gated?'lock':''}" ${own||past||r.locked?'disabled':''} data-ride="${r.id}"><svg viewBox="0 0 24 24">${RIDE_ICON[r.id]}</svg><span><b>${r.name}</b><small>${(r.id===S.ride?cap():r.cap).toLocaleString()} cargo${r.id==='plane'?' · Capacity scales with your net worth, up to 300,000 units.':''} · ${r.desc}</small></span>
@@ -4565,7 +4648,7 @@ function viewDeals(){
   const badge=(co.owner==='me'?`<span class="badge2 b-mine">Yours${co.listed?` · ${Math.round(keepOf(co)*100)}%`:''}</span>`:co.owner?`<span class="badge2 b-rival">Run by ${esc(first(co.owner))}</span>`:co.listed?'':'<span class="badge2 b-free">For sale</span>')+(co.listed?` <span class="badge2 b-info">Public · ${co.sym}</span>`:'');
   return `<button class="deal" data-co="${co.id}"><span class="logo2" style="background:${col}">${name[0]}</span><span><b>${esc(name)}</b><small>${type} · ${REGIONS[coReg(co.id)]} · earns ~${money(co.val*yld*(co.owner==='me'?keepOf(co):1))}/wk${co.owner==='me'&&co.listed?' for you':''}</small>${badge}</span>
    <span class="rt">${money(co.owner==='me'?co.val*keepOf(co):price)}<small class="${ch>=0?'up':'down'}">${ch>=0?'+':''}${ch.toFixed(1)}%</small></span></button>`;}).join('');
- const intro={life:'Spend your fortune on homes, cars, yachts, jets, islands and more. Homes cut your living costs, jets cut travel costs, and fame boosts your business profits.',stocks:'Buy shares in public companies. Prices move every week with the news, and some pay dividends. Easy to buy and sell, any time.',startups:'Risky bets on young companies. Most fail, some grow 10x, and a few get bought out for a big payday.',cos:'Buy companies, run them, and sell them for a profit. Every turn brings new deals. Investigate before you buy, haggle on price, and watch industry cycles: buy in a slump, sell in a boom.'}[UI.deals];
+ const intro={life:'Spend your fortune on homes, cars, yachts, jets, islands and more. Homes cut your living costs, jets cut travel costs, and fame boosts your business profits.',stocks:'Buy shares in public companies. Prices move every week with the news, and some pay dividends. Easy to buy and sell, any time.',startups:'Risky bets on young companies. Most fail, some grow 10x, and a few get bought out for a big payday.',cos:'Buy companies, run them, and sell them for a profit. Every season brings new deals. Investigate before you buy, haggle on price, and watch industry cycles: buy in a slump, sell in a boom.'}[UI.deals];
  return `<div class="card loc"><span class="label">Invest</span><h2>${{stocks:'Stock market',startups:'Startups',cos:'Companies',life:'Lifestyle'}[UI.deals]}</h2><p>${intro}</p>
    <div class="seg" style="flex-wrap:wrap">${[['cos','Companies'],['stocks','Stocks'],['startups','Startups'],['life','Lifestyle']].map(([k,n])=>`<button class="chip ${UI.deals===k?'on':''}" data-deals="${k}">${n}</button>`).join('')}</div></div>
   ${UI.deals==='stocks'?viewStocks():UI.deals==='life'?viewLife():UI.deals==='cos'?viewMA():`<div class="dgrid">${sts}</div>`}`;
@@ -4804,7 +4887,16 @@ function viewLife(){const mode=UI.luxMode||'shop',mine=lifeIds().map(LF).filter(
  const chips=[['all','All'],...Object.entries(LIFE_CATS)].map(([k,n])=>`<button class="${cat===k?'on':''}" data-lifecat="${k}">${n}</button>`).join('');
  const sorts=[['low','Price: low to high'],['high','Price: high to low'],['afford','What I can afford']].map(([k,n])=>`<button class="${srt===k?'on':''}" data-lifesort="${k}">${n}</button>`).join('');
  return hero+`<div class="luxchips">${chips}</div><div class="luxchips small">${sorts}</div>
-  <div class="luxgrid">${list.map(x=>{const o=S.life[x.id],sp=luxSpecs(x).slice(0,3).map(s=>s[1]).join(' · ');return `<button class="luxcard${o?' owned':''}" data-life="${x.id}">${luxPic(x)}${o?'<span class="luxown">Yours</span>':''}<div class="luxinfo"><small>${LIFE_CATS[x.cat]}</small><b>${esc(x.name)}</b>${sp?`<span class="luxsp">${esc(sp)}</span>`:''}<div class="luxrow"><span class="luxprice">${o?(x.once?'Done':money(o.val)):money(x.price)}</span>${!o&&S.cash>=x.price?'<span class="luxok">You can afford it</span>':''}</div></div></button>`;}).join('')}</div>`;}
+  <div class="shoplist">${list.map(shopRow).join('')}</div>`;}
+const SHOP_ICON={home:'<path d="M3 11l9-7 9 7v9H3z"/><path d="M9 20v-6h6v6"/>',island:'<path d="M2 20c4-3 16-3 20 0z"/><path d="M12 18V9"/><path d="M12 9c-3-3-6-2-7 0 2-1 5-1 7 0zM12 9c3-3 6-2 7 0-2-1-5-1-7 0zM12 9c0-3 2-5 4-5-1 1-2 3-4 5z"/>',yacht:'<path d="M2 15h20l-3 5H5z"/><path d="M6 15v-3h9l3 3M9 12V9h4l2 3"/>',jet:'<path d="M2 13l20-6-6 7 1 6-3-4-4 3 1-5z"/>',car:'<path d="M3 15l2-5h14l2 5v3H3z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',art:'<rect x="3" y="4" width="18" height="16" rx="1"/><path d="M6 17l4-5 3 3 2-2 3 4z"/>',jewel:'<path d="M6 4h12l4 6-10 11L2 10z"/><path d="M2 10h20M9 4l3 6 3-6M12 21V10"/>',team:'<path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4a3 3 0 0 0 3 4M17 6h3a3 3 0 0 1-3 4M12 14v4M8 20h8"/>',fun:'<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>'};
+const SHOP_KEY={home:['Size','Bedrooms'],island:['Size','Islands'],yacht:['Length','Guests'],jet:['Range','Seats'],car:['Horsepower','Top speed'],art:['Painted','Made','Age'],jewel:['Stone','Diamonds','Weight','Case','Emeralds'],team:[],fun:['Duration','Trip']};
+function shopScale(x){const L=LIFE.filter(y=>y.cat===x.cat).sort((a,b)=>a.price-b.price),i=L.indexOf(x);return L.length>1?i/(L.length-1):1;}
+function shopRow(x){const o=S.life[x.id],k=shopScale(x),sz=Math.round(18+k*26),col=LIFE_COL[x.cat]||'#5E6A91',sp=luxSpecs(x),keys=SHOP_KEY[x.cat]||[];
+ const key=keys.map(n=>sp.find(z=>z[0]===n)).filter(Boolean).slice(0,2).map(z=>({Bedrooms:' bed',Guests:' guests',Seats:' seats',Horsepower:' hp',Islands:' islands'}[z[0]]?z[1]+{Bedrooms:' bed',Guests:' guests',Seats:' seats',Horsepower:' hp',Islands:' islands'}[z[0]]:z[1])).join(' · ')||(sp[0]?sp[0][1]:'');
+ const nm=x.name.split(', '),place=nm[1]||'';
+ return `<button class="shoprow${o?' owned':''}" data-life="${x.id}"><span class="shopic" style="--c:${col}"><svg viewBox="0 0 24 24" width="${sz}" height="${sz}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round">${SHOP_ICON[x.cat]||SHOP_ICON.fun}</svg></span>
+  <span class="shopmid"><b>${esc(nm[0])}</b><small>${place?esc(place)+(key?' · ':''):''}${esc(key)}</small></span>
+  <span class="shopr">${o?`<span class="shopown">${x.once?'Done':'Yours'}</span>`:`<b>${money(x.price)}</b>${S.cash>=x.price?'<small class="up">Can buy</small>':''}`}</span></button>`;}
 function openLife(id){const x=LF(id),o=S.life[id],sp=luxSpecs(x);
  openModal(`<div class="luxm">${luxPic(x,'luxbig')}<div class="luxmb"><small class="luxcat">${LIFE_CATS[x.cat]}</small><h2>${esc(x.name)}</h2><div class="luxmprice">${money(o?o.val:x.price)}${o?' <small>worth now</small>':''}</div><p>${x.desc}</p>
   ${sp.length?`<div class="luxspecs">${sp.map(([k,v])=>`<div${v.length>16||k==='Extras'||k==='Includes'?' style="grid-column:1/-1"':''}><small>${esc(k)}</small><b>${esc(v)}</b></div>`).join('')}</div>`:''}
@@ -4899,14 +4991,14 @@ function renderTrade(){
   <input type="range" class="range" id="qtyRange" min="0" max="${max}" value="${TS.n}" aria-label="Quantity">
   <div class="swatches" style="justify-content:center">${chips}</div><div class="recap" id="tRecap"></div>
   <div class="ev-btns"><button class="btn go big" id="tGo" data-tconfirm="1"></button>${backBtn('Cancel')}</div>`}
-  <div style="margin-top:14px"><div class="label">Where it sells highest next turn${dif().acc?' (forecasts can be off a little)':''}</div><div class="rep">${best.map(b=>`<button class="rrow" data-city="${b.c.id}"><span class="flag ${b.c.c}">${b.c.c}</span><span><b>${b.c.id===S.loc?b.c.name+' (stay here)':b.c.name}</b><small>${b.c.id===S.loc?'next week':`${b.w} wk · ${b.f?money(b.f):'free'} fare`}</small></span><span class="pct ${b.v>bh?'up':'down'}">${b.v>bh?'+':''}${Math.round((b.v/bh-1)*100)}%<small>${dif().acc?'~':''}${pr(b.v)}</small></span></button>`).join('')}</div></div>`);
+  <div style="margin-top:14px"><div class="label">Where it sells highest next trip${dif().acc?' (forecasts can be off a little)':''}</div><div class="rep">${best.map(b=>`<button class="rrow" data-city="${b.c.id}"><span class="flag ${b.c.c}">${b.c.c}</span><span><b>${b.c.id===S.loc?b.c.name+' (stay here)':b.c.name}</b><small>${b.c.id===S.loc?'next week':`${b.w} wk · ${b.f?money(b.f):'free'} fare`}</small></span><span class="pct ${b.v>bh?'up':'down'}">${b.v>bh?'+':''}${Math.round((b.v/bh-1)*100)}%<small>${dif().acc?'~':''}${pr(b.v)}</small></span></button>`).join('')}</div></div>`);
  const r=$('#qtyRange');if(r)r.oninput=e=>{TS.n=+e.target.value;tradeNums();};tradeNums();
 }
 function tradeNums(){if(!TS||!$('#tGo'))return;const {p,mode,n}=TS,it=S.inv[p],total=quote(p,n,mode);$('#tqn').textContent=n;$('#qtyRange').value=n;
  let rows=`<div><span>${mode==='buy'?'Total cost':'You get'}</span><b>${money(total)}</b></div><div><span>Cash after</span><b>${money(S.cash+(mode==='buy'?-total:total))}</b></div><div><span>Cargo after</span><b>${used()+(mode==='buy'?n:-n)} / ${cap()}</b></div>`;
  if(mode==='sell'&&it&&n){const pf=total-n*it.avg;rows+=`<div><span>Profit vs what you paid</span><b class="${pf>=0?'up':'down'}">${pf>=0?'+':''}${money(pf)}</b></div>`;}
  if(mode==='buy'&&n){const bb=nextBest(p,6).filter(x=>x.c.id!==S.loc)[0];if(bb){const q=n+(it?it.qty:0),get=fcEst(bb.c.id,p,q,bb.w),paid=total+(it?it.qty*it.avg:0),pf=get-paid-bb.f,drop=1-get/(q*bb.v);
-  rows+=`<div><span>Sell all ${q} in ${bb.c.name} next turn</span><b>~${money(get)}</b></div><div><span>Profit after ${bb.f?'fare':'costs'}</span><b class="${pf>=0?'up':'down'}">${pf>=0?'+':''}${money(pf)}</b></div>${drop>.04?`<div><span class="muted" style="font-size:12px">Selling ${q} at once pushes the price down about ${Math.round(drop*100)}% on average. Split it across cities to get more.</span></div>`:''}`;}}
+  rows+=`<div><span>Sell all ${q} in ${bb.c.name} next trip</span><b>~${money(get)}</b></div><div><span>Profit after ${bb.f?'fare':'costs'}</span><b class="${pf>=0?'up':'down'}">${pf>=0?'+':''}${money(pf)}</b></div>${drop>.04?`<div><span class="muted" style="font-size:12px">Selling ${q} at once pushes the price down about ${Math.round(drop*100)}% on average. Split it across cities to get more.</span></div>`:''}`;}}
  $('#tRecap').innerHTML=rows;const g=$('#tGo');g.disabled=!n;g.textContent=n?`${mode==='buy'?'Buy':'Sell'} ${n} for ${money(total)}`:'Choose an amount';}
 function openDest(id){
  UI.sel=id;const c=C(id),reach=canReach(S.loc,id),f=reach?fareNow(S.loc,id):0,w=tripWeeks(S.loc,id),border=C(S.loc).c!==c.c;
@@ -4914,7 +5006,7 @@ function openDest(id){
  const cv=Object.entries(S.inv).reduce((a,[p,it])=>a+quote(p,it.qty,'sell'),0),cvThere=Object.entries(S.inv).reduce((a,[p,it])=>a+fcEst(id,p,it.qty,w),0),can=S.cash>=f;
  const dl=S.effects.filter(e=>e.deal&&e.c===id),acc=dif().acc?Math.round(dif().acc*100*(w>1?1.5:1)):0;
  if(UI.tab==='travel')renderGame();
- openModal(`<span class="evtag t-info">Next turn forecast</span><h2>${c.name} <span class="flag ${c.c}">${flagName(c)}</span></h2><p>${c.vibe}</p>
+ openModal(`<span class="evtag t-info">Trip forecast</span><h2>${c.name} <span class="flag ${c.c}">${flagName(c)}</span></h2><p>${c.vibe}</p>
   <div class="recap"><div><span>Trip</span><b>${Math.round(km(S.loc,id))} km · ${w} week${w>1?'s':''}${reach?` by ${modeName(S.loc,id)}`:''}${ferry(S.loc,id)?' + ferry':''}</b></div><div><span>Fare</span><b>${reach?(f?money(f):'Free'):'Needs a Cargo Plane'}</b></div><div><span>Living costs there</span><b>${money(liveCost(id))}/week</b></div>${border?'<div><span>Border crossing</span><b>Customs may charge duty</b></div>':''}
    ${used()?`<div><span>Your cargo there</span><b class="${cvThere>=cv?'up':'down'}">${acc?'~':''}${money(cvThere)} <small class="muted">(${money(cv)} here)</small></b></div>`:''}</div>
   ${dl.length?`<div class="dsum">${dl.map(e=>`<div class="dline"><span class="tag ${e.deal==='glut'?'cheap':'pays'}">${e.deal==='glut'?'Super cheap':'Paying top dollar'}</span><b>${P(e.p).name} ${dealPct(e)}</b><small class="${e.weeks>w?'up':'down'}" style="font-weight:800">${e.weeks>w?`still on when you arrive (${e.weeks} wk left)`:'ends before you get there'}</small></div>`).join('')}</div>`:''}
@@ -4995,8 +5087,8 @@ function amNums(){if(!AM||!$('#amN'))return;$('#amN').textContent=money(AM.n);$(
  else{const o=AM.op;rows=`<div><span>Cash after</span><b>${money(S.cash+(o==='dep'||o==='repay'?-AM.n:AM.n))}</b></div>${o==='dep'||o==='wd'?`<div><span>Savings after</span><b>${money(S.savings+(o==='dep'?AM.n:-AM.n))}</b></div>`:`<div><span>Loan after</span><b>${money(S.debt+(o==='borrow'?AM.n:-AM.n))}</b></div>`}`;$('#amGo').disabled=!AM.n;}
  $('#amRecap').innerHTML=rows;}
 function showMenu(){openModal(`<span class="evtag t-week">Menu</span><h2>${esc(S.name)}</h2><p>${TRAITS[S.trait].name} · ${DIFF[S.diff].label} · Week ${S.week}</p>${syncLine()}
- <div class="card" style="display:grid;gap:10px;margin:6px 0 4px;box-shadow:none;background:var(--surface2)"><div class="between"><b>Go back in time</b><span class="label">${HIST.length} turn${HIST.length===1?'':'s'} saved</span></div>
-  <p class="muted" style="margin:0;font-size:13px">Made a bad call? Undo the last few turns. The game keeps your last 10.</p>
+ <div class="card" style="display:grid;gap:10px;margin:6px 0 4px;box-shadow:none;background:var(--surface2)"><div class="between"><b>Go back in time</b><span class="label">${HIST.length} step${HIST.length===1?'':'s'} saved</span></div>
+  <p class="muted" style="margin:0;font-size:13px">Made a bad call? Undo the last few seasons. The game keeps your last 10.</p>
   <div class="btnrow" style="grid-template-columns:repeat(3,1fr);display:grid">${[1,2,10].map(n=>`<button class="btn" style="background:var(--surface);box-shadow:var(--shadow)" data-rewind="${n}" ${HIST.length<n?'disabled':''}>${n} turn${n>1?'s':''}</button>`).join('')}</div>${S.rewinds?`<span class="label">Times you've gone back: ${S.rewinds}</span>`:''}</div>
  <div class="ev-btns"><button class="btn go" data-close>Back to the game</button><button class="btn" data-act="sound">${sndOn?'Sound: on':'Sound: off'}</button>${S?`<button class="btn" data-act="allnews">${S.allNews?'Trip news: show everything':'Trip news: choices only'}</button>`:''}${ACC_ON&&AUTH?'<button class="btn" data-act="account">Account</button>':''}<button class="btn" data-act="replayIntro">Replay the tutorial</button><button class="btn" data-act="home">Title screen</button><button class="btn" data-act="askNew" style="color:var(--loss)">Start a new game</button></div>`);}
 function askNew(){openModal(`<span class="evtag t-choice">New game</span><h2>Start a new game?</h2><p>This game is kept in Saved games, so you can come back to it any time.</p><div class="ev-btns"><button class="btn go" data-act="newKeep">Start a new game</button><button class="btn" data-act="slots">See saved games</button><button class="btn" data-close>Keep playing</button></div>`);}
@@ -5005,7 +5097,7 @@ function askNew(){openModal(`<span class="evtag t-choice">New game</span><h2>Sta
 function show(id){['title','create','game'].forEach(s=>$('#scr-'+s).hidden=s!==id);window.scrollTo(0,0);}
 function goTitle(){closeModal();titleLooks=Array.from({length:7},randLook);renderTitle();show('title');reconcile(true);syncSlots().then(()=>{if(!$('#scr-title').hidden)renderTitle();});}
 function goCreate(){closeModal();cfg={name:'',look:{...randLook(),acc:[]},trait:'street',diff:'normal'};renderCreate();show('create');}
-function startGame(s){S=s;if(S.effects&&!S.effects.some(e=>e.deal)){makeDeals();save();}shownCash=null;UI.tab='market';UI.lastTab=null;closeModal();show('game');renderGame();if(!S.intro){S.intro=true;save();playScenes(introScene());}}
+function startGame(s){S=s;if(S.effects&&!S.effects.some(e=>e.deal)){makeDeals();save();}shownCash=null;UI.tab='market';UI.lastTab=null;closeModal();show('game');renderGame();if(!S.intro&&!S.kid){S.intro=true;save();playScenes(introScene());}}
 document.addEventListener('click',e=>{
  {const bt=e.target.closest('button');if(bt&&!bt.disabled&&!bt.dataset.tconfirm)sfx('tap');}
  if(e.target.closest('#stage'))return;
@@ -5033,7 +5125,7 @@ document.addEventListener('click',e=>{
  else if(d.slotdelgo){delSlot(d.slotdelgo);}
  else if(d.act==='continue'){const s=loadSave();if(s)startGame(s);else goCreate();}
  else if(d.act==='start'){if(!cfg.name)cfg.name='The Kid';resetHist();startGame(newGame(cfg));save();}
- else if(d.rewind){const n=+d.rewind,w=histWeek(n);openModal(`<span class="evtag t-choice">Go back in time</span><h2>Back to week ${w}?</h2><p>This undoes your last ${n===1?'turn':n+' turns'}. Every trade, trip and event since week ${w} is wiped, and you pick up from there.</p><div class="ev-btns"><button class="btn go big" data-rewindgo="${n}">Yes, go back</button><button class="btn" data-close>Keep playing</button></div>`);}
+ else if(d.rewind){const n=+d.rewind,w=histWeek(n);openModal(`<span class="evtag t-choice">Go back in time</span><h2>Back to week ${w}?</h2><p>This undoes your last ${n===1?'trip or year':n+' trips or years'}. Every trade, trip and event since week ${w} is wiped, and you pick up from there.</p><div class="ev-btns"><button class="btn go big" data-rewindgo="${n}">Yes, go back</button><button class="btn" data-close>Keep playing</button></div>`);}
  else if(d.rewindgo){closeModal();rewind(+d.rewindgo);}
  else if(d.mapv){UI.mapv=d.mapv;UI.sel=null;renderGame();const a=document.querySelector('.mapchips .chip.on');if(a)a.scrollIntoView({inline:'center',block:'nearest'});}
  else if(d.act==='randLook'){cfg.look=randLook();renderCreate();}
@@ -5056,9 +5148,12 @@ document.addEventListener('click',e=>{
  else if(d.tset){TS.n=clamp(+d.tset,0,tMax());tradeNums();}
  else if(d.tconfirm){const {p,mode,n,back}=TS;closeModal();if(n)mode==='buy'?buy(p,n):sell(p,n);if(back&&!SC)openDest(back);}
  else if(d.act==='work')work();
+ else if(d.kid)kidClick(d);
  else if(d.city)openDest(d.city);
  else if(d.go){closeModal();travel(d.go);}
  else if(d.act==='stay'){closeModal();travel(S.loc);}
+ else if(d.act==='ageup'){closeModal();ageConfirm();}
+ else if(d.act==='ageupgo'){closeModal();ageUp();}
  else if(d.ride)buyRide(d.ride);
  else if(d.stock)openStock(d.stock);
  else if(d.skmode)openStock(SK.sym,d.skmode);
