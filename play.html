@@ -661,6 +661,8 @@ CITIES.push(
  {id:'sydney',name:'Sydney',c:'AU',region:'oc',lat:-33.87,lon:151.21,live:85,style:'palms',sky:['#A9D8FF','#F2F9FF'],vibe:'Harbour city down under. Copper and wool are cheap, surf gear sells.',m:{copper:.6,wool:.55,surf:1.2,sunscreen:1.4,gpu:1.2,whisky:1.3}}
 );
 
+const ALL_CITIES=CITIES.slice(),KEEP_CITIES=['boston','newyork','miami','toronto','stjohns','la','london','paris','dubai','tokyo'];
+for(let i=CITIES.length-1;i>=0;i--)if(!KEEP_CITIES.includes(CITIES[i].id))CITIES.splice(i,1);
 const CATS={food:'Food & Drink',tech:'Tech',fashion:'Fashion',collect:'Collectibles',luxury:'Luxury',sport:'Home & Sport',commod:'Commodities'};
 const OLD_CAT={bagels:'food',syrup:'food',coffee:'food',iceberg:'food',energy:'food',beer:'food',lobster:'food',cases:'tech',earbuds:'tech',watches:'tech',consoles:'tech',laptops:'tech',sneakers:'fashion',handbags:'fashion',jackets:'fashion',vinyl:'collect',comics:'collect',art:'collect',tickets:'collect',jewelry:'luxury',gold:'luxury',vwatch:'luxury',sunscreen:'sport',books:'sport',merch:'sport',hockey:'sport'};
 const OLD_REG={syrup:{eu:1.4,as:1.6,oc:1.4,sa:1.3,af:1.3},lobster:{eu:1.35,as:1.6,af:1.2,sa:1.2},hockey:{eu:1.15,as:1.3,sa:1.5,af:1.5,oc:1.3},bagels:{eu:1.2,as:1.3},jackets:{af:.8,sa:.85},sunscreen:{af:1.1,oc:1.3},iceberg:{as:1.25,af:1.2},books:{af:1.2,sa:1.15},coffee:{eu:1.2,as:1.15},gold:{as:1.1},laptops:{as:.9,sa:1.2,af:1.25},consoles:{as:.9,sa:1.25,af:1.25},earbuds:{as:.85},cases:{as:.8}};
@@ -956,7 +958,7 @@ function money(n){const neg=n<0;n=Math.abs(n);let s;if(n>=1e12)s=(n/1e12).toFixe
 function pr(n){return n<100?'$'+n.toFixed(2):'$'+Math.round(n).toLocaleString('en-US');}
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const first=n=>String(n).split(' ')[0];
-const PM={},CM={};PRODUCTS.forEach(p=>PM[p.id]=p);CITIES.forEach(c=>CM[c.id]=c);
+const PM={},CM={};PRODUCTS.forEach(p=>PM[p.id]=p);ALL_CITIES.forEach(c=>CM[c.id]=c);
 const P=id=>PM[id];
 const C=id=>CM[id];
 const mOf=(c,p)=>{const cc=CM[c],pp=PM[p];return (cc.m[p]||1)*((pp.reg&&pp.reg[cc.region])||1);};
@@ -1229,12 +1231,13 @@ const BG={
 let S=null,UI={tab:'market',filter:'all',deals:'cos'},cfg=null;
 let titleLooks=Array.from({length:7},randLook);
 /* ---- stay on the latest version: reload when a newer build is live ---- */
-const BUILD='20261106010709';
+const BUILD='20261111011037';
 async function checkBuild(){try{const t=await fetch('/play?v='+Date.now(),{cache:'no-store'}).then(r=>r.text());const m=t.match(new RegExp('^const BUI'+'LD=.(\\d+).','m'));let last=0;try{last=+sessionStorage.getItem('bbReload')||0;}catch(e){}if(m&&+m[1]>+BUILD&&Date.now()-last>60000){try{sessionStorage.setItem('bbReload',Date.now());}catch(e){}if(S)save();setTimeout(()=>location.reload(),600);if(typeof toast==='function')toast('New update found. Loading it now…');}}catch(e){}}
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkBuild();});setInterval(checkBuild,5*60*1000);setTimeout(checkBuild,4000);
 function save(){if(S)S.savedAt=Date.now();try{localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}cloudQueue();}
 function loadSave(){try{const r=localStorage.getItem(SAVE_KEY);if(!r)return null;const s=JSON.parse(r);return s&&s.v===2?ensureStocks(s):null;}catch(e){return null;}}
-function ensureStocks(s){if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);ensureMs2(s);ensureDyn(s);ensureCast(s);ensureTax(s);return s;}
+function ensureCities(s){if(s.loc&&!KEEP_CITIES.includes(s.loc)&&CM[s.loc]){const a=CM[s.loc];s.loc=CITIES.slice().sort((x,y)=>Math.hypot(x.lat-a.lat,x.lon-a.lon)-Math.hypot(y.lat-a.lat,y.lon-a.lon))[0].id;}}
+function ensureStocks(s){ensureCities(s);if(!s.stk){s.stk=STOCKS.map(([sym,,,p])=>{const q=+(p*Math.exp(gauss()*.05)).toFixed(2);return {sym,p:q,p0:q,last:q,hist:[q]};});s.idx=[1000];}s.shares=s.shares||{};ensureWorld(s);if(s.cos)ensureCos(s);s.shorts=s.shorts||{};s.sshock=s.sshock||{};s.ssym=s.ssym||{};ensureBiz(s);ensureMA(s);ensureFam(s);ensureTime(s);ensureRE(s);ensureFam2(s);ensureLegacy(s);ensureMissions(s);ensureMs2(s);ensureDyn(s);ensureCast(s);ensureTax(s);return s;}
 function clearSave(){try{localStorage.removeItem(SAVE_KEY);}catch(e){}}
 /* ===================== SOUND ===================== */
 const SND_KEY='billionbro_sound';let sndOn=true;try{sndOn=localStorage.getItem(SND_KEY)!=='off';}catch(e){}
@@ -1504,7 +1507,8 @@ const tripWeeks0=(a,b)=>{if(a===b)return 1;const d=km(a,b);if(hasPlane()||airlif
 const tripWeeks=(a,b)=>{const w=tripWeeks0(a,b);return nxOn(a,b)?Math.max(1,w+(S.nx.slow||0)-(S.nx.fast||0)):w;};
 const modeName=(a,b)=>a&&b&&airlift(a,b)?'flight':({bus:'bus',van:'van',truck:'truck',plane:'cargo plane'})[ride().mode];
 function report(c,p){const real=sellAt(c,p);const a=dif().acc;if(!a)return real;return real*(1+(hash(S.week+c+p)*2-1)*a);}
-function maxBuy(p){const space=cap()-used(),k=1+IMP(p);let qty=0,cost=0,unit=buyP(p);const u0=unit;while(qty<space&&cost+unit<=S.cash){cost+=unit;qty++;unit=stepU(unit,u0,k);}return qty;}
+function tripReserve(){let best=Infinity;CITIES.forEach(c=>{if(c.id===S.loc||!canReach(S.loc,c.id))return;const v=fareNow(S.loc,c.id)+liveCost(c.id)*tripWeeks(S.loc,c.id);if(v<best)best=v;});return best===Infinity?0:Math.ceil(best);}
+function maxBuy(p){const space=cap()-used(),k=1+IMP(p),bud=S.cash-tripReserve();let qty=0,cost=0,unit=buyP(p);const u0=unit;while(qty<space&&cost+unit<=bud){cost+=unit;qty++;unit=stepU(unit,u0,k);}return qty;}
 function quote(p,n,mode){let t=0,u=mode==='buy'?buyP(p):sellP(p);const k=mode==='buy'?1+IMP(p):1-IMP(p);const u0=u;for(let i=0;i<n;i++){t+=u;u=mode==='buy'?stepU(u,u0,k):stepD(u,u0,k);}return t;}
 function giveItems(p,qty,cost){const it=S.inv[p]||{qty:0,avg:0};it.avg=(it.avg*it.qty+cost)/(it.qty+qty);it.qty+=qty;S.inv[p]=it;}
 function payOut(amount){let a=amount;const c=Math.min(S.cash,a);S.cash-=c;a-=c;if(a>0){const s=Math.min(S.savings,a);S.savings-=s;a-=s;}if(a>0)S.debt+=a;return a;}
@@ -1646,7 +1650,10 @@ function travel(dest){
  else if(S.debt>creditLimit()*.75&&S.debt>200)scenes.push({who:'okonkwo',mood:'worried',tag:['t-bad','Bank'],pages:[`Your loan is ${money(S.debt)} and your limit is ${money(creditLimit())}. That's getting close.`,`Once you're over your limit I can't lend you more, and interest keeps piling on. Please pay some back soon.`]});
  finishTrip(scenes,trip,recap,from,stay,weeks);
 }
-function finishTrip(scenes,trip,recap,from,stay,weeks){
+const KEEP_TAGS=['Game over','The end','You won the bet','In memoriam','The will','New rank','Mission complete','Mission failed','Badge earned','Legacy','Founder of Mars','Ruler of the World','World hunger ended','Bank','Warning','Foreclosure','Missed mortgage','Margin call','Seized','Kidnapping','Extortion','Baby','How to play','Graduation night'];
+function trimScenes(scenes,trip){if(S.allNews)return scenes;let n=0;const out=scenes.filter(sc=>{if(sc===trip||!sc)return !!sc;if(sc.choices&&sc.choices.length>=2)return true;if(sc.tag&&KEEP_TAGS.includes(sc.tag[1]))return true;
+ if(sc.onShow&&sc.onShow!==confetti)sc.onShow();const pg=(sc.pages||[])[0];const t=pg&&(typeof pg==='string'?pg:pg.text);if(t&&n<6&&!(sc.tag&&sc.tag[1]==='The news')){addLog(S,t.length>140?t.slice(0,137)+'...':t,sc.tag&&sc.tag[0]==='t-bad'?'bad':sc.tag&&sc.tag[0]==='t-good'?'good':'');n++;}return false;});return out;}
+function finishTrip(scenes,trip,recap,from,stay,weeks){scenes=trimScenes(scenes,trip);
  S.lastRecap=recap.filter(r=>r[1]!==null&&Math.abs(r[1])>=1).map(r=>[r[0],Math.round(r[1])]);
  const nw=netWorth();S.peak=Math.max(S.peak,nw);S.bestRank=Math.min(S.bestRank,myRank());
  const dn=C(S.loc).name;
@@ -1830,7 +1837,7 @@ const EVENTS=[
  {id:'breakdown',tone:'bad',w:.5,cond:c=>!c.stay&&ride().mode!=='bus',run:()=>{const a=Math.round(rnd(150,350)*(ride().mode==="truck"?2.5:1)*Math.max(1,scale()*.3)*tr().bad);payOut(a);addLog(S,`Breakdown repairs: ${money(a)}.`,'bad');return{who:'fran',mood:'neutral',pages:[`Your ${ride().name.toLowerCase()} broke down on the highway. Lucky for you, I fix engines too.`,`Total damage: ${money(a)}.`]};}},
  {id:'storm',tone:'bad',cond:()=>used()>0,run:()=>{const p=pick(Object.keys(S.inv)),it=S.inv[p],l=Math.max(1,Math.round(it.qty*.12*tr().bad));it.qty-=l;if(it.qty<=0)delete S.inv[p];addLog(S,`Storm ruined ${l} ${P(p).name.toLowerCase()}.`,'bad');return{who:'mo',mood:'worried',pages:[`Did you get caught in that storm? Your bags are soaked.`,`${l} of your ${P(p).name.toLowerCase()} are ruined.`]};}},
  {id:'bulk',tone:'choice',w:2,cond:()=>S.cash>40&&cap()-used()>=3,run:()=>{const opts=PRODUCTS.filter(x=>midPrice(S,S.loc,x.id)*.7*2<=S.cash);if(!opts.length)return null;const p=pick(opts);
-   const unit=midPrice(S,S.loc,p.id)*.7,qty=Math.min(Math.max(10,Math.round(cap()/4)),cap()-used(),Math.floor(S.cash/unit));if(qty<2)return null;const cost=unit*qty;
+   const unit=midPrice(S,S.loc,p.id)*.7,qty=Math.min(Math.max(10,Math.round(cap()/4)),cap()-used(),Math.floor((S.cash-tripReserve())/unit));if(qty<2)return null;const cost=unit*qty;
    return{who:'sal',mood:'happy',pages:[`Hey kid! I got ${qty} ${p.name.toLowerCase()} I gotta move today.`,`${money(cost)} for the lot. That's about 30% under what they go for here. In or out?`],choices:[
     {label:`Buy all ${qty.toLocaleString()} ${p.name.toLowerCase()} for ${money(cost)}`,go:true,run:()=>{if(S.cash<cost||cap()-used()<qty)return{who:'sal',mood:'neutral',pages:['Changed your mind? Somebody else will grab it.']};S.cash-=cost;giveItems(p.id,qty,cost);addLog(S,`Bulk deal: ${qty} ${p.name.toLowerCase()} for ${money(cost)}.`,'good');return{who:'sal',mood:'happy',pages:[`Pleasure doing business. Now go find a city that pays more.`]};}},
     {label:'Pass',run:()=>({who:'sal',mood:'neutral',pages:['Your loss, kid.']})}]};}},
@@ -4991,7 +4998,7 @@ function showMenu(){openModal(`<span class="evtag t-week">Menu</span><h2>${esc(S
  <div class="card" style="display:grid;gap:10px;margin:6px 0 4px;box-shadow:none;background:var(--surface2)"><div class="between"><b>Go back in time</b><span class="label">${HIST.length} turn${HIST.length===1?'':'s'} saved</span></div>
   <p class="muted" style="margin:0;font-size:13px">Made a bad call? Undo the last few turns. The game keeps your last 10.</p>
   <div class="btnrow" style="grid-template-columns:repeat(3,1fr);display:grid">${[1,2,10].map(n=>`<button class="btn" style="background:var(--surface);box-shadow:var(--shadow)" data-rewind="${n}" ${HIST.length<n?'disabled':''}>${n} turn${n>1?'s':''}</button>`).join('')}</div>${S.rewinds?`<span class="label">Times you've gone back: ${S.rewinds}</span>`:''}</div>
- <div class="ev-btns"><button class="btn go" data-close>Back to the game</button><button class="btn" data-act="sound">${sndOn?'Sound: on':'Sound: off'}</button>${ACC_ON&&AUTH?'<button class="btn" data-act="account">Account</button>':''}<button class="btn" data-act="replayIntro">Replay the tutorial</button><button class="btn" data-act="home">Title screen</button><button class="btn" data-act="askNew" style="color:var(--loss)">Start a new game</button></div>`);}
+ <div class="ev-btns"><button class="btn go" data-close>Back to the game</button><button class="btn" data-act="sound">${sndOn?'Sound: on':'Sound: off'}</button>${S?`<button class="btn" data-act="allnews">${S.allNews?'Trip news: show everything':'Trip news: choices only'}</button>`:''}${ACC_ON&&AUTH?'<button class="btn" data-act="account">Account</button>':''}<button class="btn" data-act="replayIntro">Replay the tutorial</button><button class="btn" data-act="home">Title screen</button><button class="btn" data-act="askNew" style="color:var(--loss)">Start a new game</button></div>`);}
 function askNew(){openModal(`<span class="evtag t-choice">New game</span><h2>Start a new game?</h2><p>This game is kept in Saved games, so you can come back to it any time.</p><div class="ev-btns"><button class="btn go" data-act="newKeep">Start a new game</button><button class="btn" data-act="slots">See saved games</button><button class="btn" data-close>Keep playing</button></div>`);}
 
 /* ===================== NAV / INPUT ===================== */
@@ -5076,6 +5083,7 @@ document.addEventListener('click',e=>{
  else if(d.act==='starter')playScenes([starterLoanScene()]);
  else if(d.act==='menu')showMenu();
  else if(d.act==='sound'){setSound(!sndOn);t.textContent=sndOn?'Sound: on':'Sound: off';}
+ else if(d.act==='allnews'){S.allNews=!S.allNews;save();t.textContent=S.allNews?'Trip news: show everything':'Trip news: choices only';}
  else if(['signin','signup','forgot','account','recoveryDone','signout','askDelete','keepCloud','keepLocal'].includes(d.act))accountAct(d.act,t);
  else if(d.act==='replayIntro')playScenes(introScene());
  else if(d.act==='home')goTitle();
